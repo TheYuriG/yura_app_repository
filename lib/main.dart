@@ -31,6 +31,7 @@ final WebScraper tt = WebScraper("https://www.truetrophies.com/");
 final WebScraper exo = WebScraper("https://www.exophase.com/");
 
 //? This will make a request to PSNProfiles to retrieve a small clickable profile card
+//! Add the trophy rarity division and the main stats (Games played, Games Completes, etc)
 Future<Map> psnpInfo(String user) async {
   await psnp.loadWebPage('/$user');
   Map<String, dynamic> parsedData = {};
@@ -112,39 +113,39 @@ class Debouncer {
 }
 
 //? ALl image assets are declared in this Map so they can be easily referenced on Image.asset() functions
-Map<String, String> img = {
-  "oldLevel": "assets/ps_old_level.png",
-  "bronze1": "assets/bronzelevel1.png",
-  "bronze2": "assets/bronzelevel2.png",
-  "bronze3": "assets/bronzelevel3.png",
-  "silver1": "assets/silverlevel1.png",
-  "silver2": "assets/silverlevel2.png",
-  "silver3": "assets/silverlevel3.png",
-  "gold1": "assets/goldlevel1.png",
-  "gold2": "assets/goldlevel2.png",
-  "gold3": "assets/goldlevel3.png",
-  "platinumlevel": "assets/platinumlevel.png",
-  "bronzeOut": "assets/bronze_outline.png",
-  "bronzeFill": "assets/bronze_fill.png",
-  "silverOut": "assets/silver_outline.png",
-  "silverFill": "assets/silver_fill.png",
-  "goldOut": "assets/gold_outline.png",
-  "goldFill": "assets/gold_fill.png",
-  "platOut": "assets/platinum_outline.png",
-  "platFill": "assets/platinum_fill.png",
-  "ps": "assets/playstation.png",
+final Map<String, String> img = {
+  "oldLevel": "images/ps_level_old.png",
+  "bronze1": "images/bronzelevel1.png",
+  "bronze2": "images/bronzelevel2.png",
+  "bronze3": "images/bronzelevel3.png",
+  "silver1": "images/silverlevel1.png",
+  "silver2": "images/silverlevel2.png",
+  "silver3": "images/silverlevel3.png",
+  "gold1": "images/goldlevel1.png",
+  "gold2": "images/goldlevel2.png",
+  "gold3": "images/goldlevel3.png",
+  "platinumlevel": "images/platinumlevel.png",
+  "bronzeOut": "images/bronze_outline.png",
+  "bronzeFill": "images/bronze_fill.png",
+  "silverOut": "images/silver_outline.png",
+  "silverFill": "images/silver_fill.png",
+  "goldOut": "images/gold_outline.png",
+  "goldFill": "images/gold_fill.png",
+  "platOut": "images/platinum_outline.png",
+  "platFill": "images/platinum_fill.png",
+  "ps": "images/playstation.png",
   "allTrophies": "trophy_cluster.png",
-  "r1": "assets/rarity1.png",
-  "r2": "assets/rarity2.png",
-  "r3": "assets/rarity3.png",
-  "r4": "assets/rarity4.png",
-  "r5": "assets/rarity5.png",
-  "r6": "assets/rarity6.png",
-  "r7": "assets/rarity7.png",
-  "ps3": "assets/ps3.png",
-  "ps4": "assets/ps4.png",
-  "ps5": "assets/ps5.png",
-  "psv": "assets/psv.png",
+  "r1": "images/rarity1.png",
+  "r2": "images/rarity2.png",
+  "r3": "images/rarity3.png",
+  "r4": "images/rarity4.png",
+  "r5": "images/rarity5.png",
+  "r6": "images/rarity6.png",
+  "r7": "images/rarity7.png",
+  "ps3": "images/ps3.png",
+  "ps4": "images/ps4.png",
+  "ps5": "images/ps5.png",
+  "psv": "images/psv.png",
 };
 
 class MyApp extends StatelessWidget {
@@ -197,6 +198,7 @@ class _MyHomePageState extends State<MyHomePage> {
           "black": "Before Dawn"
         }
       };
+
       //? This changes language to Brazilian Portuguese
       if (settings.get("language") == "pt-br") {
         avaiableText["home"] = {
@@ -219,7 +221,7 @@ class _MyHomePageState extends State<MyHomePage> {
       return avaiableText;
     }
 
-    Map<String, Map<String, Color>> themeSelector = {
+    final Map<String, Map<String, Color>> themeSelector = {
       "primary": {
         "pink": Colors.pink[300],
         "black": Colors.black87,
@@ -230,18 +232,21 @@ class _MyHomePageState extends State<MyHomePage> {
         "pink": Colors.pink[50],
         "black": Colors.indigo[100],
         "blue": Colors.blue[100],
-        "orange": Colors.red[100],
+        "orange": Colors.red[50],
       }
     };
+
     Map<String, Map<String, String>> regionalText = regionSelect();
 
     //? Option for light text
     TextStyle textLight = TextStyle(
       color: themeSelector["secondary"][settings.get("theme")],
+      fontSize: 16,
     );
     //? Option for dark text
     TextStyle textDark = TextStyle(
       color: themeSelector["primary"][settings.get("theme")],
+      fontSize: 16,
     );
 
     TextStyle textDarkBold = TextStyle(
@@ -560,31 +565,21 @@ class _MyHomePageState extends State<MyHomePage> {
         body: Center(
           child: Container(
             decoration: BoxDecoration(
-                gradient: LinearGradient(
-                    begin: Alignment.topRight,
-                    end: Alignment.bottomLeft,
-                    stops: [
-                  0,
-                  0.25,
-                  0.75,
-                  1
-                ],
-                    colors: [
-                  Colors.white,
-                  themeSelector["secondary"][settings.get("theme")],
-                  themeSelector["secondary"][settings.get("theme")],
-                  Colors.white
-                ])),
+                gradient: RadialGradient(colors: [
+              Colors.white,
+              themeSelector["secondary"][settings.get("theme")],
+            ])),
             width: MediaQuery.of(context).size.width,
             child: Column(
               //? Max main axis size to use the entire avaiable soace left from the appBar and Safe Area.
               mainAxisSize: MainAxisSize.max,
               //? Using spaceBetween as alignment so i can have the Translation / Discord buttons and
-              //?version to always display on the bottom. An empry SizedBox is created at the start of the
+              //?version to always display on the bottom. An empty SizedBox is created at the start of the
               //? widget's list to space out properly
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 SizedBox(),
+                //? This is the stuff that shows up when you haven't set a PSN ID.
                 if (settings.get("psnID") == null)
                   Column(
                     children: [
@@ -766,6 +761,8 @@ class _MyHomePageState extends State<MyHomePage> {
                       ),
                     ],
                   ),
+                //? Cards are displayed when you set a PSN ID with success.
+                //! Needs error handling for bad IDs.
                 if (settings.get("psnID") != null)
                   Expanded(
                     child: ListView(
@@ -825,9 +822,27 @@ class _MyHomePageState extends State<MyHomePage> {
                                                   )
                                                 ]),
                                             SizedBox(),
-                                            Text(
-                                                "${snapshot.data['level']} (${snapshot.data['levelProgress']})",
-                                                style: textDark),
+                                            //? Level, level progress and level icon
+                                            //! Update this with the actual current icons and also add the foruma for the old leveling system.
+                                            Padding(
+                                              padding:
+                                                  const EdgeInsets.all(5.0),
+                                              child: Row(
+                                                children: [
+                                                  Image.asset(
+                                                    img['oldLevel'],
+                                                    height: 25,
+                                                  ),
+                                                  SizedBox(
+                                                    width: 5,
+                                                  ),
+                                                  Text(
+                                                      "${snapshot.data['level']} (${snapshot.data['levelProgress']})",
+                                                      style: textDark),
+                                                ],
+                                              ),
+                                            ),
+                                            //? This row contains the trophy icons and the quantity the user has acquired of them
                                             Row(
                                               mainAxisSize: MainAxisSize.max,
                                               mainAxisAlignment:
@@ -836,7 +851,11 @@ class _MyHomePageState extends State<MyHomePage> {
                                               children: [
                                                 Row(
                                                   children: [
-                                                    //Image.asset(platinum),
+                                                    Image.asset(img['platFill'],
+                                                        height: 15),
+                                                    SizedBox(
+                                                      width: 5,
+                                                    ),
                                                     Text(
                                                       snapshot.data['platinum'],
                                                       style: textDark,
@@ -848,7 +867,11 @@ class _MyHomePageState extends State<MyHomePage> {
                                                 ),
                                                 Row(
                                                   children: [
-                                                    //Image.asset(gold),
+                                                    Image.asset(img['goldFill'],
+                                                        height: 15),
+                                                    SizedBox(
+                                                      width: 5,
+                                                    ),
                                                     Text(
                                                       snapshot.data['gold'],
                                                       style: textDark,
@@ -860,7 +883,12 @@ class _MyHomePageState extends State<MyHomePage> {
                                                 ),
                                                 Row(
                                                   children: [
-                                                    //Image.asset(silver),
+                                                    Image.asset(
+                                                        img['silverFill'],
+                                                        height: 15),
+                                                    SizedBox(
+                                                      width: 5,
+                                                    ),
                                                     Text(
                                                       snapshot.data['silver'],
                                                       style: textDark,
@@ -872,7 +900,12 @@ class _MyHomePageState extends State<MyHomePage> {
                                                 ),
                                                 Row(
                                                   children: [
-                                                    //Image.asset(bronze),
+                                                    Image.asset(
+                                                        img['bronzeFill'],
+                                                        height: 15),
+                                                    SizedBox(
+                                                      width: 5,
+                                                    ),
                                                     Text(
                                                       snapshot.data['bronze'],
                                                       style: textDark,
@@ -882,9 +915,14 @@ class _MyHomePageState extends State<MyHomePage> {
                                                 SizedBox(
                                                   width: 20,
                                                 ),
+                                                //! Need a better icon for the summary of trophies. Don't want to use img['trophyCluster']
                                                 Row(
                                                   children: [
-                                                    //Image.asset(total),
+                                                    Image.asset(img['ps'],
+                                                        height: 20),
+                                                    SizedBox(
+                                                      width: 5,
+                                                    ),
                                                     Text(
                                                       snapshot.data['total'],
                                                       style: textDark,

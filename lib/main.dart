@@ -65,10 +65,16 @@ Future<Map> psnpInfo(String user) async {
         []).forEach((element) {
       parsedData['about'] = element['title'];
     });
-    //? Retrieves avatar
+    //? Retrieves avatar if user doesn't have PS+
+    psnp.getElement('#user-bar > div.avatar > img', ['src']).forEach((element) {
+      parsedData['avatar'] = element['attributes']['src'];
+      parsedData['psPlus'] = false;
+    });
+    //? Retrieves avatar if user has PS+
     psnp.getElement('#user-bar > div.avatar > div > img', ['src']).forEach(
         (element) {
       parsedData['avatar'] = element['attributes']['src'];
+      parsedData['psPlus'] = true;
     });
     //? Retrieves country
     psnp.getElement('img#bar-country', ['class']).forEach((element) {
@@ -605,6 +611,7 @@ Future<Map> trueTrophiesInfo(String user) async {
       parsedData['avatar'] =
           "https://www.truetrophies.com/" + element['attributes']['src'];
     });
+    print(parsedData);
     //? Retrieves PSN Level and TrueTrophy level
     tt.getElement(
         '#frm > div.page.tt.limit > div.main.middle > main > div.panel-header.t.gamer > div.scores > span:nth-child(2)',
@@ -617,6 +624,7 @@ Future<Map> trueTrophiesInfo(String user) async {
             int.parse(element['title'].replaceAll(",", ""));
       }
     });
+    print(parsedData);
     //! Retrieves trophy data
     //? Retrieves Total trophies
     tt.getElement(
@@ -661,6 +669,7 @@ Future<Map> trueTrophiesInfo(String user) async {
           .replaceAll(",", "")
           .trim());
     });
+    print(parsedData);
     //! Retrieves Profile overall statistics
     //? Retrieves total ganes
     tt.getElement(
@@ -688,6 +697,7 @@ Future<Map> trueTrophiesInfo(String user) async {
                 .toStringAsFixed(3);
       }
     });
+    print(parsedData);
     //? Retrieves TrueTrophy Ratio
     tt.getElement(
         '#frm > div.page.tt.limit > div.main.middle > main > div.panel-header.t.gamer > div.badges > div > div > a',
@@ -712,16 +722,6 @@ Future<Map> trueTrophiesInfo(String user) async {
             .trim());
       }
     });
-    //? Retrieves World Rank
-    tt.getElement(
-        '#frm > div.page.tt.limit > div.main.middle > main > div.panel-header.t.gamer > div.badges > div > div > a',
-        ['title']).forEach((element) {
-      if (element['attributes']['title'] != null &&
-          element['attributes']['title'].contains("Rank:")) {
-        parsedData['worldRank'] =
-            int.parse(element['title'].replaceAll(",", "").trim());
-      }
-    });
     //? Retrieves TrueScore
     tt.getElement(
         '#frm > div.page.tt.limit > div.main.middle > main > div.panel-header.t.gamer > div.scores > span:first-child',
@@ -733,7 +733,7 @@ Future<Map> trueTrophiesInfo(String user) async {
     parsedData = {};
     settings.put('trueTrophies', false);
   }
-  // print(parsedData);
+  print(parsedData);
   settings.put('trueTrophiesDump', parsedData);
   return parsedData;
 }
@@ -812,7 +812,7 @@ Map<String, Map<String, String>> regionSelect() {
           "There is no privacy agreement for you to accept. Yura takes none of your information, everything you see on screen is exclusively processed on your device and belongs to no one else other than you.\n\nThis might change in the future if some sort of leaderboard gets to be implemented, but you will be prompted if you wish to share before any of your PSN data gets sent. Until then, enjoy your total anonymity."
     },
     //? Since this is just the version number, this doesn't get translated regardless of chosen language.
-    "version": {"version": "v0.6.1"}
+    "version": {"version": "v0.6.2"}
   };
   //? This changes language to Brazilian Portuguese
   if (settings.get("language") == "br") {
@@ -3209,17 +3209,6 @@ class _MyHomePageState extends State<MyHomePage> {
                                                       horizontal: 10.0),
                                               child: Text(
                                                 "${regionalText["home"]["completion"]}\n${snapshot.data['completion'].toString()}%\n(+${snapshot.data['completionIncrease']} ➡️ ${snapshot.data['completion'].ceil().toString()}%)",
-                                                style: textSelection(""),
-                                                textAlign: TextAlign.center,
-                                              ),
-                                            ),
-                                            Padding(
-                                              padding:
-                                                  const EdgeInsets.symmetric(
-                                                      vertical: 0,
-                                                      horizontal: 10.0),
-                                              child: Text(
-                                                "${regionalText["home"]["worldRank"]}\n${snapshot.data['worldRank'] != null ? snapshot.data['worldRank'].toString() + " " : "❌"}${snapshot.data['worldUp'] ?? ""}",
                                                 style: textSelection(""),
                                                 textAlign: TextAlign.center,
                                               ),

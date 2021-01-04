@@ -1,9 +1,9 @@
 name: yura_trophy
-description: A new Flutter project.
+description: An app to track your progress as a PSN trophy hunter.
 
 publish_to: 'none'
 
-version: 1.0.0+1
+version: 0.4.1
 
 environment:
   sdk: ">=2.7.0 <3.0.0"
@@ -13,8 +13,10 @@ dependencies:
     sdk: flutter
   country_icons: ^1.1.1
   cupertino_icons: ^1.0.2
+  flutter_easyloading: ^2.2.2
   hive: ^1.4.4+1
   hive_flutter: ^0.3.1
+  intl: ^0.16.1
   url_launcher: ^5.7.10
   web_scraper: ^0.0.8
 

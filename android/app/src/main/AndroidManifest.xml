@@ -1,7 +1,7 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.example.yura_trophy">
    <application
-        android:label="yura_trophy"
+        android:label="Yura"
         android:icon="@mipmap/ic_launcher">
         <activity
             android:name=".MainActivity"

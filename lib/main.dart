@@ -5,6 +5,9 @@ import 'package:hive_flutter/hive_flutter.dart';
 import 'package:intl/intl.dart';
 import 'dart:async';
 import 'package:url_launcher/url_launcher.dart';
+// ignore: unused_import
+import 'package:flutter_easyloading/flutter_easyloading.dart';
+import 'package:flutter_spinkit/flutter_spinkit.dart';
 
 import 'package:web_scraper/web_scraper.dart';
 
@@ -772,7 +775,8 @@ Map<String, Map<String, String>> regionSelect() {
       "oldTrophies": "Use pre-PS5 trophy icons",
       "newTrophies": "Use post-PS5 trophy icons",
       "languagePicker": "Change Yura's language:",
-      "websitePicker": "Choose what sites to enable/disable:",
+      "websitePicker": "Choose which sites to enable/disable:",
+      "loadingPicker": "Choose what loading icon do you want to use:",
       "themePicker": "Change Yura's theme:",
       'refresh': "Refresh trophy data",
       "pink": "Wednesday",
@@ -844,6 +848,7 @@ Map<String, Map<String, String>> regionSelect() {
       "newTrophies": "Use ícones posteriores ao PS5",
       "languagePicker": "Mude o idioma de Yura:",
       "websitePicker": "Escolha quais sites ativar/desativar:",
+      "loadingPicker": "Escolha qual ícone de carregamento deseja usar:",
       "themePicker": "Mude o tema de Yura:",
       'refresh': "Atualizar informação de troféus",
       "pink": "Quarta-Feira",
@@ -1048,6 +1053,59 @@ Tooltip trophyType(String type, {quantity = -1, TextStyle style}) {
   );
 }
 
+//? This function will return a loading selector, you just need to provide the theme
+Widget loadingSelector([String loader, String color = "light"]) {
+  if (loader == null) {
+    loader = settings.get('loading');
+  }
+  Color pickedColor = themeSelector['secondary'][settings.get('theme')];
+  if (color == "dark") {
+    pickedColor = themeSelector['primary'][settings.get('theme')];
+  }
+  if (loader == "fadingCircle") {
+    return SpinKitFadingCircle(
+      itemBuilder: (BuildContext context, int index) {
+        return DecoratedBox(
+          decoration: BoxDecoration(color: pickedColor),
+        );
+      },
+    );
+  } else if (loader == "fadingFour") {
+    return SpinKitFadingFour(
+      itemBuilder: (BuildContext context, int index) {
+        return DecoratedBox(
+          decoration: BoxDecoration(
+            color: pickedColor,
+          ),
+        );
+      },
+    );
+  } else if (loader == "fadingGrid") {
+    return SpinKitFadingGrid(
+      itemBuilder: (BuildContext context, int index) {
+        return DecoratedBox(
+          decoration: BoxDecoration(
+            color: pickedColor,
+          ),
+        );
+      },
+    );
+  } else if (loader == "cubeGrid") {
+    return SpinKitCubeGrid(
+      itemBuilder: (BuildContext context, int index) {
+        return DecoratedBox(
+          decoration: BoxDecoration(
+            color: pickedColor,
+          ),
+        );
+      },
+    );
+  }
+  return SpinKitPouringHourglass(
+    color: pickedColor,
+  );
+}
+
 //? This class is created so the search for a profile can wait until the user stops typing.
 class Debouncer {
   final int milliseconds;
@@ -1084,36 +1142,45 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
+  //? These are the bits of information, they are processed by each individual function if there is no error and
+  //? then stored on the database on the user's device. This is done to save resources and not request every time
+  //? the user performs an update to the UI.
   Map psnpDump = settings.get('psnpDump');
   Map psntlDump = settings.get('psntlDump');
   Map trueTrophiesDump = settings.get('trueTrophiesDump');
   Map exophaseDump = settings.get('exophaseDump');
 
+//? This function will update every enabled profile in order
   void updateProfiles() async {
+    //? First it changes the information on every document to be as updating, so every block displays a spinning icon
     setState(() {
       psnpDump = {'update': true};
       psntlDump = {'update': true};
       exophaseDump = {'update': true};
       trueTrophiesDump = {'update': true};
     });
+    //? then, if it's enabled, it updates PSNP first while waiting the result to not start the other websites yet.
     if (settings.get("psnp")) {
       psnpDump = await psnpInfo(settings.get("psnID"));
       setState(() {
         psnpDump = settings.get("psnpDump");
       });
     }
+    //? then, if it's enabled, it updates PSN Trophy Leaders and waits the result.
     if (settings.get("psntl")) {
       psntlDump = await psntlInfo(settings.get("psnID"));
       setState(() {
         psntlDump = settings.get("psntlDump");
       });
     }
+    //? then, if it's enabled, it updates Exophase and waits the result.
     if (settings.get("exophase")) {
       exophaseDump = await exophaseInfo(settings.get("psnID"));
       setState(() {
         exophaseDump = settings.get("exophaseDump");
       });
     }
+    //? then, if it's enabled, it updates True Trophies and waits the result.
     if (settings.get("trueTrophies")) {
       trueTrophiesDump = await trueTrophiesInfo(settings.get("psnID"));
       setState(() {
@@ -1134,11 +1201,6 @@ class _MyHomePageState extends State<MyHomePage> {
         borderRadius: BorderRadius.all(Radius.circular(15)),
         border: Border.all(color: Colors.white, width: 3),
         boxShadow: [BoxShadow(color: Colors.black, blurRadius: 5)]);
-
-    //! Remove this at a later update.
-    if (settings.get('language') == "en-us") {
-      settings.put('language', 'us');
-    }
 
     return SafeArea(
       child: Scaffold(
@@ -1454,6 +1516,143 @@ class _MyHomePageState extends State<MyHomePage> {
                             });
                           }),
                     ),
+                  ],
+                ),
+                //? Permite que o usuário selecione estilo de carregamento o usuário quer visualizar no aplicativo
+                Padding(
+                  padding: const EdgeInsets.all(10.0),
+                  child: Center(
+                    child: Text(
+                      regionalText["settings"]["loadingPicker"],
+                      style: textSelection("textDark"),
+                    ),
+                  ),
+                ),
+                Wrap(
+                  spacing: 5,
+                  children: [
+                    InkWell(
+                        child: Container(
+                            padding: EdgeInsets.all(0),
+                            width: 60,
+                            height: 60,
+                            decoration: BoxDecoration(
+                              //? To paint the border, we check the value of the settings for this website is true.
+                              //? If it's false or null (never set), we will paint red.
+                              border: Border.all(
+                                  color:
+                                      settings.get('loading') == "fadingCircle"
+                                          ? Colors.green
+                                          : Colors.red,
+                                  width: 5),
+                              borderRadius:
+                                  BorderRadius.all(Radius.circular(5)),
+                            ),
+                            child: loadingSelector("fadingCircle", "dark")),
+                        onTap: () {
+                          setState(() {
+                            if (settings.get('loading') != "fadingCircle") {
+                              settings.put('loading', "fadingCircle");
+                            }
+                          });
+                        }),
+                    InkWell(
+                        child: Container(
+                            padding: EdgeInsets.all(0),
+                            width: 60,
+                            height: 60,
+                            decoration: BoxDecoration(
+                              //? To paint the border, we check the value of the settings for this website is true.
+                              //? If it's false or null (never set), we will paint red.
+                              border: Border.all(
+                                  color: settings.get('loading') == "fadingFour"
+                                      ? Colors.green
+                                      : Colors.red,
+                                  width: 5),
+                              borderRadius:
+                                  BorderRadius.all(Radius.circular(5)),
+                            ),
+                            child: loadingSelector("fadingFour", "dark")),
+                        onTap: () {
+                          setState(() {
+                            if (settings.get('loading') != "fadingFour") {
+                              settings.put('loading', "fadingFour");
+                            }
+                          });
+                        }),
+                    InkWell(
+                        child: Container(
+                            padding: EdgeInsets.all(0),
+                            width: 60,
+                            height: 60,
+                            decoration: BoxDecoration(
+                              //? To paint the border, we check the value of the settings for this website is true.
+                              //? If it's false or null (never set), we will paint red.
+                              border: Border.all(
+                                  color: settings.get('loading') == "fadingGrid"
+                                      ? Colors.green
+                                      : Colors.red,
+                                  width: 5),
+                              borderRadius:
+                                  BorderRadius.all(Radius.circular(5)),
+                            ),
+                            child: loadingSelector("fadingGrid", "dark")),
+                        onTap: () {
+                          setState(() {
+                            if (settings.get('loading') != "fadingGrid") {
+                              settings.put('loading', "fadingGrid");
+                            }
+                          });
+                        }),
+                    InkWell(
+                        child: Container(
+                            padding: EdgeInsets.all(0),
+                            width: 60,
+                            height: 60,
+                            decoration: BoxDecoration(
+                              //? To paint the border, we check the value of the settings for this website is true.
+                              //? If it's false or null (never set), we will paint red.
+                              border: Border.all(
+                                  color: settings.get('loading') == "cubeGrid"
+                                      ? Colors.green
+                                      : Colors.red,
+                                  width: 5),
+                              borderRadius:
+                                  BorderRadius.all(Radius.circular(5)),
+                            ),
+                            child: loadingSelector("cubeGrid", "dark")),
+                        onTap: () {
+                          setState(() {
+                            if (settings.get('loading') != "cubeGrid") {
+                              settings.put('loading', "cubeGrid");
+                            }
+                          });
+                        }),
+                    InkWell(
+                        child: Container(
+                            padding: EdgeInsets.all(0),
+                            width: 60,
+                            height: 60,
+                            decoration: BoxDecoration(
+                              //? To paint the border, we check the value of the settings for this website is true.
+                              //? If it's false or null (never set), we will paint red.
+                              border: Border.all(
+                                  color: settings.get('loading') ==
+                                          "pouringHourglass"
+                                      ? Colors.green
+                                      : Colors.red,
+                                  width: 5),
+                              borderRadius:
+                                  BorderRadius.all(Radius.circular(5)),
+                            ),
+                            child: loadingSelector("pouringHourglass", "dark")),
+                        onTap: () {
+                          setState(() {
+                            if (settings.get('loading') != "pouringHourglass") {
+                              settings.put('loading', "pouringHourglass");
+                            }
+                          });
+                        }),
                   ],
                 ),
                 //? Permite que o usuário troque o tema do aplicativo.
@@ -2229,9 +2428,7 @@ class _MyHomePageState extends State<MyHomePage> {
                                   );
                                 } //? Display loading circle while Future is being processed
                                 else {
-                                  return Center(
-                                      child: CircularProgressIndicator(
-                                          backgroundColor: Colors.transparent));
+                                  return Center(child: loadingSelector());
                                 }
                               },
                             ),
@@ -2486,9 +2683,7 @@ class _MyHomePageState extends State<MyHomePage> {
                                 }
                                 //? Display loading circle while Future is being processed
                                 else {
-                                  return Center(
-                                      child: CircularProgressIndicator(
-                                          backgroundColor: Colors.transparent));
+                                  return Center(child: loadingSelector());
                                 }
                               },
                             ),
@@ -2753,9 +2948,7 @@ class _MyHomePageState extends State<MyHomePage> {
                                   );
                                 } //? Display loading circle while Future is being processed
                                 else {
-                                  return Center(
-                                      child: CircularProgressIndicator(
-                                          backgroundColor: Colors.transparent));
+                                  return Center(child: loadingSelector());
                                 }
                               },
                             ),
@@ -3058,9 +3251,7 @@ class _MyHomePageState extends State<MyHomePage> {
                                   );
                                 } //? Display loading circle while Future is being processed
                                 else {
-                                  return Center(
-                                      child: CircularProgressIndicator(
-                                          backgroundColor: Colors.transparent));
+                                  return Center(child: loadingSelector());
                                 }
                               },
                             ),
@@ -3068,13 +3259,15 @@ class _MyHomePageState extends State<MyHomePage> {
                       ],
                     ),
                   ),
+                //? This is the bottom row with the buttons for Translation/Discord/Version/Privacy
                 Padding(
                   padding: const EdgeInsets.all(10.0),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceAround,
                     children: [
-                      RawMaterialButton(
-                        materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      InkWell(
+                        highlightColor: Colors.transparent,
+                        splashColor: Colors.transparent,
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
@@ -3088,7 +3281,7 @@ class _MyHomePageState extends State<MyHomePage> {
                                 style: textSelection("textDark")),
                           ],
                         ),
-                        onPressed: () => showDialog(
+                        onTap: () => showDialog(
                           context: context,
                           builder: (context) => Center(
                             child: Container(
@@ -3174,8 +3367,9 @@ class _MyHomePageState extends State<MyHomePage> {
                           ),
                         ),
                       ),
-                      RawMaterialButton(
-                        materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      InkWell(
+                        highlightColor: Colors.transparent,
+                        splashColor: Colors.transparent,
                         hoverColor: Colors.transparent,
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
@@ -3186,15 +3380,16 @@ class _MyHomePageState extends State<MyHomePage> {
                             Text("Discord", style: textSelection("textDark")),
                           ],
                         ),
-                        onPressed: () async {
+                        onTap: () async {
                           String discordURL = "https://discord.gg/j55v7pD";
                           if (await canLaunch(discordURL)) {
                             await launch(discordURL);
                           }
                         },
                       ),
-                      RawMaterialButton(
-                        materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      InkWell(
+                        highlightColor: Colors.transparent,
+                        splashColor: Colors.transparent,
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
@@ -3208,7 +3403,7 @@ class _MyHomePageState extends State<MyHomePage> {
                                 style: textSelection("textDark")),
                           ],
                         ),
-                        onPressed: () => showDialog(
+                        onTap: () => showDialog(
                             context: context,
                             builder: (context) {
                               //TODO Versioning waypoint
@@ -3338,10 +3533,10 @@ class _MyHomePageState extends State<MyHomePage> {
                                                               .connectionState ==
                                                           ConnectionState
                                                               .waiting)
-                                                        CircularProgressIndicator(
-                                                            backgroundColor:
-                                                                Colors
-                                                                    .transparent),
+                                                        loadingSelector(
+                                                            settings
+                                                                .get('loading'),
+                                                            "dark"),
                                                       if (snapshot.connectionState ==
                                                               ConnectionState
                                                                   .done &&
@@ -3484,8 +3679,9 @@ class _MyHomePageState extends State<MyHomePage> {
                               });
                             }),
                       ),
-                      RawMaterialButton(
-                        materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      InkWell(
+                        highlightColor: Colors.transparent,
+                        splashColor: Colors.transparent,
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
@@ -3498,7 +3694,7 @@ class _MyHomePageState extends State<MyHomePage> {
                                 style: textSelection("textDark")),
                           ],
                         ),
-                        onPressed: () => showDialog(
+                        onTap: () => showDialog(
                           context: context,
                           builder: (context) => Center(
                             child: Container(
@@ -3560,7 +3756,6 @@ class _MyHomePageState extends State<MyHomePage> {
                           ),
                         ),
                       ),
-                      // if ()
                     ],
                   ),
                 )

@@ -38,15 +38,28 @@ Box settings = Hive.box("settings");
 final WebScraper psnp = WebScraper("https://psnprofiles.com/");
 //? Scraper for PSN Trophy Leaders
 final WebScraper psntl = WebScraper("https://psntrophyleaders.com/");
-//? Scraper for True Trophies
-final WebScraper tt = WebScraper("https://www.truetrophies.com/");
 //? Scraper for Exophase
 final WebScraper exophase = WebScraper("https://www.exophase.com/");
+//? Scraper for True Trophies
+final WebScraper tt = WebScraper("https://www.truetrophies.com/");
+//? Scraper for PSN 100%
+final WebScraper psn100 = WebScraper("https://psn100.net/");
 
 //? This will make a request to PSNProfiles to retrieve a small clickable profile card
 Future<Map> psnpInfo(String user) async {
   await psnp.loadWebPage('/$user');
   Map<String, dynamic> parsedData = {};
+  // TODO PSNP routing
+  //? https://psnprofiles.com/
+  //! parsedData['psnID']
+  //? ?ajax=1&completion=
+  //! all / incomplete / platinum-only / complete
+  //? &order=
+  //! last-played / percent / last-trophy / a-z
+  //? &pf=
+  //! all / psvr / vita / ps3 / ps4 / ps5
+  //? &page=
+  //! 1
   try {
     //! Retrieves basic profile information, like avatar, about me, PSN ID, level, etc
     //? Retrieves PSN ID
@@ -251,6 +264,27 @@ Future<Map> psnpInfo(String user) async {
 Future<Map> psntlInfo(String user) async {
   await psntl.loadWebPage('/user/view/$user');
   Map<String, dynamic> parsedData = {};
+  // TODO PSNTL trophy log routing
+  //? To get trophy log by rarity, make a HTTP POST request to
+  //! https://psntrophyleaders.com/user/get_rare_trophies
+  //? and as body, send the following
+  //! {earned: earnedNumber, page: pageNumber, platform: platformNumber, psnid: psnIDrequested, rare: rareNumber, trophy_sort: EITHER "percent_earned-desc" OR "percent_earned-asc", type: typeNumber}
+  //? earnedNumber is a binary choice if you want to display earned trophies or unearned trophies
+  //? earned trophies = 1, unearned trophies = 0
+  //? pageNumber is the range of trophies you wanna fetch. every page has a max of 50 trophies, so just search for (trophyNumber/50).ceil
+  //? platformNumber is a number from 0 to 17 where you have to add up the numbers to get which platforms you want added.
+  //? vita = 1, ps3 = 2, ps4 = 4, ps5 = 8. sending 0 means sending no platform and therefore you are dumb
+  //? psnIDrequested is the PSN ID you want to pull trophies from, pretty self explanatory
+  //? rareNumber is like platformNumber, but ranging from 0 to 127
+  //? common = 1, slightly common = 2, uncommon = 4, rare = 8, very rare = 16, ultra rare = 32, prestige = 64. sending 0 means sending no rarity and therefore you are dumb
+  //? to have it noted down, these are the rarity ranges:
+  //? common = 50,00% - 100,00%, slightly common = 35,00% - 49,99%, uncommon = 20,00% - 34,99%,
+  //? rare = 10,00%- 19,99%, very rare = 5,00% - 9,99%, ultra rare = 1,00% - 4,99%, prestige = 0,00% - 0,99%
+  //? trophy_sort is an optional body field, but there is no reason not to use it and make yourself do the manual calculation
+  //? the 2 most relevant options are percent_earned-desc (high % to low %) and percent_earned-asc (low % to high %)
+  //? lastly, typeNumber like platformNumber, provide the number which is the sum of the types you want to have displayed
+  //? bronze = 1, silver = 2, gold = 4, platinum = 8, sending 0 means sending no type and therefore you are dumb
+
   try {
     //! Retrieves basic profile information, like avatar, about me, PSN ID, level, etc
     //? Retrieves PSN ID
@@ -425,11 +459,15 @@ Future<Map> psntlInfo(String user) async {
   return parsedData;
 }
 
-//? This will make a request to PSN Trophy Leaders to retrieve a small clickable profile card
+//? This will make a request to Exophase to retrieve a small clickable profile card
 Future<Map> exophaseInfo(String user) async {
   await exophase.loadWebPage('psn/user/$user/');
   Map<String, dynamic> parsedData = {};
   try {
+    // TODO exophase routing
+    // https://api.exophase.com/public/player/(data-playerid)/game/(data-game)/earned
+    // data-game = #app > div > div.row.col-game-information.pb-3
+    // data-playerid = #app > div > section > div
     //! Retrieves basic profile information, like avatar, about me, PSN ID, level, etc
     //? Retrieves PSN ID
     exophase.getElement(
@@ -578,11 +616,25 @@ Future<Map> exophaseInfo(String user) async {
   return parsedData;
 }
 
-//? This will make a request to PSN Trophy Leaders to retrieve a small clickable profile card
+//? This will make a request to True Trophies to retrieve a small clickable profile card
 Future<Map> trueTrophiesInfo(String user) async {
   await tt.loadWebPage('gamer/$user/');
   Map<String, dynamic> parsedData = {};
   try {
+    // TODO True Trophies routing
+    //? True Trophies games list:
+    //? https://www.truetrophies.com/gamer/
+    //! ${parsedData['psnID']}
+    //? /gamecollection?executeformfunction&function=AjaxList&params=oGameCollection%7C%26ddlSortBy%3DLastunlock%26ddlDLCInclusionSetting%3D
+    //! "DLCIOwn" or "NoDLC" or "AllDLC"
+    //? %26ddlPlatformIDs%3D%26sddOwnerShipStatusIDs%3D%26sddPlayStatusIDs%3D%26ddlContestStatus%3DAny%20status%26ddlGenreIDs%3D%26sddGameMediaID%3D%20%26ddlStartedStatus%3D0%26asdGamePropertyID%3D-1%26GameView%3DoptImageView%26chkColTitleimage%3DTrue%26chkColTitlename%3DTrue%26chkColPlatform%3DTrue%26chkColSiteScore%3DTrue%26chkColItems%3DTrue%26chkColCompletionpercentage%3DTrue%26chkColMyrating%3DTrue%26chkColLastunlock%3DTrue%26chkColOwnershipstatus%3DTrue%26chkColPlaystatus%3DTrue%26chkColNotforcontests%3DTrue%26txtBaseComparisonGamerID%3D13566%26oGameCollection_Order%3DLastunlock%26oGameCollection_Page%3D
+    //! "1" leave oage as 1 if you are going to request all of the games as shown below
+    //? %26oGameCollection_ItemsPerPage%3D
+    //! ${parsedData['games'].toString()}
+    //? %26oGameCollection_ShowAll%3DFalse%26txtGamerID%3D
+    //! ${parsedData['gamerUniqueIDnumber']} this can be found in several profile links, including the user flag and the user buttons below their trophy count
+    //? %26txtGameRegionID%3D1%26txtUseAchievementsForProgress%3DTrue
+
     //! Retrieves basic profile information, like avatar, about me, PSN ID, level, etc
     //? Retrieves PSN ID
     tt.getElement(
@@ -738,8 +790,167 @@ Future<Map> trueTrophiesInfo(String user) async {
   return parsedData;
 }
 
+//? This will make a request to PSN 100% to retrieve a small clickable profile card
+Future<Map> psn100Info(String user) async {
+  await psn100.loadWebPage('player/$user');
+  Map<String, dynamic> parsedData = {};
+  try {
+    //! Retrieves basic profile information, like avatar, about me, PSN ID, level, etc
+    //? Retrieves PSN ID
+    psn100.getElement('body > main > div > div:nth-child(1) > div.col-8 > h1',
+        []).forEach((element) {
+      parsedData['psnID'] = element['title'].trim();
+      if (parsedData['psnID'] != user) {
+        settings.put('psnID', parsedData['psnID']);
+      }
+    });
+    if (parsedData['psnID'] == null) {
+      throw Error;
+    }
+    //? Retrieves PSN country
+    psn100.getElement(
+        'body > main > div > div:nth-child(1) > div.col-2.text-right > img',
+        ['src']).forEach((element) {
+      parsedData['country'] = element['attributes']['src']
+          .replaceAll("/img/country/", "")
+          .replaceAll(".svg", "")
+          .trim();
+    });
+    //? Retrieves PSN avatar
+    psn100.getElement(
+        'body > main > div > div:nth-child(1) > div:nth-child(1) > div > img:nth-child(1)',
+        ['src']).forEach((element) {
+      parsedData['avatar'] =
+          'https://psn100.net/' + element['attributes']['src'];
+    });
+    //? Retrieves PSN Level progress first and then the level itself
+    //? This is done because there is no individual DIV for the level, so you gotta
+    //? fetch both and then remove the progress text from the level
+    psn100.getElement(
+        'body > main > div.container > div:nth-child(3) > div:first-child > div',
+        []).forEach((element) {
+      parsedData['levelProgress'] = element['title'].trim();
+    });
+    //? Retrieves PSN Level
+    psn100.getElement(
+        'body > main > div.container > div:nth-child(3) > div:first-child',
+        []).forEach((element) {
+      parsedData['level'] = int.parse(element['title']
+          .replaceAll(parsedData['levelProgress'], "")
+          .replaceAll(",", ""));
+    });
+    //! Retrieves trophy data
+    //? Retrieves Total trophies
+    psn100.getElement(
+        'body > main > div.container > div:nth-child(3) > div:nth-child(11)',
+        []).forEach((element) {
+      // print(element);
+      parsedData['total'] =
+          int.parse(element['title'].replaceAll(",", "").trim());
+    });
+    //? Retrieves bronze trophies
+    psn100.getElement(
+        'body > main > div.container > div:nth-child(3) > div:nth-child(3)',
+        []).forEach((element) {
+      parsedData['bronze'] =
+          int.parse(element['title'].replaceAll(",", "").trim());
+    });
+    //? Retrieves silver trophies
+    psn100.getElement(
+        'body > main > div.container > div:nth-child(3) > div:nth-child(5)',
+        []).forEach((element) {
+      parsedData['silver'] =
+          int.parse(element['title'].replaceAll(",", "").trim());
+    });
+    //? Retrieves gold trophies
+    psn100.getElement(
+        'body > main > div.container > div:nth-child(3) > div:nth-child(7)',
+        []).forEach((element) {
+      parsedData['gold'] =
+          int.parse(element['title'].replaceAll(",", "").trim());
+    });
+    //? Retrieves platinum trophies
+    psn100.getElement(
+        'body > main > div.container > div:nth-child(3) > div:nth-child(9)',
+        []).forEach((element) {
+      parsedData['platinum'] =
+          int.parse(element['title'].replaceAll(",", "").trim());
+    });
+    //! Retrieves Profile overall statistics
+    //? Retrieves total ganes
+    psn100.getElement(
+        'body > main > div > div:nth-child(5) > div:first-child > h5',
+        []).forEach((element) {
+      parsedData['games'] =
+          int.parse(element['title'].replaceAll(",", "").trim());
+    });
+    //? Retrieves complete ganes
+    psn100.getElement(
+        'body > main > div > div:nth-child(5) > div:nth-child(3) > h5',
+        []).forEach((element) {
+      parsedData['complete'] =
+          int.parse(element['title'].replaceAll(",", "").trim());
+      parsedData['incomplete'] = parsedData['games'] - parsedData['complete'];
+      parsedData['completePercentage'] =
+          (parsedData['complete'] / parsedData['games'] * 100)
+              .toStringAsFixed(3);
+      parsedData['incompletePercentage'] =
+          (parsedData['incomplete'] / parsedData['games'] * 100)
+              .toStringAsFixed(3);
+    });
+    //? Retrieves completion
+    psn100.getElement(
+        'body > main > div > div:nth-child(5) > div:nth-child(5) > h5',
+        []).forEach((element) {
+      parsedData['completion'] =
+          element['title'].replaceAll(" average completion", "").trim();
+    });
+    //? Retrieves unearned trophies
+    psn100.getElement(
+        'body > main > div > div:nth-child(5) > div:nth-child(7) > h5',
+        []).forEach((element) {
+      parsedData['unearned'] =
+          int.parse(element['title'].replaceAll(",", "").trim());
+    });
+    //? Retrieves world rank by trophy points
+    psn100.getElement(
+        'body > main > div > div:nth-child(5) > div:nth-child(9) > h5 > a:first-child',
+        []).forEach((element) {
+      parsedData['worldRank'] =
+          int.parse(element['title'].replaceAll(",", "").trim());
+    });
+    //? Retrieves world rank by rarity
+    psn100.getElement(
+        'body > main > div > div:nth-child(5) > div:nth-child(9) > h5 > a:nth-child(3)',
+        []).forEach((element) {
+      parsedData['worldRarity'] =
+          int.parse(element['title'].replaceAll(",", "").trim());
+    });
+    //? Retrieves country rank by points
+    psn100.getElement(
+        'body > main > div > div:nth-child(5) > div:nth-child(11) > h5 > a:first-child',
+        []).forEach((element) {
+      parsedData['countryRank'] =
+          int.parse(element['title'].replaceAll(",", "").trim());
+    });
+    //? Retrieves country rank by rarity
+    psn100.getElement(
+        'body > main > div > div:nth-child(5) > div:nth-child(11) > h5 > a:nth-child(3)',
+        []).forEach((element) {
+      parsedData['countryRarity'] =
+          int.parse(element['title'].replaceAll(",", "").trim());
+    });
+  } catch (e) {
+    parsedData = {};
+    settings.put('psn100', false);
+  }
+  // print(parsedData);
+  settings.put('psn100Dump', parsedData);
+  return parsedData;
+}
+
 //? This function contains all translated strings to be used.
-//? If a language isn't fully supported, it will use the english words instead. TODO translation text waypoint
+//? If a language isn't fully supported, it will use the english words instead. TODO Translation waypoint
 Map<String, Map<String, String>> regionSelect() {
   //? By default, this loads Yura in English. This is done so new updates can be released without needing
   //? to wait for updated translation. Yura will use english text on those new features while a language patch isn't done
@@ -757,8 +968,9 @@ Map<String, Map<String, String>> regionSelect() {
       "hours": "Tracked\nHours:",
       "exp": "Exp\nEarned:",
       "unearned": "Unearned\nTrophies:",
-      "countryRank": "Country\nRank:",
       "worldRank": "World\nRank:",
+      "countryRarity": "Country by\nRarity:",
+      "countryRank": "Country\nRank:",
       "mimic":
           "Number of PSN Trophy Leaders tracked profiles that also share this avatar",
       "standard": "Standard\nRank:",
@@ -783,7 +995,7 @@ Map<String, Map<String, String>> regionSelect() {
       "orange": "Nature's Will",
       "blue": "Deep Ocean",
       "black": "Before Dawn",
-      "white": "Death by Contrast",
+      "white": "Dog Vision",
       "boredom": "Death by Boredom",
       "removePSN": "Remove the saved PSN ID?",
     },
@@ -812,7 +1024,7 @@ Map<String, Map<String, String>> regionSelect() {
           "There is no privacy agreement for you to accept. Yura takes none of your information, everything you see on screen is exclusively processed on your device and belongs to no one else other than you.\n\nThis might change in the future if some sort of leaderboard gets to be implemented, but you will be prompted if you wish to share before any of your PSN data gets sent. Until then, enjoy your total anonymity."
     },
     //? Since this is just the version number, this doesn't get translated regardless of chosen language.
-    "version": {"version": "v0.6.2"}
+    "version": {"version": "v0.7.3"}
   };
   //? This changes language to Brazilian Portuguese
   if (settings.get("language") == "br") {
@@ -830,6 +1042,7 @@ Map<String, Map<String, String>> regionSelect() {
       "exp": "Exp\nAcumulada:",
       "unearned": "Troféus\nPendentes:",
       "countryRank": "Rank\nNacional:",
+      "countryRarity": "Nacional por\nRaridade:",
       "worldRank": "Rank\nMundial:",
       "mimic":
           "Número de jogadores rastreados em PSN Trophy Leaders que também usam esse avatar",
@@ -855,7 +1068,7 @@ Map<String, Map<String, String>> regionSelect() {
       "orange": "Desejo da Natureza",
       "blue": "Oceano Profundo",
       "black": "Antes do Amanhecer",
-      "white": "Morte por Contraste",
+      "white": "Visão de Cão",
       "boredom": "Morte por Tédio",
       "removePSN": "Remover a ID PSN salva?",
     };
@@ -889,6 +1102,7 @@ Map<String, Map<String, String>> regionSelect() {
 
 Map<String, Map<String, String>> regionalText = regionSelect();
 
+//? This map stores all of the color scheming data to be used in the app
 final Map<String, Map<String, Color>> themeSelector = {
   "primary": {
     "pink": Colors.pink[300],
@@ -968,6 +1182,7 @@ final Map<String, String> img = {
   "newSilver": "images/new_silver.png",
   "newBronze": "images/new_bronze.png",
   "ps": "images/playstation.png",
+  "psn100": "images/psn100.png",
   "allTrophies": "images/trophy_cluster.png",
   "rarity1": "images/rarity1.png",
   "rarity2": "images/rarity2.png",
@@ -1149,6 +1364,7 @@ class _MyHomePageState extends State<MyHomePage> {
   Map psntlDump = settings.get('psntlDump');
   Map trueTrophiesDump = settings.get('trueTrophiesDump');
   Map exophaseDump = settings.get('exophaseDump');
+  Map psn100Dump = settings.get('psn100Dump');
 
 //? This function will update every enabled profile in order
   void updateProfiles() async {
@@ -1158,6 +1374,7 @@ class _MyHomePageState extends State<MyHomePage> {
       psntlDump = {'update': true};
       exophaseDump = {'update': true};
       trueTrophiesDump = {'update': true};
+      psn100Dump = {'update': true};
     });
     //? then, if it's enabled, it updates PSNP first while waiting the result to not start the other websites yet.
     if (settings.get("psnp")) {
@@ -1185,6 +1402,13 @@ class _MyHomePageState extends State<MyHomePage> {
       trueTrophiesDump = await trueTrophiesInfo(settings.get("psnID"));
       setState(() {
         trueTrophiesDump = settings.get("trueTrophiesDump");
+      });
+    }
+    //? then, if it's enabled, it updates PSN100 and waits the result.
+    if (settings.get("psn100")) {
+      psn100Dump = await psn100Info(settings.get("psnID"));
+      setState(() {
+        psn100Dump = settings.get("psn100Dump");
       });
     }
   }
@@ -1512,6 +1736,36 @@ class _MyHomePageState extends State<MyHomePage> {
                                 settings.put('trueTrophies', false);
                               } else {
                                 settings.put('trueTrophies', true);
+                              }
+                            });
+                          }),
+                    ),
+                    Tooltip(
+                      message: 'PSN100',
+                      child: InkWell(
+                          child: Container(
+                            decoration: BoxDecoration(
+                              //? To paint the border, we check the value of the settings for this website is true.
+                              //? If it's false or null (never set), we will paint red.
+                              border: Border.all(
+                                  color: settings.get('psn100') != false
+                                      ? Colors.green
+                                      : Colors.red,
+                                  width: 5),
+                              borderRadius:
+                                  BorderRadius.all(Radius.circular(5)),
+                            ),
+                            child: Image.asset(
+                              img['psn100'],
+                              height: 32,
+                            ),
+                          ),
+                          onTap: () {
+                            setState(() {
+                              if (settings.get('psn100') != false) {
+                                settings.put('psn100', false);
+                              } else {
+                                settings.put('psn100', true);
                               }
                             });
                           }),
@@ -1861,6 +2115,8 @@ class _MyHomePageState extends State<MyHomePage> {
                         exophaseDump = null;
                         settings.delete('trueTrophiesDump');
                         trueTrophiesDump = null;
+                        settings.delete('psn100Dump');
+                        psn100Dump = null;
                       });
                     },
                   ),
@@ -1989,14 +2245,14 @@ class _MyHomePageState extends State<MyHomePage> {
                         ),
                       ),
                       //? Spaces for True Trophies and Exophase
-                      Tooltip(
-                        message: "True Trophies",
-                        child: Padding(
-                          padding: const EdgeInsets.all(5.0),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Container(
+                      Padding(
+                        padding: const EdgeInsets.all(5.0),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Tooltip(
+                              message: "True Trophies",
+                              child: Container(
                                 height: 50,
                                 width: 220,
                                 decoration: boxDeco(),
@@ -2021,39 +2277,107 @@ class _MyHomePageState extends State<MyHomePage> {
                                   ],
                                 ),
                               ),
-                              SizedBox(
-                                width: 10,
-                              ),
-                              Tooltip(
-                                message: "Exophase",
-                                child: Container(
-                                  height: 50,
-                                  width: 220,
-                                  decoration: boxDeco(),
-                                  child: Row(
-                                    mainAxisAlignment:
-                                        MainAxisAlignment.spaceEvenly,
-                                    children: [
-                                      Padding(
-                                        padding: const EdgeInsets.all(5.0),
-                                        child: Image.network(
-                                          "https://www.exophase.com/assets/zeal/_icons/favicon.ico",
-                                          scale: 0.5,
-                                        ),
+                            ),
+                            SizedBox(
+                              width: 10,
+                            ),
+                            Tooltip(
+                              message: "Exophase",
+                              child: Container(
+                                height: 50,
+                                width: 220,
+                                decoration: boxDeco(),
+                                child: Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceEvenly,
+                                  children: [
+                                    Padding(
+                                      padding: const EdgeInsets.all(5.0),
+                                      child: Image.network(
+                                        "https://www.exophase.com/assets/zeal/_icons/favicon.ico",
+                                        scale: 0.5,
                                       ),
-                                      Padding(
-                                        padding: const EdgeInsets.all(5.0),
-                                        child: Text(
-                                          "Exophase",
-                                          style: textSelection(""),
-                                        ),
-                                      )
-                                    ],
-                                  ),
+                                    ),
+                                    Padding(
+                                      padding: const EdgeInsets.all(5.0),
+                                      child: Text(
+                                        "Exophase",
+                                        style: textSelection(""),
+                                      ),
+                                    )
+                                  ],
                                 ),
                               ),
-                            ],
-                          ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      //? Spaces for PSN100 and something, probably PsNine
+                      Padding(
+                        padding: const EdgeInsets.all(5.0),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Tooltip(
+                              message: "PSN 100%",
+                              child: Container(
+                                height: 50,
+                                width: 220,
+                                decoration: boxDeco(),
+                                child: Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceEvenly,
+                                  children: [
+                                    Padding(
+                                      padding: const EdgeInsets.all(5.0),
+                                      child: Image.asset(
+                                        img['psn100'],
+                                        scale: 0.5,
+                                      ),
+                                    ),
+                                    Padding(
+                                      padding: const EdgeInsets.all(5.0),
+                                      child: Text(
+                                        "PSN 100%",
+                                        style: textSelection(""),
+                                      ),
+                                    )
+                                  ],
+                                ),
+                              ),
+                            ),
+                            // SizedBox(
+                            //   width: 10,
+                            // ),
+                            // Tooltip(
+                            //   message: "Exophase",
+                            //   child: Container(
+                            //     height: 50,
+                            //     width: 220,
+                            //     decoration: boxDeco(),
+                            //     child: Row(
+                            //       mainAxisAlignment:
+                            //           MainAxisAlignment.spaceEvenly,
+                            //       children: [
+                            //         Padding(
+                            //           padding: const EdgeInsets.all(5.0),
+                            //           child: Image.network(
+                            //             "https://www.exophase.com/assets/zeal/_icons/favicon.ico",
+                            //             scale: 0.5,
+                            //           ),
+                            //         ),
+                            //         Padding(
+                            //           padding: const EdgeInsets.all(5.0),
+                            //           child: Text(
+                            //             "Exophase",
+                            //             style: textSelection(""),
+                            //           ),
+                            //         )
+                            //       ],
+                            //     ),
+                            //   ),
+                            // ),
+                          ],
                         ),
                       ),
                     ],
@@ -3244,7 +3568,281 @@ class _MyHomePageState extends State<MyHomePage> {
                                 }
                               },
                             ),
-                          )
+                          ), //! Exophase card display
+                        //TODO PSN 100% waypoint
+                        if (settings.get("psn100") != false)
+                          Container(
+                            margin: EdgeInsets.all(15),
+                            padding: EdgeInsets.all(15),
+                            width: MediaQuery.of(context).size.width,
+                            //! Height undefined until all items are added to avoid overflow error.
+                            // height: 220,
+                            decoration: boxDeco(),
+                            child: FutureBuilder(
+                              future: Future(() => psn100Dump),
+                              builder: (context, snapshot) {
+                                //? Display card info if all information is successfully fetched
+                                if (snapshot.data != null &&
+                                    snapshot.data['update'] != true) {
+                                  return Column(
+                                    mainAxisAlignment: MainAxisAlignment.start,
+                                    children: [
+                                      //? Contains your basic information about profile name, PSN level,
+                                      //? trophy count, avatar, country flag, etc
+                                      Row(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.spaceBetween,
+                                        children: [
+                                          //? Avatar PSN Trophy Leaders
+                                          Column(
+                                            mainAxisAlignment:
+                                                MainAxisAlignment.center,
+                                            children: [
+                                              Image.network(
+                                                snapshot.data['avatar'] ??
+                                                    "https://i.psnprofiles.com/avatars/m/Gfba90ec21.png",
+                                                height: 60,
+                                              )
+                                            ],
+                                          ),
+                                          //? Column with PSN ID, trophy count
+                                          Column(
+                                            mainAxisAlignment:
+                                                MainAxisAlignment.start,
+                                            children: [
+                                              //? Country flag and PSN ID
+                                              Row(
+                                                  mainAxisSize:
+                                                      MainAxisSize.max,
+                                                  mainAxisAlignment:
+                                                      MainAxisAlignment
+                                                          .spaceBetween,
+                                                  children: [
+                                                    //? Country flag
+                                                    Image.network(
+                                                        "https://raw.githubusercontent.com/hjnilsson/country-flags/master/png100px/${snapshot.data['country']}.png",
+                                                        height: 20),
+                                                    SizedBox(width: 5),
+                                                    Text(
+                                                      snapshot.data["psnID"],
+                                                      style: textSelection(
+                                                          "textLightBold"),
+                                                    )
+                                                  ]),
+                                              //? Level, level progress and level icon
+                                              Padding(
+                                                padding:
+                                                    const EdgeInsets.all(5.0),
+                                                child: Row(
+                                                  children: [
+                                                    Image.asset(
+                                                      img['oldLevel'],
+                                                      height: 25,
+                                                    ),
+                                                    SizedBox(
+                                                      width: 5,
+                                                    ),
+                                                    Text(
+                                                        "${snapshot.data['level'].toString()} (${snapshot.data['levelProgress']})",
+                                                        style:
+                                                            textSelection("")),
+                                                  ],
+                                                ),
+                                              ),
+                                              //? This row contains the trophy icons and the quantity the user has acquired of them
+                                              Row(
+                                                mainAxisSize: MainAxisSize.max,
+                                                mainAxisAlignment:
+                                                    MainAxisAlignment
+                                                        .spaceBetween,
+                                                children: [
+                                                  trophyType('platinum',
+                                                      quantity: snapshot
+                                                          .data['platinum']),
+                                                  SizedBox(width: 20),
+                                                  trophyType('gold',
+                                                      quantity: snapshot
+                                                          .data['gold']),
+                                                  SizedBox(width: 20),
+                                                  trophyType('silver',
+                                                      quantity: snapshot
+                                                          .data['silver']),
+                                                  SizedBox(width: 20),
+                                                  trophyType('bronze',
+                                                      quantity: snapshot
+                                                          .data['bronze']),
+                                                  SizedBox(width: 20),
+                                                  trophyType('total',
+                                                      quantity:
+                                                          "${snapshot.data['total'].toString()}"),
+                                                ],
+                                              ),
+                                            ],
+                                          ),
+                                          InkWell(
+                                            child: Tooltip(
+                                              message: "PSN 100%",
+                                              child: Image.asset(
+                                                img['psn100'],
+                                                height: 35,
+                                              ),
+                                            ),
+                                            onTap: () async {
+                                              String userProfile =
+                                                  "https://www.psn100.net/player/${snapshot.data['psnID']}";
+                                              if (await canLaunch(
+                                                  userProfile)) {
+                                                await launch(userProfile);
+                                              }
+                                            },
+                                          ),
+                                        ],
+                                      ),
+                                      Divider(
+                                          color: themeSelector['secondary']
+                                              [settings.get('theme')],
+                                          height: 20,
+                                          thickness: 3),
+                                      //? Bottom row without avatar, has information about games played,
+                                      //? completion, gameplay hours, country/world rankings, etc
+                                      SingleChildScrollView(
+                                        padding: EdgeInsets.all(0),
+                                        scrollDirection: Axis.horizontal,
+                                        child: Row(
+                                          children: [
+                                            Padding(
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                      vertical: 0,
+                                                      horizontal: 10.0),
+                                              child: Text(
+                                                "${regionalText["home"]["games"]}\n${snapshot.data['games'].toString()}",
+                                                style: textSelection(""),
+                                                textAlign: TextAlign.center,
+                                              ),
+                                            ),
+                                            Padding(
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                      vertical: 0,
+                                                      horizontal: 10.0),
+                                              child: Text(
+                                                "${regionalText["home"]["complete"]}\n${snapshot.data['complete'].toString()} (${snapshot.data['completePercentage']}%)",
+                                                style: textSelection(""),
+                                                textAlign: TextAlign.center,
+                                              ),
+                                            ),
+                                            Padding(
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                      vertical: 0,
+                                                      horizontal: 10.0),
+                                              child: Text(
+                                                "${regionalText["home"]["incomplete"]}\n${snapshot.data['incomplete'].toString()} (${snapshot.data['incompletePercentage']}%)",
+                                                style: textSelection(""),
+                                                textAlign: TextAlign.center,
+                                              ),
+                                            ),
+                                            Padding(
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                      vertical: 0,
+                                                      horizontal: 10.0),
+                                              child: Text(
+                                                "${regionalText["home"]["completion"]}\n${snapshot.data['completion']}",
+                                                style: textSelection(""),
+                                                textAlign: TextAlign.center,
+                                              ),
+                                            ),
+                                            Padding(
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                      vertical: 0,
+                                                      horizontal: 10.0),
+                                              child: Text(
+                                                "${regionalText["home"]["unearned"]}\n${snapshot.data['unearned']}",
+                                                style: textSelection(""),
+                                                textAlign: TextAlign.center,
+                                              ),
+                                            ),
+                                            Padding(
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                      vertical: 0,
+                                                      horizontal: 10.0),
+                                              child: Text(
+                                                "${regionalText["home"]["worldRank"]}\n${snapshot.data['worldRank'] != null ? snapshot.data['worldRank'].toString() + " " : "❌"}${snapshot.data['worldUp'] ?? ""}",
+                                                style: textSelection(""),
+                                                textAlign: TextAlign.center,
+                                              ),
+                                            ),
+                                            Padding(
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                      vertical: 0,
+                                                      horizontal: 10.0),
+                                              child: Text(
+                                                "${regionalText["home"]["rarity"]}\n${snapshot.data['worldRarity'] != null ? snapshot.data['worldRarity'].toString() + " " : "❌"}${snapshot.data['worldUp'] ?? ""}",
+                                                style: textSelection(""),
+                                                textAlign: TextAlign.center,
+                                              ),
+                                            ),
+                                            Padding(
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                      vertical: 0,
+                                                      horizontal: 10.0),
+                                              child: Text(
+                                                "${regionalText["home"]["countryRank"]}\n${snapshot.data['countryRank'] != null ? snapshot.data['countryRank'].toString() + " " : "❌"}${snapshot.data['countryUp'] ?? ""}",
+                                                style: textSelection(""),
+                                                textAlign: TextAlign.center,
+                                              ),
+                                            ),
+                                            Padding(
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                      vertical: 0,
+                                                      horizontal: 10.0),
+                                              child: Text(
+                                                "${regionalText["home"]["countryRarity"]}\n${snapshot.data['countryRarity'] != null ? snapshot.data['countryRarity'].toString() + " " : "❌"}${snapshot.data['countryUp'] ?? ""}",
+                                                style: textSelection(""),
+                                                textAlign: TextAlign.center,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      )
+                                    ],
+                                  );
+                                } //? Display error screen if fails to fetch information
+                                else if (snapshot.data == null) {
+                                  return Center(
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Icon(
+                                          Icons.error,
+                                          color: themeSelector["secondary"]
+                                              [settings.get("theme")],
+                                          size: 30,
+                                        ),
+                                        SizedBox(width: 10),
+                                        Text(
+                                          "PSN 100%",
+                                          style: textSelection("textLightBold"),
+                                        )
+                                      ],
+                                    ),
+                                  );
+                                } //? Display loading circle while Future is being processed
+                                else {
+                                  return Center(child: loadingSelector());
+                                }
+                              },
+                            ),
+                          ),
                       ],
                     ),
                   ),

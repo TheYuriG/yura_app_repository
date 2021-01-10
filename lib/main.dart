@@ -31,6 +31,9 @@ void main() async {
   runApp(MyApp());
 }
 
+//? This variable will store the status of the update and disable the FloatingActionButton from rendering
+bool isUpdating;
+
 //? This will save the settings for the app in this Hive box
 //? Examples of settings saved are the theme colors and language.
 Box settings = Hive.box("settings");
@@ -617,8 +620,8 @@ Future<Map> exophaseInfo(String user) async {
     //! Games data
     //? ngames is defined to check how many games this should scan for
     //? if the user has more than 50 (default initial game display for exophase) games on their profile, scan for 50
-    //? otherwise scan the number of games
-    int ngames = parsedData['games'] > 50 ? 50 : parsedData['games'];
+    //? otherwise scan the number of games. Currently using only 20 games to hasten the bug testing process
+    int ngames = parsedData['games'] > 50 ? 52 : parsedData['games'] + 1;
     for (var i = 1; i < ngames; i++) {
       parsedGames[i] = {};
       //? Retrieves game image
@@ -1059,6 +1062,206 @@ Future<Map> psn100Info(String user) async {
   return parsedData;
 }
 
+// TODO consertar funções para DART
+// function newPsnLevel(plat, gold, silver, bronze) {
+//             let totalExp = 0 * plat + 90 * gold + 30 * silver + 15 * bronze;
+//             let gap;
+//             let tier;
+//             let fromPreviousTier;
+//             if (totalExp < 5940) {
+//               // range = 1-99
+//               gap = 60;
+//               tier = 1;
+//               fromPreviousTier = 0;
+//             } else if (totalExp < 14940) {
+//               // range = 100-199
+//               gap = 90;
+//               tier = 2;
+//               fromPreviousTier = 5940;
+//             } else if (totalExp < 59940) {
+//               // range = 200-299
+//               gap = 450;
+//               tier = 3;
+//               fromPreviousTier = 14940;
+//             } else if (totalExp < 149940) {
+//               // range = 300-399
+//               gap = 900;
+//               tier = 4;
+//               fromPreviousTier = 59940;
+//             } else if (totalExp < 284940) {
+//               // range = 400-499
+//               gap = 1350;
+//               tier = 5;
+//               fromPreviousTier = 149940;
+//             } else if (totalExp < 464940) {
+//               // range = 500-599
+//               gap = 1800;
+//               tier = 6;
+//               fromPreviousTier = 284940;
+//             } else if (totalExp < 689940) {
+//               // range = 600-699
+//               gap = 2250;
+//               tier = 7;
+//               fromPreviousTier = 464940;
+//             } else if (totalExp < 959940) {
+//               // range = 700-799
+//               gap = 2700;
+//               tier = 8;
+//               fromPreviousTier = 689940;
+//             } else if (totalExp < 1274940) {
+//               // range = 800-899
+//               gap = 3150;
+//               tier = 9;
+//               fromPreviousTier = 959940;
+//             } else if (totalExp < 1634940) {
+//               // range = 900-999
+//               gap = 3600;
+//               tier = 10;
+//               fromPreviousTier = 1274940;
+//             } else if (totalExp < 1994940) {
+//               // range = 1000-1099
+//               // Note: these are not actually enabled on PSN, but rather projected on trophy websites.
+//               gap = 4050;
+//               tier = 11;
+//               fromPreviousTier = 1634940;
+//             } else if (totalExp < 2399940) {
+//               // range = 1100-1199
+//               // Note: these are not actually enabled on PSN, but rather projected on trophy websites.
+//               gap = 4500;
+//               tier = 12;
+//               fromPreviousTier = 1994940;
+//             } else if (totalExp < 2894940) {
+//               // range = 1200-1299
+//               // Note: these are not actually enabled on PSN, but rather projected on trophy websites.
+//               gap = 4950;
+//               tier = 13;
+//               fromPreviousTier = 2399940;
+//             } else if (totalExp < 3434940) {
+//               // range = 1300-1399
+//               // Note: these are not actually enabled on PSN, but rather projected on trophy websites.
+//               gap = 5400;
+//               tier = 14;
+//               fromPreviousTier = 2894940;
+//             } else if (totalExp < 4019940) {
+//               // range = 1400-1499
+//               // Note: these are not actually enabled on PSN, but rather projected on trophy websites.
+//               gap = 5850;
+//               tier = 15;
+//               fromPreviousTier = 3434940;
+//             } else if (totalExp < 4649940) {
+//               // range = 1500-1599
+//               // Note: these are not actually enabled on PSN, but rather projected on trophy websites.
+//               gap = 6300;
+//               tier = 16;
+//               fromPreviousTier = 4019940;
+//             } else if (totalExp < 5324940) {
+//               // range = 1600-1699
+//               // Note: these are not actually enabled on PSN, but rather projected on trophy websites.
+//               gap = 6750;
+//               tier = 17;
+//               fromPreviousTier = 4649940;
+//             } else if (totalExp < 6034940) {
+//               // range = 1700-1799
+//               // Note: these are not actually enabled on PSN, but rather projected on trophy websites.
+//               gap = 7100;
+//               tier = 18;
+//               fromPreviousTier = 5324940;
+//             } else if (totalExp < 6789940) {
+//               // range = 1800-1899
+//               // Note: these are not actually enabled on PSN, but rather projected on trophy websites.
+//               gap = 7550;
+//               tier = 19;
+//               fromPreviousTier = 6034940;
+//             } else if (totalExp < 7589940) {
+//               // range = 1900-1999
+//               // Note: these are not actually enabled on PSN, but rather projected on trophy websites.
+//               gap = 8000;
+//               tier = 20;
+//               fromPreviousTier = 6789940;
+//             } else {
+//               // range = 2000+
+//               // Note: these are not actually enabled on PSN, but rather projected on trophy websites.
+//               return `${emotes.levelPlat} **2000+** (100.00%)`;
+//             }
+//             let extraEXP = totalExp - fromPreviousTier;
+//             progressPercentage = (((extraEXP % gap) / gap) * 100).toFixed(2);
+//             currentLevel = Math.floor(extraEXP / gap) + (tier - 1) * 100;
+
+//             function levelTier(bracket) {
+//               if (bracket == 1) {
+//                 return emotes.levelBronze1;
+//               }
+//               if (bracket == 2) {
+//                 return emotes.levelBronze2;
+//               }
+//               if (bracket == 3) {
+//                 return emotes.levelBronze3;
+//               }
+//               if (bracket == 4) {
+//                 return emotes.levelSilver1;
+//               }
+//               if (bracket == 5) {
+//                 return emotes.levelSilver2;
+//               }
+//               if (bracket == 6) {
+//                 return emotes.levelSilver3;
+//               }
+//               if (bracket == 7) {
+//                 return emotes.levelGold1;
+//               }
+//               if (bracket == 8) {
+//                 return emotes.levelGold2;
+//               }
+//               if (bracket == 9 || bracket == 10) {
+//                 if (bracket == 10 && Math.floor(extraEXP / gap) == 99) {
+//                   return emotes.levelPlat;
+//                 }
+//                 return emotes.levelGold3;
+//               }
+//               if (bracket > 10) {
+//                 return emotes.levelPlat;
+//               }
+//             }
+//             return `${levelTier(
+//               tier
+//             )} **${currentLevel}** (${progressPercentage}%)`;
+//           }
+
+//           function oldPsnLevel(plat, gold, silver, bronze) {
+//             let totalExp = 0 * plat + 90 * gold + 30 * silver + 15 * bronze;
+//             if (totalExp == 0) {
+//               return "**1**";
+//             } else if (totalExp < 200) {
+//               return "**2**";
+//             } else if (totalExp < 600) {
+//               return "**3**";
+//             } else if (totalExp < 1200) {
+//               return "**4**";
+//             } else if (totalExp < 2400) {
+//               return "**5**";
+//             } else if (totalExp < 4000) {
+//               return "**6**";
+//             } else if (totalExp < 16000) {
+//               extraEXP = totalExp - 4000;
+//               gap = 2000;
+//               progressPercentage = (((extraEXP % gap) / gap) * 100).toFixed(2);
+//               currentLevel = Math.floor(extraEXP / gap) + 6;
+//               return `**${currentLevel}** (${progressPercentage}%)`;
+//             } else if (totalExp < 128000) {
+//               extraEXP = totalExp - 16000;
+//               gap = 8000;
+//               progressPercentage = (((extraEXP % gap) / gap) * 100).toFixed(2);
+//               currentLevel = Math.floor(extraEXP / gap) + 12;
+//               return `**${currentLevel}** (${progressPercentage}%)`;
+//             } else if (totalExp > 128000) {
+//               extraEXP = totalExp - 128000;
+//               gap = 10000;
+//               progressPercentage = (((extraEXP % gap) / gap) * 100).toFixed(2);
+//               currentLevel = Math.floor(extraEXP / gap) + 26;
+//               return `${emotes.ePSNLevel} **${currentLevel}** (${progressPercentage}%)`;
+//             }
+//           }
+
 //? This function contains all translated strings to be used.
 //? If a language isn't fully supported, it will use the english words instead. TODO Translation waypoint
 Map<String, Map<String, String>> regionSelect() {
@@ -1133,8 +1336,24 @@ Map<String, Map<String, String>> regionSelect() {
       'privacyText':
           "There is no privacy agreement for you to accept. Yura takes none of your information, everything you see on screen is exclusively processed on your device and belongs to no one else other than you.\n\nThis might change in the future if some sort of leaderboard gets to be implemented, but you will be prompted if you wish to share before any of your PSN data gets sent. Until then, enjoy your total anonymity."
     },
+    "exophase": {
+      "filter": "Filter games:",
+      "incomplete": "Remove incomplete games",
+      "complete": "Remove complete games",
+      "backlog": "Remove backlog (0%) games",
+      "psv": "Remove PS Vita games",
+      "ps3": "Remove ps3 games",
+      "ps4": "Remove ps4 games",
+      "ps5": "Remove ps5 games",
+      "mustNotPlatinum": "Remove games where a platinum trophy was earned",
+      "mustPlatinum": "Remove games where a platinum trophy was not earned",
+      "viewType": "Change display:",
+      "grid": "Enable grid view",
+      "block": "Enable block view",
+      "list": "Enable list view",
+    },
     //? Since this is just the version number, this doesn't get translated regardless of chosen language.
-    "version": {"version": "v0.7.3"}
+    "version": {"version": "v0.8.7"}
   };
   //? This changes language to Brazilian Portuguese
   if (settings.get("language") == "br") {
@@ -1206,7 +1425,24 @@ Map<String, Map<String, String>> regionSelect() {
       "privacyText":
           "Não existe um contrato de privacidade que você precisa aceitar. Yura não envia nada da sua informação, tudo o que você vê na tela é processado no seu aparelho e não pertence a ninguém além de você.\n\nIsso pode mudar no futuro caso algum tipo de placar de líderes seja implementado, mas você será perguntado antes que qualquer informação da PSN seja enviada. Até lá, aproveite sua total anonimidade."
     };
+    avaiableText["exophase"] = {
+      "filter": "Filtre jogos:",
+      "incomplete": "Remova jogos incompletos",
+      "complete": "Remova jogos concluídos",
+      "backlog": "Remova jogos sem troféus obtidos (0%)",
+      "psv": "Remova jogos de PS Vita",
+      "ps3": "Remova jogos de PS3",
+      "ps4": "Remova jogos de PS4",
+      "ps5": "Remove jogos de PS5",
+      "mustNotPlatinum": "Remova jogos platinados",
+      "mustPlatinum": "Remova jogos não platinados",
+      "viewType": "Mude a aparência:",
+      "grid": "Ativar visualização por tela",
+      "block": "Ativar visualização por blocos",
+      "list": "Ativar visualização por lista",
+    };
   }
+
   return avaiableText;
 }
 
@@ -1359,7 +1595,7 @@ Tooltip trophyType(String type, {quantity = -1, TextStyle style}) {
     message: regionalText['trophy'][type],
     child: Row(
       children: [
-        Image.asset(trophyStyle(type), height: 20),
+        Image.asset(trophyStyle(type), height: type == 'total' ? 25 : 30),
         if (quantity != -1)
           SizedBox(
             width: 5,
@@ -1483,6 +1719,7 @@ class _MyHomePageState extends State<MyHomePage> {
   void updateProfiles() async {
     //? First it changes the information on every document to be as updating, so every block displays a spinning icon
     setState(() {
+      isUpdating = true;
       if (settings.get("psnp")) {
         psnpDump = {'update': true};
       }
@@ -1534,6 +1771,9 @@ class _MyHomePageState extends State<MyHomePage> {
         psn100Dump = settings.get("psn100Dump");
       });
     }
+    setState(() {
+      isUpdating = false;
+    });
   }
 
   @override
@@ -1578,7 +1818,7 @@ class _MyHomePageState extends State<MyHomePage> {
             decoration: BoxDecoration(
                 color: themeSelector["secondary"][settings.get("theme")],
                 borderRadius: BorderRadius.all(Radius.circular(25))),
-            width: MediaQuery.of(context).size.width * 0.5,
+            width: 350,
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -1616,60 +1856,64 @@ class _MyHomePageState extends State<MyHomePage> {
                     child: Text(
                       regionalText["settings"]["trophyPicker"],
                       style: textSelection("textDark"),
+                      textAlign: TextAlign.center,
                     ),
                   ),
                 ),
-                Wrap(
-                  children: [
-                    //? Option to use Yura's trophies as default display
-                    if (settings.get('trophyType') != "yura")
-                      Tooltip(
-                        message: regionalText["settings"]["yuraTrophies"],
-                        child: InkWell(
-                            child: Image.asset(
-                              img['platFill'],
-                              height: 50,
-                              width: 75,
-                            ),
-                            onTap: () => {
-                                  setState(() {
-                                    settings.put('trophyType', 'yura');
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 10),
+                  child: Wrap(
+                    children: [
+                      //? Option to use Yura's trophies as default display
+                      if (settings.get('trophyType') != "yura")
+                        Tooltip(
+                          message: regionalText["settings"]["yuraTrophies"],
+                          child: InkWell(
+                              child: Image.asset(
+                                img['platFill'],
+                                height: 50,
+                                width: 75,
+                              ),
+                              onTap: () => {
+                                    setState(() {
+                                      settings.put('trophyType', 'yura');
+                                    }),
                                   }),
-                                }),
-                      ),
-                    //? Option to use old PSN trophies as default display
-                    if (settings.get('trophyType') != "old")
-                      Tooltip(
-                        message: regionalText["settings"]["oldTrophies"],
-                        child: InkWell(
-                            child: Image.asset(
-                              img['oldPlatinum'],
-                              height: 50,
-                              width: 75,
-                            ),
-                            onTap: () => {
-                                  setState(() {
-                                    settings.put('trophyType', 'old');
+                        ),
+                      //? Option to use old PSN trophies as default display
+                      if (settings.get('trophyType') != "old")
+                        Tooltip(
+                          message: regionalText["settings"]["oldTrophies"],
+                          child: InkWell(
+                              child: Image.asset(
+                                img['oldPlatinum'],
+                                height: 50,
+                                width: 75,
+                              ),
+                              onTap: () => {
+                                    setState(() {
+                                      settings.put('trophyType', 'old');
+                                    }),
                                   }),
-                                }),
-                      ),
-                    //? Option to use new PSN trophies as default display
-                    if (settings.get('trophyType') != "new")
-                      Tooltip(
-                        message: regionalText["settings"]["newTrophies"],
-                        child: InkWell(
-                            child: Image.asset(
-                              img['newPlatinum'],
-                              height: 50,
-                              width: 75,
-                            ),
-                            onTap: () => {
-                                  setState(() {
-                                    settings.put('trophyType', 'new');
+                        ),
+                      //? Option to use new PSN trophies as default display
+                      if (settings.get('trophyType') != "new")
+                        Tooltip(
+                          message: regionalText["settings"]["newTrophies"],
+                          child: InkWell(
+                              child: Image.asset(
+                                img['newPlatinum'],
+                                height: 50,
+                                width: 75,
+                              ),
+                              onTap: () => {
+                                    setState(() {
+                                      settings.put('trophyType', 'new');
+                                    }),
                                   }),
-                                }),
-                      ),
-                  ],
+                        ),
+                    ],
+                  ),
                 ),
                 //? Permite que o usuário troque o idioma do aplicativo.
                 //? O usuário não verá a opção de trocar para o mesmo idioma que estiver ativo
@@ -1679,51 +1923,55 @@ class _MyHomePageState extends State<MyHomePage> {
                     child: Text(
                       regionalText["settings"]["languagePicker"],
                       style: textSelection("textDark"),
+                      textAlign: TextAlign.center,
                     ),
                   ),
                 ),
-                Wrap(
-                  spacing: 5,
-                  children: [
-                    if (settings.get('language') != "br")
-                      Tooltip(
-                        message: 'Português - Brasil',
-                        child: MaterialButton(
-                            hoverColor: Colors.transparent,
-                            materialTapTargetSize:
-                                MaterialTapTargetSize.shrinkWrap,
-                            child: Image.network(
-                              "https://raw.githubusercontent.com/hjnilsson/country-flags/master/png100px/br.png",
-                              height: 50,
-                              width: 75,
-                            ),
-                            onPressed: () {
-                              setState(() {
-                                settings.put('language', 'br');
-                                regionalText = regionSelect();
-                              });
-                            }),
-                      ),
-                    if (settings.get('language') != "us")
-                      Tooltip(
-                        message: "English - United States of America",
-                        child: MaterialButton(
-                            hoverColor: Colors.transparent,
-                            materialTapTargetSize:
-                                MaterialTapTargetSize.shrinkWrap,
-                            child: Image.network(
-                              "https://raw.githubusercontent.com/hjnilsson/country-flags/master/png100px/us.png",
-                              height: 50,
-                              width: 75,
-                            ),
-                            onPressed: () {
-                              setState(() {
-                                settings.put('language', 'us');
-                                regionalText = regionSelect();
-                              });
-                            }),
-                      ),
-                  ],
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 10),
+                  child: Wrap(
+                    spacing: 5,
+                    children: [
+                      if (settings.get('language') != "br")
+                        Tooltip(
+                          message: 'Português - Brasil',
+                          child: MaterialButton(
+                              hoverColor: Colors.transparent,
+                              materialTapTargetSize:
+                                  MaterialTapTargetSize.shrinkWrap,
+                              child: Image.network(
+                                "https://raw.githubusercontent.com/hjnilsson/country-flags/master/png100px/br.png",
+                                height: 50,
+                                width: 75,
+                              ),
+                              onPressed: () {
+                                setState(() {
+                                  settings.put('language', 'br');
+                                  regionalText = regionSelect();
+                                });
+                              }),
+                        ),
+                      if (settings.get('language') != "us")
+                        Tooltip(
+                          message: "English - United States of America",
+                          child: MaterialButton(
+                              hoverColor: Colors.transparent,
+                              materialTapTargetSize:
+                                  MaterialTapTargetSize.shrinkWrap,
+                              child: Image.network(
+                                "https://raw.githubusercontent.com/hjnilsson/country-flags/master/png100px/us.png",
+                                height: 50,
+                                width: 75,
+                              ),
+                              onPressed: () {
+                                setState(() {
+                                  settings.put('language', 'us');
+                                  regionalText = regionSelect();
+                                });
+                              }),
+                        ),
+                    ],
+                  ),
                 ),
                 //? Permite que o usuário selecione quais sites vão ser carregados na aba principal
                 //? Sites selecionados terão uma borda verde, sites desativados terão uma borda vermelha,
@@ -1734,163 +1982,167 @@ class _MyHomePageState extends State<MyHomePage> {
                     child: Text(
                       regionalText["settings"]["websitePicker"],
                       style: textSelection("textDark"),
+                      textAlign: TextAlign.center,
                     ),
                   ),
                 ),
-                Wrap(
-                  spacing: 5,
-                  children: [
-                    Tooltip(
-                      message: 'PSNProfiles',
-                      child: InkWell(
-                          child: Container(
-                            decoration: BoxDecoration(
-                              //? To paint the border, we check the value of the settings for this website is true.
-                              //? If it's false or null (never set), we will paint red.
-                              border: Border.all(
-                                  color: settings.get('psnp') != false
-                                      ? Colors.green
-                                      : Colors.red,
-                                  width: 5),
-                              borderRadius:
-                                  BorderRadius.all(Radius.circular(5)),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 10),
+                  child: Wrap(
+                    spacing: 5,
+                    children: [
+                      Tooltip(
+                        message: 'PSNProfiles',
+                        child: InkWell(
+                            child: Container(
+                              decoration: BoxDecoration(
+                                //? To paint the border, we check the value of the settings for this website is true.
+                                //? If it's false or null (never set), we will paint red.
+                                border: Border.all(
+                                    color: settings.get('psnp') != false
+                                        ? Colors.green
+                                        : Colors.red,
+                                    width: 5),
+                                borderRadius:
+                                    BorderRadius.all(Radius.circular(5)),
+                              ),
+                              child: Image.network(
+                                "https://psnprofiles.com/favicon.ico",
+                                scale: 2,
+                              ),
                             ),
-                            child: Image.network(
-                              "https://psnprofiles.com/favicon.ico",
-                              scale: 2,
+                            onTap: () {
+                              setState(() {
+                                if (settings.get('psnp') != false) {
+                                  settings.put('psnp', false);
+                                } else {
+                                  settings.put('psnp', true);
+                                }
+                              });
+                            }),
+                      ),
+                      Tooltip(
+                        message: 'PSN Trophy Leaders (🐌)',
+                        child: InkWell(
+                            child: Container(
+                              decoration: BoxDecoration(
+                                //? To paint the border, we check the value of the settings for this website is true.
+                                //? If it's false or null (never set), we will paint red.
+                                border: Border.all(
+                                    color: settings.get('psntl') != false
+                                        ? Colors.orange
+                                        : Colors.red,
+                                    width: 5),
+                                borderRadius:
+                                    BorderRadius.all(Radius.circular(5)),
+                              ),
+                              child: Image.network(
+                                "https://psntl.com/favicon.ico",
+                                scale: 0.5,
+                              ),
                             ),
-                          ),
-                          onTap: () {
-                            setState(() {
-                              if (settings.get('psnp') != false) {
-                                settings.put('psnp', false);
-                              } else {
-                                settings.put('psnp', true);
-                              }
-                            });
-                          }),
-                    ),
-                    Tooltip(
-                      message: 'PSN Trophy Leaders (🐌)',
-                      child: InkWell(
-                          child: Container(
-                            decoration: BoxDecoration(
-                              //? To paint the border, we check the value of the settings for this website is true.
-                              //? If it's false or null (never set), we will paint red.
-                              border: Border.all(
-                                  color: settings.get('psntl') != false
-                                      ? Colors.orange
-                                      : Colors.red,
-                                  width: 5),
-                              borderRadius:
-                                  BorderRadius.all(Radius.circular(5)),
+                            onTap: () {
+                              setState(() {
+                                if (settings.get('psntl') != false) {
+                                  settings.put('psntl', false);
+                                } else {
+                                  settings.put('psntl', true);
+                                }
+                              });
+                            }),
+                      ),
+                      Tooltip(
+                        message: 'Exophase',
+                        child: InkWell(
+                            child: Container(
+                              decoration: BoxDecoration(
+                                //? To paint the border, we check the value of the settings for this website is true.
+                                //? If it's false or null (never set), we will paint red.
+                                border: Border.all(
+                                    color: settings.get('exophase') != false
+                                        ? Colors.green
+                                        : Colors.red,
+                                    width: 5),
+                                borderRadius:
+                                    BorderRadius.all(Radius.circular(5)),
+                              ),
+                              child: Image.network(
+                                "https://www.exophase.com/assets/zeal/_icons/favicon.ico",
+                                scale: 4,
+                              ),
                             ),
-                            child: Image.network(
-                              "https://psntl.com/favicon.ico",
-                              scale: 0.5,
+                            onTap: () {
+                              setState(() {
+                                if (settings.get('exophase') != false) {
+                                  settings.put('exophase', false);
+                                } else {
+                                  settings.put('exophase', true);
+                                }
+                              });
+                            }),
+                      ),
+                      Tooltip(
+                        message: 'True Trophies',
+                        child: InkWell(
+                            child: Container(
+                              decoration: BoxDecoration(
+                                //? To paint the border, we check the value of the settings for this website is true.
+                                //? If it's false or null (never set), we will paint red.
+                                border: Border.all(
+                                    color: settings.get('trueTrophies') != false
+                                        ? Colors.green
+                                        : Colors.red,
+                                    width: 5),
+                                borderRadius:
+                                    BorderRadius.all(Radius.circular(5)),
+                              ),
+                              child: Image.network(
+                                "https://truetrophies.com/favicon.ico",
+                                scale: 0.5,
+                              ),
                             ),
-                          ),
-                          onTap: () {
-                            setState(() {
-                              if (settings.get('psntl') != false) {
-                                settings.put('psntl', false);
-                              } else {
-                                settings.put('psntl', true);
-                              }
-                            });
-                          }),
-                    ),
-                    Tooltip(
-                      message: 'Exophase',
-                      child: InkWell(
-                          child: Container(
-                            decoration: BoxDecoration(
-                              //? To paint the border, we check the value of the settings for this website is true.
-                              //? If it's false or null (never set), we will paint red.
-                              border: Border.all(
-                                  color: settings.get('exophase') != false
-                                      ? Colors.green
-                                      : Colors.red,
-                                  width: 5),
-                              borderRadius:
-                                  BorderRadius.all(Radius.circular(5)),
+                            onTap: () {
+                              setState(() {
+                                if (settings.get('trueTrophies') != false) {
+                                  settings.put('trueTrophies', false);
+                                } else {
+                                  settings.put('trueTrophies', true);
+                                }
+                              });
+                            }),
+                      ),
+                      Tooltip(
+                        message: 'PSN100',
+                        child: InkWell(
+                            child: Container(
+                              decoration: BoxDecoration(
+                                //? To paint the border, we check the value of the settings for this website is true.
+                                //? If it's false or null (never set), we will paint red.
+                                border: Border.all(
+                                    color: settings.get('psn100') != false
+                                        ? Colors.green
+                                        : Colors.red,
+                                    width: 5),
+                                borderRadius:
+                                    BorderRadius.all(Radius.circular(5)),
+                              ),
+                              child: Image.asset(
+                                img['psn100'],
+                                height: 32,
+                              ),
                             ),
-                            child: Image.network(
-                              "https://www.exophase.com/assets/zeal/_icons/favicon.ico",
-                              scale: 4,
-                            ),
-                          ),
-                          onTap: () {
-                            setState(() {
-                              if (settings.get('exophase') != false) {
-                                settings.put('exophase', false);
-                              } else {
-                                settings.put('exophase', true);
-                              }
-                            });
-                          }),
-                    ),
-                    Tooltip(
-                      message: 'True Trophies',
-                      child: InkWell(
-                          child: Container(
-                            decoration: BoxDecoration(
-                              //? To paint the border, we check the value of the settings for this website is true.
-                              //? If it's false or null (never set), we will paint red.
-                              border: Border.all(
-                                  color: settings.get('trueTrophies') != false
-                                      ? Colors.green
-                                      : Colors.red,
-                                  width: 5),
-                              borderRadius:
-                                  BorderRadius.all(Radius.circular(5)),
-                            ),
-                            child: Image.network(
-                              "https://truetrophies.com/favicon.ico",
-                              scale: 0.5,
-                            ),
-                          ),
-                          onTap: () {
-                            setState(() {
-                              if (settings.get('trueTrophies') != false) {
-                                settings.put('trueTrophies', false);
-                              } else {
-                                settings.put('trueTrophies', true);
-                              }
-                            });
-                          }),
-                    ),
-                    Tooltip(
-                      message: 'PSN100',
-                      child: InkWell(
-                          child: Container(
-                            decoration: BoxDecoration(
-                              //? To paint the border, we check the value of the settings for this website is true.
-                              //? If it's false or null (never set), we will paint red.
-                              border: Border.all(
-                                  color: settings.get('psn100') != false
-                                      ? Colors.green
-                                      : Colors.red,
-                                  width: 5),
-                              borderRadius:
-                                  BorderRadius.all(Radius.circular(5)),
-                            ),
-                            child: Image.asset(
-                              img['psn100'],
-                              height: 32,
-                            ),
-                          ),
-                          onTap: () {
-                            setState(() {
-                              if (settings.get('psn100') != false) {
-                                settings.put('psn100', false);
-                              } else {
-                                settings.put('psn100', true);
-                              }
-                            });
-                          }),
-                    ),
-                  ],
+                            onTap: () {
+                              setState(() {
+                                if (settings.get('psn100') != false) {
+                                  settings.put('psn100', false);
+                                } else {
+                                  settings.put('psn100', true);
+                                }
+                              });
+                            }),
+                      ),
+                    ],
+                  ),
                 ),
                 //? Permite que o usuário selecione estilo de carregamento o usuário quer visualizar no aplicativo
                 Padding(
@@ -1899,135 +2151,143 @@ class _MyHomePageState extends State<MyHomePage> {
                     child: Text(
                       regionalText["settings"]["loadingPicker"],
                       style: textSelection("textDark"),
+                      textAlign: TextAlign.center,
                     ),
                   ),
                 ),
-                Wrap(
-                  spacing: 5,
-                  children: [
-                    InkWell(
-                        child: Container(
-                            padding: EdgeInsets.all(0),
-                            width: 60,
-                            height: 60,
-                            decoration: BoxDecoration(
-                              //? To paint the border, we check the value of the settings for this website is true.
-                              //? If it's false or null (never set), we will paint red.
-                              border: Border.all(
-                                  color:
-                                      settings.get('loading') == "fadingCircle"
-                                          ? Colors.green
-                                          : Colors.red,
-                                  width: 5),
-                              borderRadius:
-                                  BorderRadius.all(Radius.circular(5)),
-                            ),
-                            child: loadingSelector("fadingCircle", "dark")),
-                        onTap: () {
-                          setState(() {
-                            if (settings.get('loading') != "fadingCircle") {
-                              settings.put('loading', "fadingCircle");
-                            }
-                          });
-                        }),
-                    InkWell(
-                        child: Container(
-                            padding: EdgeInsets.all(0),
-                            width: 60,
-                            height: 60,
-                            decoration: BoxDecoration(
-                              //? To paint the border, we check the value of the settings for this website is true.
-                              //? If it's false or null (never set), we will paint red.
-                              border: Border.all(
-                                  color: settings.get('loading') == "fadingFour"
-                                      ? Colors.green
-                                      : Colors.red,
-                                  width: 5),
-                              borderRadius:
-                                  BorderRadius.all(Radius.circular(5)),
-                            ),
-                            child: loadingSelector("fadingFour", "dark")),
-                        onTap: () {
-                          setState(() {
-                            if (settings.get('loading') != "fadingFour") {
-                              settings.put('loading', "fadingFour");
-                            }
-                          });
-                        }),
-                    InkWell(
-                        child: Container(
-                            padding: EdgeInsets.all(0),
-                            width: 60,
-                            height: 60,
-                            decoration: BoxDecoration(
-                              //? To paint the border, we check the value of the settings for this website is true.
-                              //? If it's false or null (never set), we will paint red.
-                              border: Border.all(
-                                  color: settings.get('loading') == "fadingGrid"
-                                      ? Colors.green
-                                      : Colors.red,
-                                  width: 5),
-                              borderRadius:
-                                  BorderRadius.all(Radius.circular(5)),
-                            ),
-                            child: loadingSelector("fadingGrid", "dark")),
-                        onTap: () {
-                          setState(() {
-                            if (settings.get('loading') != "fadingGrid") {
-                              settings.put('loading', "fadingGrid");
-                            }
-                          });
-                        }),
-                    InkWell(
-                        child: Container(
-                            padding: EdgeInsets.all(0),
-                            width: 60,
-                            height: 60,
-                            decoration: BoxDecoration(
-                              //? To paint the border, we check the value of the settings for this website is true.
-                              //? If it's false or null (never set), we will paint red.
-                              border: Border.all(
-                                  color: settings.get('loading') == "cubeGrid"
-                                      ? Colors.green
-                                      : Colors.red,
-                                  width: 5),
-                              borderRadius:
-                                  BorderRadius.all(Radius.circular(5)),
-                            ),
-                            child: loadingSelector("cubeGrid", "dark")),
-                        onTap: () {
-                          setState(() {
-                            if (settings.get('loading') != "cubeGrid") {
-                              settings.put('loading', "cubeGrid");
-                            }
-                          });
-                        }),
-                    InkWell(
-                        child: Container(
-                            padding: EdgeInsets.all(0),
-                            width: 60,
-                            height: 60,
-                            decoration: BoxDecoration(
-                              //? To paint the border, we check the value of the settings for this website is true.
-                              //? If it's false or null (never set), we will paint red.
-                              border: Border.all(
-                                  color: settings.get('loading') ==
-                                          "pouringHourglass"
-                                      ? Colors.green
-                                      : Colors.red,
-                                  width: 5),
-                              borderRadius:
-                                  BorderRadius.all(Radius.circular(5)),
-                            ),
-                            child: loadingSelector("pouringHourglass", "dark")),
-                        onTap: () {
-                          setState(() {
-                            if (settings.get('loading') != "pouringHourglass") {
-                              settings.put('loading', "pouringHourglass");
-                            }
-                          });
-                        }),
-                  ],
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 10),
+                  child: Wrap(
+                    spacing: 5,
+                    children: [
+                      InkWell(
+                          child: Container(
+                              padding: EdgeInsets.all(0),
+                              width: 60,
+                              height: 60,
+                              decoration: BoxDecoration(
+                                //? To paint the border, we check the value of the settings for this website is true.
+                                //? If it's false or null (never set), we will paint red.
+                                border: Border.all(
+                                    color: settings.get('loading') ==
+                                            "fadingCircle"
+                                        ? Colors.green
+                                        : Colors.red,
+                                    width: 5),
+                                borderRadius:
+                                    BorderRadius.all(Radius.circular(5)),
+                              ),
+                              child: loadingSelector("fadingCircle", "dark")),
+                          onTap: () {
+                            setState(() {
+                              if (settings.get('loading') != "fadingCircle") {
+                                settings.put('loading', "fadingCircle");
+                              }
+                            });
+                          }),
+                      InkWell(
+                          child: Container(
+                              padding: EdgeInsets.all(0),
+                              width: 60,
+                              height: 60,
+                              decoration: BoxDecoration(
+                                //? To paint the border, we check the value of the settings for this website is true.
+                                //? If it's false or null (never set), we will paint red.
+                                border: Border.all(
+                                    color:
+                                        settings.get('loading') == "fadingFour"
+                                            ? Colors.green
+                                            : Colors.red,
+                                    width: 5),
+                                borderRadius:
+                                    BorderRadius.all(Radius.circular(5)),
+                              ),
+                              child: loadingSelector("fadingFour", "dark")),
+                          onTap: () {
+                            setState(() {
+                              if (settings.get('loading') != "fadingFour") {
+                                settings.put('loading', "fadingFour");
+                              }
+                            });
+                          }),
+                      InkWell(
+                          child: Container(
+                              padding: EdgeInsets.all(0),
+                              width: 60,
+                              height: 60,
+                              decoration: BoxDecoration(
+                                //? To paint the border, we check the value of the settings for this website is true.
+                                //? If it's false or null (never set), we will paint red.
+                                border: Border.all(
+                                    color:
+                                        settings.get('loading') == "fadingGrid"
+                                            ? Colors.green
+                                            : Colors.red,
+                                    width: 5),
+                                borderRadius:
+                                    BorderRadius.all(Radius.circular(5)),
+                              ),
+                              child: loadingSelector("fadingGrid", "dark")),
+                          onTap: () {
+                            setState(() {
+                              if (settings.get('loading') != "fadingGrid") {
+                                settings.put('loading', "fadingGrid");
+                              }
+                            });
+                          }),
+                      InkWell(
+                          child: Container(
+                              padding: EdgeInsets.all(0),
+                              width: 60,
+                              height: 60,
+                              decoration: BoxDecoration(
+                                //? To paint the border, we check the value of the settings for this website is true.
+                                //? If it's false or null (never set), we will paint red.
+                                border: Border.all(
+                                    color: settings.get('loading') == "cubeGrid"
+                                        ? Colors.green
+                                        : Colors.red,
+                                    width: 5),
+                                borderRadius:
+                                    BorderRadius.all(Radius.circular(5)),
+                              ),
+                              child: loadingSelector("cubeGrid", "dark")),
+                          onTap: () {
+                            setState(() {
+                              if (settings.get('loading') != "cubeGrid") {
+                                settings.put('loading', "cubeGrid");
+                              }
+                            });
+                          }),
+                      InkWell(
+                          child: Container(
+                              padding: EdgeInsets.all(0),
+                              width: 60,
+                              height: 60,
+                              decoration: BoxDecoration(
+                                //? To paint the border, we check the value of the settings for this website is true.
+                                //? If it's false or null (never set), we will paint red.
+                                border: Border.all(
+                                    color: settings.get('loading') ==
+                                            "pouringHourglass"
+                                        ? Colors.green
+                                        : Colors.red,
+                                    width: 5),
+                                borderRadius:
+                                    BorderRadius.all(Radius.circular(5)),
+                              ),
+                              child:
+                                  loadingSelector("pouringHourglass", "dark")),
+                          onTap: () {
+                            setState(() {
+                              if (settings.get('loading') !=
+                                  "pouringHourglass") {
+                                settings.put('loading', "pouringHourglass");
+                              }
+                            });
+                          }),
+                    ],
+                  ),
                 ),
                 //? Permite que o usuário troque o tema do aplicativo.
                 //? O usuário não verá a opção de trocar para o mesmo tema que estiver ativo
@@ -2037,164 +2297,169 @@ class _MyHomePageState extends State<MyHomePage> {
                     child: Text(
                       regionalText["settings"]["themePicker"],
                       style: textSelection("textDark"),
+                      textAlign: TextAlign.center,
                     ),
                   ),
                 ),
-                Wrap(
-                  spacing: 10,
-                  runSpacing: 10,
-                  children: [
-                    if (settings.get('theme') != "pink")
-                      Tooltip(
-                        message: regionalText["settings"]["pink"],
-                        child: InkWell(
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Container(
-                                  width: 25,
-                                  height: 50,
-                                  color: themeSelector["primary"]["pink"],
-                                ),
-                                Container(
-                                  width: 25,
-                                  height: 50,
-                                  color: themeSelector["secondary"]["pink"],
-                                )
-                              ],
-                            ),
-                            onTap: () => {
-                                  setState(() {
-                                    settings.put('theme', 'pink');
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 10),
+                  child: Wrap(
+                    spacing: 10,
+                    runSpacing: 10,
+                    children: [
+                      if (settings.get('theme') != "pink")
+                        Tooltip(
+                          message: regionalText["settings"]["pink"],
+                          child: InkWell(
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Container(
+                                    width: 25,
+                                    height: 50,
+                                    color: themeSelector["primary"]["pink"],
+                                  ),
+                                  Container(
+                                    width: 25,
+                                    height: 50,
+                                    color: themeSelector["secondary"]["pink"],
+                                  )
+                                ],
+                              ),
+                              onTap: () => {
+                                    setState(() {
+                                      settings.put('theme', 'pink');
+                                    }),
                                   }),
-                                }),
-                      ),
-                    if (settings.get('theme') != "orange")
-                      Tooltip(
-                        message: regionalText["settings"]["orange"],
-                        child: InkWell(
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Container(
-                                  width: 25,
-                                  height: 50,
-                                  color: themeSelector["primary"]["orange"],
-                                ),
-                                Container(
-                                  width: 25,
-                                  height: 50,
-                                  color: themeSelector["secondary"]["orange"],
-                                )
-                              ],
-                            ),
-                            onTap: () => {
-                                  setState(() {
-                                    settings.put('theme', 'orange');
+                        ),
+                      if (settings.get('theme') != "orange")
+                        Tooltip(
+                          message: regionalText["settings"]["orange"],
+                          child: InkWell(
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Container(
+                                    width: 25,
+                                    height: 50,
+                                    color: themeSelector["primary"]["orange"],
+                                  ),
+                                  Container(
+                                    width: 25,
+                                    height: 50,
+                                    color: themeSelector["secondary"]["orange"],
+                                  )
+                                ],
+                              ),
+                              onTap: () => {
+                                    setState(() {
+                                      settings.put('theme', 'orange');
+                                    }),
                                   }),
-                                }),
-                      ),
-                    if (settings.get('theme') != "blue")
-                      Tooltip(
-                        message: regionalText["settings"]["blue"],
-                        child: InkWell(
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Container(
-                                  width: 25,
-                                  height: 50,
-                                  color: themeSelector["primary"]["blue"],
-                                ),
-                                Container(
-                                  width: 25,
-                                  height: 50,
-                                  color: themeSelector["secondary"]["blue"],
-                                )
-                              ],
-                            ),
-                            onTap: () => {
-                                  setState(() {
-                                    settings.put('theme', 'blue');
+                        ),
+                      if (settings.get('theme') != "blue")
+                        Tooltip(
+                          message: regionalText["settings"]["blue"],
+                          child: InkWell(
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Container(
+                                    width: 25,
+                                    height: 50,
+                                    color: themeSelector["primary"]["blue"],
+                                  ),
+                                  Container(
+                                    width: 25,
+                                    height: 50,
+                                    color: themeSelector["secondary"]["blue"],
+                                  )
+                                ],
+                              ),
+                              onTap: () => {
+                                    setState(() {
+                                      settings.put('theme', 'blue');
+                                    }),
                                   }),
-                                }),
-                      ),
-                    if (settings.get('theme') != "black")
-                      Tooltip(
-                        message: regionalText["settings"]["black"],
-                        child: InkWell(
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Container(
-                                  width: 25,
-                                  height: 50,
-                                  color: themeSelector["primary"]["black"],
-                                ),
-                                Container(
-                                  width: 25,
-                                  height: 50,
-                                  color: themeSelector["secondary"]["black"],
-                                )
-                              ],
-                            ),
-                            onTap: () => {
-                                  setState(() {
-                                    settings.put('theme', 'black');
+                        ),
+                      if (settings.get('theme') != "black")
+                        Tooltip(
+                          message: regionalText["settings"]["black"],
+                          child: InkWell(
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Container(
+                                    width: 25,
+                                    height: 50,
+                                    color: themeSelector["primary"]["black"],
+                                  ),
+                                  Container(
+                                    width: 25,
+                                    height: 50,
+                                    color: themeSelector["secondary"]["black"],
+                                  )
+                                ],
+                              ),
+                              onTap: () => {
+                                    setState(() {
+                                      settings.put('theme', 'black');
+                                    }),
                                   }),
-                                }),
-                      ),
-                    if (settings.get('theme') != "white")
-                      Tooltip(
-                        message: regionalText["settings"]["white"],
-                        child: InkWell(
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Container(
-                                  width: 25,
-                                  height: 50,
-                                  color: themeSelector["primary"]["white"],
-                                ),
-                                Container(
-                                  width: 25,
-                                  height: 50,
-                                  color: themeSelector["secondary"]["white"],
-                                )
-                              ],
-                            ),
-                            onTap: () => {
-                                  setState(() {
-                                    settings.put('theme', 'white');
+                        ),
+                      if (settings.get('theme') != "white")
+                        Tooltip(
+                          message: regionalText["settings"]["white"],
+                          child: InkWell(
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Container(
+                                    width: 25,
+                                    height: 50,
+                                    color: themeSelector["primary"]["white"],
+                                  ),
+                                  Container(
+                                    width: 25,
+                                    height: 50,
+                                    color: themeSelector["secondary"]["white"],
+                                  )
+                                ],
+                              ),
+                              onTap: () => {
+                                    setState(() {
+                                      settings.put('theme', 'white');
+                                    }),
                                   }),
-                                }),
-                      ),
-                    if (settings.get('theme') != "boredom")
-                      Tooltip(
-                        message: regionalText["settings"]["boredom"],
-                        child: InkWell(
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Container(
-                                  width: 25,
-                                  height: 50,
-                                  color: themeSelector["primary"]["boredom"],
-                                ),
-                                Container(
-                                  width: 25,
-                                  height: 50,
-                                  color: themeSelector["secondary"]["boredom"],
-                                )
-                              ],
-                            ),
-                            onTap: () => {
-                                  setState(() {
-                                    settings.put('theme', 'boredom');
+                        ),
+                      if (settings.get('theme') != "boredom")
+                        Tooltip(
+                          message: regionalText["settings"]["boredom"],
+                          child: InkWell(
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Container(
+                                    width: 25,
+                                    height: 50,
+                                    color: themeSelector["primary"]["boredom"],
+                                  ),
+                                  Container(
+                                    width: 25,
+                                    height: 50,
+                                    color: themeSelector["secondary"]
+                                        ["boredom"],
+                                  )
+                                ],
+                              ),
+                              onTap: () => {
+                                    setState(() {
+                                      settings.put('theme', 'boredom');
+                                    }),
                                   }),
-                                }),
-                      ),
-                  ],
+                        ),
+                    ],
+                  ),
                 ),
                 if (settings.get("psnID") != null)
                   Padding(
@@ -3272,7 +3537,7 @@ class _MyHomePageState extends State<MyHomePage> {
                                             ),
                                           ],
                                         ),
-                                        SizedBox(height: 15),
+                                        SizedBox(height: 5),
                                         Divider(
                                             color: themeSelector['secondary']
                                                 [settings.get('theme')],
@@ -3333,9 +3598,10 @@ class _MyHomePageState extends State<MyHomePage> {
                                                 Tooltip(
                                                   message: "PS4/PS5",
                                                   child: Padding(
-                                                    padding:
-                                                        const EdgeInsets.all(
-                                                            10.0),
+                                                    padding: const EdgeInsets
+                                                            .symmetric(
+                                                        vertical: 0,
+                                                        horizontal: 10.0),
                                                     child: Text(
                                                       "${regionalText["home"]["hours"]}\n${snapshot.data['hours']}",
                                                       style: textSelection(""),
@@ -3979,528 +4245,546 @@ class _MyHomePageState extends State<MyHomePage> {
                     ),
                   ),
                 //? This is the bottom row with the buttons for Translation/Discord/Version/Privacy
-                Padding(
-                  padding: const EdgeInsets.all(10.0),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceAround,
-                    children: [
-                      InkWell(
-                        highlightColor: Colors.transparent,
-                        splashColor: Colors.transparent,
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Image.network(
-                              "https://raw.githubusercontent.com/hjnilsson/country-flags/master/png100px/${settings.get('language')}.png",
-                              height: 15,
-                              width: 22.5,
-                            ),
-                            SizedBox(width: 5),
-                            Text(regionalText['home']['translation'],
-                                style: textSelection("textDark")),
-                          ],
-                        ),
-                        onTap: () => showDialog(
-                          context: context,
-                          builder: (context) => Center(
-                            child: Container(
-                              decoration: BoxDecoration(
-                                  color: themeSelector["secondary"]
-                                      [settings.get("theme")],
-                                  borderRadius:
-                                      BorderRadius.all(Radius.circular(25))),
-                              width: MediaQuery.of(context).size.width * 0.5,
-                              child: Column(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    AppBar(
-                                      shape: RoundedRectangleBorder(
-                                          borderRadius: BorderRadius.vertical(
-                                              top: Radius.circular(25))),
-                                      title: Text(
-                                        regionalText["home"]["translation"],
-                                        style: textSelection(""),
-                                      ),
-                                      centerTitle: true,
-                                      automaticallyImplyLeading: false,
-                                      backgroundColor: themeSelector["primary"]
-                                          [settings.get("theme")],
-                                      actions: [
-                                        IconButton(
-                                            splashColor: Colors.transparent,
-                                            hoverColor: Colors.transparent,
-                                            icon: Icon(
-                                              Icons.close,
-                                              color: themeSelector["secondary"]
-                                                  [settings.get("theme")],
-                                            ),
-                                            onPressed: () {
-                                              Navigator.pop(context);
-                                            })
-                                      ],
-                                    ),
-                                    Padding(
-                                      padding: const EdgeInsets.all(20),
-                                      child: Column(
-                                        children: [
-                                          Text(
-                                            regionalText["bottomButtons"]
-                                                ["translationText"],
-                                            style: TextStyle(
-                                                decoration: TextDecoration.none,
-                                                color: themeSelector["primary"]
-                                                    [settings.get("theme")],
-                                                fontSize: 16,
-                                                fontWeight: FontWeight.normal),
-                                            textAlign: TextAlign.center,
-                                          ),
-                                          SizedBox(
-                                            height: 20,
-                                          ),
-                                          MaterialButton(
-                                            shape: RoundedRectangleBorder(
-                                              borderRadius:
-                                                  BorderRadius.circular(7),
-                                            ),
-                                            child: Text(
-                                              regionalText["bottomButtons"]
-                                                  ["translationButton"],
-                                              style: textSelection(""),
-                                            ),
-                                            color: themeSelector["primary"]
-                                                [settings.get("theme")],
-                                            onPressed: () async {
-                                              final String spreadsheetLink =
-                                                  "https://docs.google.com/spreadsheets/d/1Ul3bgFmimL_kZ33A1Onzq8bWswIePYFaLnbHCfaI_U4/edit?usp=sharing";
-                                              if (await canLaunch(
-                                                  spreadsheetLink)) {
-                                                launch(spreadsheetLink);
-                                              }
-                                            },
-                                          )
-                                        ],
-                                      ),
-                                    )
-                                  ]),
-                            ),
+                SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Container(
+                    padding: const EdgeInsets.all(10.0),
+                    width: MediaQuery.of(context).size.width,
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceAround,
+                      mainAxisSize: MainAxisSize.max,
+                      children: [
+                        InkWell(
+                          highlightColor: Colors.transparent,
+                          splashColor: Colors.transparent,
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Image.network(
+                                "https://raw.githubusercontent.com/hjnilsson/country-flags/master/png100px/${settings.get('language')}.png",
+                                height: 15,
+                                width: 22.5,
+                              ),
+                              SizedBox(width: 5),
+                              Text(regionalText['home']['translation'],
+                                  style: textSelection("textDark")),
+                            ],
                           ),
-                        ),
-                      ),
-                      InkWell(
-                        highlightColor: Colors.transparent,
-                        splashColor: Colors.transparent,
-                        hoverColor: Colors.transparent,
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Image.network(
-                                "https://discord.com/assets/2c21aeda16de354ba5334551a883b481.png",
-                                height: 25),
-                            Text("Discord", style: textSelection("textDark")),
-                          ],
-                        ),
-                        onTap: () async {
-                          String discordURL = "https://discord.gg/j55v7pD";
-                          if (await canLaunch(discordURL)) {
-                            await launch(discordURL);
-                          }
-                        },
-                      ),
-                      InkWell(
-                        highlightColor: Colors.transparent,
-                        splashColor: Colors.transparent,
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(Icons.info,
-                                size: 20,
-                                color: themeSelector["primary"]
-                                    [settings.get("theme")]),
-                            SizedBox(width: 5),
-                            Text(
-                                "${regionalText['home']['version']} ${regionalText['version']['version']}",
-                                style: textSelection("textDark")),
-                          ],
-                        ),
-                        onTap: () => showDialog(
+                          onTap: () => showDialog(
                             context: context,
-                            builder: (context) {
-                              //? The function that will fetch the latest GitHub update will be declared here
-                              //? to be used on the FutureBuilder() below
-                              Future<Map<String, dynamic>> yuraUpdate() async {
-                                WebScraper github =
-                                    WebScraper("https://github.com/");
-                                Map<String, dynamic> update = {};
-                                if (await github
-                                    .loadWebPage("TheYuriG/Yura/releases")) {
-                                  try {
-                                    github.getElement(
-                                        'body > div.application-main > div > main > div.container-xl.clearfix.new-discussion-timeline.px-3.px-md-4.px-lg-5 > div > div.position-relative.border-top.clearfix > div:nth-child(1) > div > div.col-12.col-md-9.col-lg-10.px-md-3.py-md-4.release-main-section.commit.open.float-left > div.release-header > div > div > a',
-                                        []).forEach((element) {
-                                      if (element['title'].contains('v')) {
-                                        update['lastVersion'] = element['title']
-                                            .split(' ')[1]
-                                            .trim();
-                                      }
-                                    });
-                                    //? Gets the 'datetime' attribute, converts it to UNIX
-                                    //? then use that to retrieve the timestamp of the update
-                                    //? I have not yet found a way to translate this to locale
-                                    //! No easy way to do dd/mm/yyyy for the right countries and mm/dd/yyyy for the rest
-                                    //! This was working before and now it isn't. I don't know why
-                                    github.getElement(
-                                        'div:nth-child(1) > div > div > div.release-header > p > relative-time',
-                                        ['datetime']).forEach((element) {
-                                      Intl.systemLocale = Platform.localeName;
-                                      // print(DateFormat.yMd().format(
-                                      //     DateTime.parse(element['attributes']
-                                      //         ['datetime'])));
-                                      update['when'] = element['title'];
-                                      // DateFormat.yMMMd()
-                                      //     .add_Hm()
-                                      //     .format(DateTime.parse(
-                                      //         element['attributes']['datetime']
-                                      //             .split()));
-                                    });
-                                    github.getElement(
-                                        'body > div.application-main > div > main > div.container-xl.clearfix.new-discussion-timeline.px-3.px-md-4.px-lg-5 > div > div.position-relative.border-top.clearfix > div:nth-child(1) > div > div.col-12.col-md-9.col-lg-10.px-md-3.py-md-4.release-main-section.commit.open.float-left > details > div > div > div.d-flex.flex-justify-between.flex-items-center.py-1.py-md-2.Box-body.px-2 > a',
-                                        ['href']).forEach((element) {
-                                      update['updateLink'] =
-                                          "https://github.com" +
-                                              element['attributes']['href']
-                                                  .trim();
-                                    });
-                                    github.getElement(
-                                        'body > div.application-main > div > main > div.container-xl.clearfix.new-discussion-timeline.px-3.px-md-4.px-lg-5 > div > div.position-relative.border-top.clearfix > div:nth-child(1) > div > div.col-12.col-md-9.col-lg-10.px-md-3.py-md-4.release-main-section.commit.open.float-left > div.markdown-body > ul > li',
-                                        []).forEach((element) {
-                                      if (update['updateNotes'] == null) {
-                                        update['updateNotes'] =
-                                            "\n⦿ " + element['title'].trim();
-                                      } else {
-                                        update['updateNotes'] += ("\n\n⦿ " +
-                                            element['title'].trim());
-                                      }
-                                    });
-                                    if (update['lastVersion'] == null) {
-                                      throw Error;
-                                    }
-                                  } catch (e) {
-                                    update['lastVersion'] = 'error';
-                                    update['updateNotes'] = 'error';
-                                  }
-                                }
-                                // print(update);
-                                return update;
-                              }
-
-                              return StatefulBuilder(
-                                  builder: (BuildContext context, setState) {
-                                return Center(
-                                  child: Container(
-                                    width:
-                                        MediaQuery.of(context).size.width * 0.7,
-                                    decoration: BoxDecoration(
-                                        color: themeSelector["secondary"]
-                                            [settings.get("theme")],
-                                        borderRadius: BorderRadius.all(
-                                            Radius.circular(25))),
-                                    child: Column(
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          AppBar(
-                                            shape: RoundedRectangleBorder(
-                                                borderRadius:
-                                                    BorderRadius.vertical(
-                                                        top: Radius.circular(
-                                                            25))),
-                                            title: Text(
-                                              "Yura ${regionalText['home']['version']} ${regionalText['version']['version']}",
-                                              style: textSelection(""),
-                                            ),
-                                            centerTitle: true,
-                                            automaticallyImplyLeading: false,
-                                            backgroundColor:
-                                                themeSelector["primary"]
-                                                    [settings.get("theme")],
-                                            actions: [
-                                              IconButton(
-                                                  splashColor:
-                                                      Colors.transparent,
-                                                  hoverColor:
-                                                      Colors.transparent,
-                                                  icon: Icon(
-                                                    Icons.close,
-                                                    color: themeSelector[
-                                                            "secondary"]
+                            builder: (context) => Center(
+                              child: Container(
+                                decoration: BoxDecoration(
+                                    color: themeSelector["secondary"]
+                                        [settings.get("theme")],
+                                    borderRadius:
+                                        BorderRadius.all(Radius.circular(25))),
+                                width: MediaQuery.of(context).size.width * 0.5,
+                                child: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      AppBar(
+                                        shape: RoundedRectangleBorder(
+                                            borderRadius: BorderRadius.vertical(
+                                                top: Radius.circular(25))),
+                                        title: Text(
+                                          regionalText["home"]["translation"],
+                                          style: textSelection(""),
+                                        ),
+                                        centerTitle: true,
+                                        automaticallyImplyLeading: false,
+                                        backgroundColor:
+                                            themeSelector["primary"]
+                                                [settings.get("theme")],
+                                        actions: [
+                                          IconButton(
+                                              splashColor: Colors.transparent,
+                                              hoverColor: Colors.transparent,
+                                              icon: Icon(
+                                                Icons.close,
+                                                color:
+                                                    themeSelector["secondary"]
                                                         [settings.get("theme")],
-                                                  ),
-                                                  onPressed: () {
-                                                    Navigator.pop(context);
-                                                  })
-                                            ],
-                                          ),
-                                          FutureBuilder(
-                                              future: yuraUpdate(),
-                                              builder: (context, snapshot) {
-                                                return Padding(
-                                                  padding:
-                                                      const EdgeInsets.all(20),
-                                                  child: Column(
-                                                    children: [
-                                                      if (snapshot
-                                                              .connectionState ==
-                                                          ConnectionState
-                                                              .waiting)
-                                                        loadingSelector(
-                                                            settings
-                                                                .get('loading'),
-                                                            "dark"),
-                                                      if (snapshot.connectionState ==
-                                                              ConnectionState
-                                                                  .done &&
-                                                          snapshot.data[
-                                                                  'updateNotes'] !=
-                                                              "error")
-                                                        Text(
-                                                          //? This will fetch information from the website. If it works, display the latest version.
-                                                          //? If it doesn't, display a cross mark. While it's loading, should have a "..." text.
-                                                          '${regionalText["bottomButtons"]["latestversion"]} ${snapshot.data['lastVersion']} (${snapshot.data['when']})',
-                                                          style: TextStyle(
-                                                              decoration:
-                                                                  TextDecoration
-                                                                      .none,
-                                                              color: themeSelector[
-                                                                      "primary"]
-                                                                  [settings.get(
-                                                                      "theme")],
-                                                              fontSize: 16,
-                                                              fontWeight:
-                                                                  FontWeight
-                                                                      .normal),
-                                                          textAlign:
-                                                              TextAlign.center,
-                                                        ),
-                                                      if (snapshot.connectionState ==
-                                                              ConnectionState
-                                                                  .done &&
-                                                          snapshot.data[
-                                                                  'updateNotes'] !=
-                                                              "error")
-                                                        SizedBox(height: 5),
-                                                      if (snapshot.connectionState ==
-                                                              ConnectionState
-                                                                  .done &&
-                                                          snapshot.data[
-                                                                  'updateNotes'] !=
-                                                              "error")
-                                                        Text(
-                                                          snapshot.data[
-                                                              'updateNotes'],
-                                                          style: TextStyle(
-                                                              decoration:
-                                                                  TextDecoration
-                                                                      .none,
-                                                              color: themeSelector[
-                                                                      "primary"]
-                                                                  [settings.get(
-                                                                      "theme")],
-                                                              fontSize: 16,
-                                                              fontWeight:
-                                                                  FontWeight
-                                                                      .normal),
-                                                        ),
-                                                      if (snapshot.connectionState ==
-                                                              ConnectionState
-                                                                  .done &&
-                                                          snapshot.data[
-                                                                  'updateNotes'] !=
-                                                              "error" &&
-                                                          snapshot.data[
-                                                                  'lastVersion'] !=
-                                                              regionalText[
-                                                                      "version"]
-                                                                  ["version"])
-                                                        SizedBox(height: 20),
-                                                      if (snapshot.connectionState ==
-                                                              ConnectionState
-                                                                  .done &&
-                                                          snapshot.data[
-                                                                  'updateNotes'] !=
-                                                              "error" &&
-                                                          snapshot.data[
-                                                                  'lastVersion'] !=
-                                                              regionalText[
-                                                                      "version"]
-                                                                  ["version"])
-                                                        MaterialButton(
-                                                          shape:
-                                                              RoundedRectangleBorder(
-                                                            borderRadius:
-                                                                BorderRadius
-                                                                    .circular(
-                                                                        7),
-                                                          ),
-                                                          child: Text(
-                                                            regionalText[
-                                                                    "bottomButtons"]
-                                                                ["update"],
-                                                            style:
-                                                                textSelection(
-                                                                    ""),
-                                                          ),
-                                                          color: themeSelector[
-                                                                  "primary"][
-                                                              settings.get(
-                                                                  "theme")],
-                                                          onPressed: () async {
-                                                            final String
-                                                                updateLink =
-                                                                snapshot.data[
-                                                                    'updateLink'];
-                                                            if (await canLaunch(
-                                                                updateLink)) {
-                                                              launch(
-                                                                  updateLink);
-                                                            }
-                                                          },
-                                                        ),
-                                                      if (snapshot
-                                                              .connectionState ==
-                                                          ConnectionState.done)
-                                                        Padding(
-                                                          padding:
-                                                              const EdgeInsets
-                                                                      .only(
-                                                                  top: 10),
-                                                          child: Tooltip(
-                                                            message: regionalText[
-                                                                    "bottomButtons"]
-                                                                ["updateGif"],
-                                                            child:
-                                                                Image.network(
-                                                              "https://media1.giphy.com/media/l0MYOVCen1VP32oJW/giphy.gif?cid=ecf05e47df393f6ff6116685798d777331ca08f05afaacfc&rid=giphy.gif",
-                                                              width: MediaQuery.of(
-                                                                          context)
-                                                                      .size
-                                                                      .width *
-                                                                  0.7,
-                                                            ),
-                                                          ),
-                                                        )
-                                                    ],
-                                                  ),
-                                                );
+                                              ),
+                                              onPressed: () {
+                                                Navigator.pop(context);
                                               })
-                                        ]),
-                                  ),
-                                );
-                              });
-                            }),
-                      ),
-                      InkWell(
-                        highlightColor: Colors.transparent,
-                        splashColor: Colors.transparent,
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(Icons.remove_red_eye,
-                                size: 20,
-                                color: themeSelector["primary"]
-                                    [settings.get("theme")]),
-                            SizedBox(width: 5),
-                            Text(regionalText['home']['privacy'],
-                                style: textSelection("textDark")),
-                          ],
-                        ),
-                        onTap: () => showDialog(
-                          context: context,
-                          builder: (context) => Center(
-                            child: Container(
-                              decoration: BoxDecoration(
-                                  color: themeSelector["secondary"]
-                                      [settings.get("theme")],
-                                  borderRadius:
-                                      BorderRadius.all(Radius.circular(25))),
-                              width: MediaQuery.of(context).size.width * 0.5,
-                              child: Column(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    AppBar(
-                                      shape: RoundedRectangleBorder(
-                                          borderRadius: BorderRadius.vertical(
-                                              top: Radius.circular(25))),
-                                      title: Text(
-                                        regionalText["home"]["privacy"],
-                                        style: textSelection(""),
-                                      ),
-                                      centerTitle: true,
-                                      automaticallyImplyLeading: false,
-                                      backgroundColor: themeSelector["primary"]
-                                          [settings.get("theme")],
-                                      actions: [
-                                        IconButton(
-                                            splashColor: Colors.transparent,
-                                            hoverColor: Colors.transparent,
-                                            icon: Icon(
-                                              Icons.close,
-                                              color: themeSelector["secondary"]
-                                                  [settings.get("theme")],
-                                            ),
-                                            onPressed: () {
-                                              Navigator.pop(context);
-                                            })
-                                      ],
-                                    ),
-                                    Padding(
-                                      padding: const EdgeInsets.all(20),
-                                      child: Column(
-                                        children: [
-                                          Text(
-                                            regionalText["bottomButtons"]
-                                                ["privacyText"],
-                                            style: TextStyle(
-                                                decoration: TextDecoration.none,
-                                                color: themeSelector["primary"]
-                                                    [settings.get("theme")],
-                                                fontSize: 16,
-                                                fontWeight: FontWeight.normal),
-                                            textAlign: TextAlign.center,
-                                          ),
                                         ],
                                       ),
-                                    )
-                                  ]),
+                                      Padding(
+                                        padding: const EdgeInsets.all(20),
+                                        child: Column(
+                                          children: [
+                                            Text(
+                                              regionalText["bottomButtons"]
+                                                  ["translationText"],
+                                              style: TextStyle(
+                                                  decoration:
+                                                      TextDecoration.none,
+                                                  color: themeSelector[
+                                                          "primary"]
+                                                      [settings.get("theme")],
+                                                  fontSize: 16,
+                                                  fontWeight:
+                                                      FontWeight.normal),
+                                              textAlign: TextAlign.center,
+                                            ),
+                                            SizedBox(
+                                              height: 20,
+                                            ),
+                                            MaterialButton(
+                                              shape: RoundedRectangleBorder(
+                                                borderRadius:
+                                                    BorderRadius.circular(7),
+                                              ),
+                                              child: Text(
+                                                regionalText["bottomButtons"]
+                                                    ["translationButton"],
+                                                style: textSelection(""),
+                                              ),
+                                              color: themeSelector["primary"]
+                                                  [settings.get("theme")],
+                                              onPressed: () async {
+                                                final String spreadsheetLink =
+                                                    "https://docs.google.com/spreadsheets/d/1Ul3bgFmimL_kZ33A1Onzq8bWswIePYFaLnbHCfaI_U4/edit?usp=sharing";
+                                                if (await canLaunch(
+                                                    spreadsheetLink)) {
+                                                  launch(spreadsheetLink);
+                                                }
+                                              },
+                                            )
+                                          ],
+                                        ),
+                                      )
+                                    ]),
+                              ),
                             ),
                           ),
                         ),
-                      ),
-                    ],
+                        InkWell(
+                          highlightColor: Colors.transparent,
+                          splashColor: Colors.transparent,
+                          hoverColor: Colors.transparent,
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Image.network(
+                                  "https://discord.com/assets/2c21aeda16de354ba5334551a883b481.png",
+                                  height: 25),
+                              Text("Discord", style: textSelection("textDark")),
+                            ],
+                          ),
+                          onTap: () async {
+                            String discordURL = "https://discord.gg/j55v7pD";
+                            if (await canLaunch(discordURL)) {
+                              await launch(discordURL);
+                            }
+                          },
+                        ),
+                        InkWell(
+                          highlightColor: Colors.transparent,
+                          splashColor: Colors.transparent,
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(Icons.info,
+                                  size: 20,
+                                  color: themeSelector["primary"]
+                                      [settings.get("theme")]),
+                              SizedBox(width: 5),
+                              Text(
+                                  "${regionalText['home']['version']} ${regionalText['version']['version']}",
+                                  style: textSelection("textDark")),
+                            ],
+                          ),
+                          onTap: () => showDialog(
+                              context: context,
+                              builder: (context) {
+                                //? The function that will fetch the latest GitHub update will be declared here
+                                //? to be used on the FutureBuilder() below
+                                Future<Map<String, dynamic>>
+                                    yuraUpdate() async {
+                                  WebScraper github =
+                                      WebScraper("https://github.com/");
+                                  Map<String, dynamic> update = {};
+                                  if (await github
+                                      .loadWebPage("TheYuriG/Yura/releases")) {
+                                    try {
+                                      github.getElement(
+                                          'body > div.application-main > div > main > div.container-xl.clearfix.new-discussion-timeline.px-3.px-md-4.px-lg-5 > div > div.position-relative.border-top.clearfix > div:nth-child(1) > div > div.col-12.col-md-9.col-lg-10.px-md-3.py-md-4.release-main-section.commit.open.float-left > div.release-header > div > div > a',
+                                          []).forEach((element) {
+                                        if (element['title'].contains('v')) {
+                                          update['lastVersion'] =
+                                              element['title']
+                                                  .split(' ')[1]
+                                                  .trim();
+                                        }
+                                      });
+                                      //? Gets the 'datetime' attribute, converts it to UNIX
+                                      //? then use that to retrieve the timestamp of the update
+                                      //? I have not yet found a way to translate this to locale
+                                      //! No easy way to do dd/mm/yyyy for the right countries and mm/dd/yyyy for the rest
+                                      //! This was working before and now it isn't. I don't know why
+                                      github.getElement(
+                                          'div:nth-child(1) > div > div > div.release-header > p > relative-time',
+                                          ['datetime']).forEach((element) {
+                                        Intl.systemLocale = Platform.localeName;
+                                        // print(DateFormat.yMd().format(
+                                        //     DateTime.parse(element['attributes']
+                                        //         ['datetime'])));
+                                        update['when'] = element['title'];
+                                        // DateFormat.yMMMd()
+                                        //     .add_Hm()
+                                        //     .format(DateTime.parse(
+                                        //         element['attributes']['datetime']
+                                        //             .split()));
+                                      });
+                                      github.getElement(
+                                          'body > div.application-main > div > main > div.container-xl.clearfix.new-discussion-timeline.px-3.px-md-4.px-lg-5 > div > div.position-relative.border-top.clearfix > div:nth-child(1) > div > div.col-12.col-md-9.col-lg-10.px-md-3.py-md-4.release-main-section.commit.open.float-left > details > div > div > div.d-flex.flex-justify-between.flex-items-center.py-1.py-md-2.Box-body.px-2 > a',
+                                          ['href']).forEach((element) {
+                                        update['updateLink'] =
+                                            "https://github.com" +
+                                                element['attributes']['href']
+                                                    .trim();
+                                      });
+                                      github.getElement(
+                                          'body > div.application-main > div > main > div.container-xl.clearfix.new-discussion-timeline.px-3.px-md-4.px-lg-5 > div > div.position-relative.border-top.clearfix > div:nth-child(1) > div > div.col-12.col-md-9.col-lg-10.px-md-3.py-md-4.release-main-section.commit.open.float-left > div.markdown-body > ul > li',
+                                          []).forEach((element) {
+                                        if (update['updateNotes'] == null) {
+                                          update['updateNotes'] =
+                                              "\n⦿ " + element['title'].trim();
+                                        } else {
+                                          update['updateNotes'] += ("\n\n⦿ " +
+                                              element['title'].trim());
+                                        }
+                                      });
+                                      if (update['lastVersion'] == null) {
+                                        throw Error;
+                                      }
+                                    } catch (e) {
+                                      update['lastVersion'] = 'error';
+                                      update['updateNotes'] = 'error';
+                                    }
+                                  }
+                                  // print(update);
+                                  return update;
+                                }
+
+                                return StatefulBuilder(
+                                    builder: (BuildContext context, setState) {
+                                  return Center(
+                                    child: Container(
+                                      width: MediaQuery.of(context).size.width *
+                                          0.7,
+                                      decoration: BoxDecoration(
+                                          color: themeSelector["secondary"]
+                                              [settings.get("theme")],
+                                          borderRadius: BorderRadius.all(
+                                              Radius.circular(25))),
+                                      child: Column(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            AppBar(
+                                              shape: RoundedRectangleBorder(
+                                                  borderRadius:
+                                                      BorderRadius.vertical(
+                                                          top: Radius.circular(
+                                                              25))),
+                                              title: Text(
+                                                "Yura ${regionalText['home']['version']} ${regionalText['version']['version']}",
+                                                style: textSelection(""),
+                                              ),
+                                              centerTitle: true,
+                                              automaticallyImplyLeading: false,
+                                              backgroundColor:
+                                                  themeSelector["primary"]
+                                                      [settings.get("theme")],
+                                              actions: [
+                                                IconButton(
+                                                    splashColor:
+                                                        Colors.transparent,
+                                                    hoverColor:
+                                                        Colors.transparent,
+                                                    icon: Icon(
+                                                      Icons.close,
+                                                      color: themeSelector[
+                                                              "secondary"][
+                                                          settings
+                                                              .get("theme")],
+                                                    ),
+                                                    onPressed: () {
+                                                      Navigator.pop(context);
+                                                    })
+                                              ],
+                                            ),
+                                            FutureBuilder(
+                                                future: yuraUpdate(),
+                                                builder: (context, snapshot) {
+                                                  return Padding(
+                                                    padding:
+                                                        const EdgeInsets.all(
+                                                            20),
+                                                    child: Column(
+                                                      children: [
+                                                        if (snapshot
+                                                                .connectionState ==
+                                                            ConnectionState
+                                                                .waiting)
+                                                          loadingSelector(
+                                                              settings.get(
+                                                                  'loading'),
+                                                              "dark"),
+                                                        if (snapshot.connectionState ==
+                                                                ConnectionState
+                                                                    .done &&
+                                                            snapshot.data[
+                                                                    'updateNotes'] !=
+                                                                "error")
+                                                          Text(
+                                                            //? This will fetch information from the website. If it works, display the latest version.
+                                                            //? If it doesn't, display a cross mark. While it's loading, should have a "..." text.
+                                                            '${regionalText["bottomButtons"]["latestversion"]} ${snapshot.data['lastVersion']} (${snapshot.data['when']})',
+                                                            style: TextStyle(
+                                                                decoration:
+                                                                    TextDecoration
+                                                                        .none,
+                                                                color: themeSelector[
+                                                                        "primary"]
+                                                                    [
+                                                                    settings.get(
+                                                                        "theme")],
+                                                                fontSize: 16,
+                                                                fontWeight:
+                                                                    FontWeight
+                                                                        .normal),
+                                                            textAlign: TextAlign
+                                                                .center,
+                                                          ),
+                                                        if (snapshot.connectionState ==
+                                                                ConnectionState
+                                                                    .done &&
+                                                            snapshot.data[
+                                                                    'updateNotes'] !=
+                                                                "error")
+                                                          SizedBox(height: 5),
+                                                        if (snapshot.connectionState ==
+                                                                ConnectionState
+                                                                    .done &&
+                                                            snapshot.data[
+                                                                    'updateNotes'] !=
+                                                                "error")
+                                                          Text(
+                                                            snapshot.data[
+                                                                'updateNotes'],
+                                                            style: TextStyle(
+                                                                decoration:
+                                                                    TextDecoration
+                                                                        .none,
+                                                                color: themeSelector[
+                                                                        "primary"]
+                                                                    [
+                                                                    settings.get(
+                                                                        "theme")],
+                                                                fontSize: 16,
+                                                                fontWeight:
+                                                                    FontWeight
+                                                                        .normal),
+                                                          ),
+                                                        if (snapshot.connectionState ==
+                                                                ConnectionState
+                                                                    .done &&
+                                                            snapshot.data[
+                                                                    'updateNotes'] !=
+                                                                "error" &&
+                                                            snapshot.data[
+                                                                    'lastVersion'] !=
+                                                                regionalText[
+                                                                        "version"]
+                                                                    ["version"])
+                                                          SizedBox(height: 20),
+                                                        if (snapshot.connectionState ==
+                                                                ConnectionState
+                                                                    .done &&
+                                                            snapshot.data[
+                                                                    'updateNotes'] !=
+                                                                "error" &&
+                                                            snapshot.data[
+                                                                    'lastVersion'] !=
+                                                                regionalText[
+                                                                        "version"]
+                                                                    ["version"])
+                                                          MaterialButton(
+                                                            shape:
+                                                                RoundedRectangleBorder(
+                                                              borderRadius:
+                                                                  BorderRadius
+                                                                      .circular(
+                                                                          7),
+                                                            ),
+                                                            child: Text(
+                                                              regionalText[
+                                                                      "bottomButtons"]
+                                                                  ["update"],
+                                                              style:
+                                                                  textSelection(
+                                                                      ""),
+                                                            ),
+                                                            color: themeSelector[
+                                                                    "primary"][
+                                                                settings.get(
+                                                                    "theme")],
+                                                            onPressed:
+                                                                () async {
+                                                              final String
+                                                                  updateLink =
+                                                                  snapshot.data[
+                                                                      'updateLink'];
+                                                              if (await canLaunch(
+                                                                  updateLink)) {
+                                                                launch(
+                                                                    updateLink);
+                                                              }
+                                                            },
+                                                          ),
+                                                        if (snapshot
+                                                                .connectionState ==
+                                                            ConnectionState
+                                                                .done)
+                                                          Padding(
+                                                            padding:
+                                                                const EdgeInsets
+                                                                        .only(
+                                                                    top: 10),
+                                                            child: Tooltip(
+                                                              message: regionalText[
+                                                                      "bottomButtons"]
+                                                                  ["updateGif"],
+                                                              child:
+                                                                  Image.network(
+                                                                "https://media1.giphy.com/media/l0MYOVCen1VP32oJW/giphy.gif?cid=ecf05e47df393f6ff6116685798d777331ca08f05afaacfc&rid=giphy.gif",
+                                                                width: MediaQuery.of(
+                                                                            context)
+                                                                        .size
+                                                                        .width *
+                                                                    0.7,
+                                                              ),
+                                                            ),
+                                                          )
+                                                      ],
+                                                    ),
+                                                  );
+                                                })
+                                          ]),
+                                    ),
+                                  );
+                                });
+                              }),
+                        ),
+                        InkWell(
+                          highlightColor: Colors.transparent,
+                          splashColor: Colors.transparent,
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(Icons.remove_red_eye,
+                                  size: 20,
+                                  color: themeSelector["primary"]
+                                      [settings.get("theme")]),
+                              SizedBox(width: 5),
+                              Text(regionalText['home']['privacy'],
+                                  style: textSelection("textDark")),
+                            ],
+                          ),
+                          onTap: () => showDialog(
+                            context: context,
+                            builder: (context) => Center(
+                              child: Container(
+                                decoration: BoxDecoration(
+                                    color: themeSelector["secondary"]
+                                        [settings.get("theme")],
+                                    borderRadius:
+                                        BorderRadius.all(Radius.circular(25))),
+                                width: MediaQuery.of(context).size.width * 0.5,
+                                child: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      AppBar(
+                                        shape: RoundedRectangleBorder(
+                                            borderRadius: BorderRadius.vertical(
+                                                top: Radius.circular(25))),
+                                        title: Text(
+                                          regionalText["home"]["privacy"],
+                                          style: textSelection(""),
+                                        ),
+                                        centerTitle: true,
+                                        automaticallyImplyLeading: false,
+                                        backgroundColor:
+                                            themeSelector["primary"]
+                                                [settings.get("theme")],
+                                        actions: [
+                                          IconButton(
+                                              splashColor: Colors.transparent,
+                                              hoverColor: Colors.transparent,
+                                              icon: Icon(
+                                                Icons.close,
+                                                color:
+                                                    themeSelector["secondary"]
+                                                        [settings.get("theme")],
+                                              ),
+                                              onPressed: () {
+                                                Navigator.pop(context);
+                                              })
+                                        ],
+                                      ),
+                                      Padding(
+                                        padding: const EdgeInsets.all(20),
+                                        child: Column(
+                                          children: [
+                                            Text(
+                                              regionalText["bottomButtons"]
+                                                  ["privacyText"],
+                                              style: TextStyle(
+                                                  decoration:
+                                                      TextDecoration.none,
+                                                  color: themeSelector[
+                                                          "primary"]
+                                                      [settings.get("theme")],
+                                                  fontSize: 16,
+                                                  fontWeight:
+                                                      FontWeight.normal),
+                                              textAlign: TextAlign.center,
+                                            ),
+                                          ],
+                                        ),
+                                      )
+                                    ]),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 )
               ],
             ),
           ),
         ),
-        floatingActionButton: settings.get("psnID") == null ||
-                (psnpDump == {'update': true} &&
-                        psntlDump == {'update': true} &&
-                        exophaseDump == {'update': true} &&
-                        trueTrophiesDump == {'update': true} &&
-                        psn100Dump == {'update': true}) ==
-                    true
-            ? null
-            : FloatingActionButton(
-                onPressed: () {
-                  updateProfiles();
-                },
-                tooltip: regionalText["home"]["refresh"],
-                child: Icon(
-                  Icons.refresh,
-                  color: themeSelector["secondary"][settings.get("theme")],
-                ),
-                backgroundColor: themeSelector["primary"]
-                    [settings.get("theme")],
-              ),
+        floatingActionButton:
+            settings.get("psnID") == null || isUpdating == true
+                ? null
+                : FloatingActionButton(
+                    onPressed: () {
+                      updateProfiles();
+                    },
+                    tooltip: regionalText["home"]["refresh"],
+                    child: Icon(
+                      Icons.refresh,
+                      color: themeSelector["secondary"][settings.get("theme")],
+                    ),
+                    backgroundColor: themeSelector["primary"]
+                        [settings.get("theme")],
+                  ),
       ),
     );
   }

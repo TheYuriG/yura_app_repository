@@ -1,14 +1,15 @@
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:hive/hive.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:intl/intl.dart';
 import 'dart:async';
 import 'package:url_launcher/url_launcher.dart';
+import 'exophase_profile.dart';
 // ignore: unused_import
-import 'package:flutter_easyloading/flutter_easyloading.dart';
+// import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
-
 import 'package:web_scraper/web_scraper.dart';
 
 //! This project assumes you are using VS Code and have the Todo Tree extension installed.
@@ -49,7 +50,6 @@ final WebScraper psn100 = WebScraper("https://psn100.net/");
 Future<Map> psnpInfo(String user) async {
   await psnp.loadWebPage('/$user');
   Map<String, dynamic> parsedData = {};
-  // TODO PSNP routing
   //? https://psnprofiles.com/
   //! parsedData['psnID']
   //? ?ajax=1&completion=
@@ -252,6 +252,7 @@ Future<Map> psnpInfo(String user) async {
       }
     });
   } catch (e) {
+    print("error scanning PSN Profiles");
     parsedData = {};
     settings.put('psnp', false);
   }
@@ -264,7 +265,6 @@ Future<Map> psnpInfo(String user) async {
 Future<Map> psntlInfo(String user) async {
   await psntl.loadWebPage('/user/view/$user');
   Map<String, dynamic> parsedData = {};
-  // TODO PSNTL trophy log routing
   //? To get trophy log by rarity, make a HTTP POST request to
   //! https://psntrophyleaders.com/user/get_rare_trophies
   //? and as body, send the following
@@ -451,6 +451,7 @@ Future<Map> psntlInfo(String user) async {
       }
     });
   } catch (e) {
+    print("error scanning PSN Trophy Leaders");
     parsedData = {};
     settings.put('psntl', false);
   }
@@ -462,12 +463,13 @@ Future<Map> psntlInfo(String user) async {
 //? This will make a request to Exophase to retrieve a small clickable profile card
 Future<Map> exophaseInfo(String user) async {
   await exophase.loadWebPage('psn/user/$user/');
+  //! parsedData holds player data only
   Map<String, dynamic> parsedData = {};
+  //! parsedGames holds player games only
+  Map<int, Map<String, dynamic>> parsedGames = {};
   try {
-    // TODO exophase routing
     // https://api.exophase.com/public/player/(data-playerid)/game/(data-game)/earned
     // data-game = #app > div > div.row.col-game-information.pb-3
-    // data-playerid = #app > div > section > div
     //! Retrieves basic profile information, like avatar, about me, PSN ID, level, etc
     //? Retrieves PSN ID
     exophase.getElement(
@@ -481,6 +483,11 @@ Future<Map> exophaseInfo(String user) async {
     if (parsedData['psnID'] == null) {
       throw Error;
     }
+    //? Exophase's unique account ID
+    exophase.getElement(
+        '#app > div > section > div', ['data-playerid']).forEach((element) {
+      parsedData['exophaseID'] = element['attributes']['data-playerid'].trim();
+    });
     //? Retrieves PSN country
     exophase.getElement(
         '#sub-user-info > section > div.col-auto > div > div.col.col-last.column-units > div > div:nth-child(1) > span > span.country-ranking.mb-1 > img',
@@ -574,14 +581,14 @@ Future<Map> exophaseInfo(String user) async {
     //! Retrieves Profile overall statistics
     //? Retrieves total ganes
     exophase.getElement(
-        '#sub-user-info > section > div.col-auto > div > div.col.col-last.column-units > div > div.col > span:nth-child(5)',
+        '#sub-user-info > section > div.col-auto > div > div.col.col-last.column-units > div > div.col > span[data-tippy-content="Games owned"]',
         []).forEach((element) {
       parsedData['games'] =
           int.parse(element['title'].replaceAll(",", "").trim());
     });
-    //? Retrieves complete ganes
+    //? Retrieves complete games
     exophase.getElement(
-        '#sub-user-info > section > div.col-auto > div > div.col.col-last.column-units > div > div.col > span:nth-child(7)',
+        '#sub-user-info > section > div.col-auto > div > div.col.col-last.column-units > div > div.col > span[data-tippy-content="Completed games"]',
         []).forEach((element) {
       parsedData['complete'] =
           int.parse(element['title'].replaceAll(",", "").trim());
@@ -602,17 +609,123 @@ Future<Map> exophaseInfo(String user) async {
     });
     //? Retrieves earned EXP
     exophase.getElement(
-        '#sub-user-info > section > div.col-auto > div > div.col.col-last.column-units > div > div.col > span:nth-child(9)',
+        '#sub-user-info > section > div.col-auto > div > div.col.col-last.column-units > div > div.col > span[data-tippy-content="Earned EXP"]',
         []).forEach((element) {
       parsedData['exp'] =
           int.parse(element['title'].replaceAll(",", "").trim());
     });
+    //! Games data
+    //? ngames is defined to check how many games this should scan for
+    //? if the user has more than 50 (default initial game display for exophase) games on their profile, scan for 50
+    //? otherwise scan the number of games
+    int ngames = parsedData['games'] > 50 ? 50 : parsedData['games'];
+    for (var i = 1; i < ngames; i++) {
+      parsedGames[i] = {};
+      //? Retrieves game image
+      exophase.getElement(
+          '#app > div > div.row.user-container > div.col-12.col-xl-9 > ul > li:nth-child(${(i * 2) - 1}) > div > div > div.box.image > img',
+          ['src']).forEach((element) {
+        parsedGames[i]['gameImage'] = element['attributes']['src'].trim();
+      });
+      //? Retrieves game name and link
+      exophase.getElement(
+          '#app > div > div.row.user-container > div.col-12.col-xl-9 > ul > li:nth-child(${(i * 2) - 1}) > div.row.gx-0.align-items-center > div.col.col-game.game-info.pe-3 > div > h3 > a',
+          ['href']).forEach((element) {
+        parsedGames[i]['gameLink'] = element['attributes']['href'].trim();
+        parsedGames[i]['gameName'] = element['title'].trim();
+      });
+      //? Retrieves game platforms
+      exophase.getElement(
+          '#app > div > div.row.user-container > div.col-12.col-xl-9 > ul > li:nth-child(${(i * 2) - 1}) > div.row.gx-0.align-items-center > div.col.col-game.game-info.pe-3 > div > div',
+          []).forEach((element) {
+        if (element['title'].toLowerCase().contains("ps3")) {
+          parsedGames[i]['gamePS3'] = true;
+        }
+        if (element['title'].toLowerCase().contains("ps4")) {
+          parsedGames[i]['gamePS4'] = true;
+        }
+        if (element['title'].toLowerCase().contains("ps5")) {
+          parsedGames[i]['gamePS5'] = true;
+        }
+        if (element['title'].toLowerCase().contains("vita")) {
+          parsedGames[i]['gameVita'] = true;
+        }
+      });
+      //? Retrieves game playtime
+      exophase.getElement(
+          '#app > div > div.row.user-container > div.col-12.col-xl-9 > ul > li:nth-child(${(i * 2) - 1}) > div.row.gx-0.align-items-center > div.col.col-game.game-info.pe-3 > div > span.hours',
+          []).forEach((element) {
+        parsedGames[i]['gameTime'] = element['title'].trim();
+      });
+      //? Retrieves game image
+      exophase.getElement(
+          '#app > div > div.row.user-container > div.col-12.col-xl-9 > ul > li:nth-child(${(i * 2) - 1})',
+          ['data-gameid']).forEach((element) {
+        parsedGames[i]['gameID'] = element['attributes']['data-gameid'].trim();
+      });
+      //? Retrieves game trophy ratio (trophies earned / trophy total)
+      exophase.getElement(
+          '#app > div > div.row.user-container > div.col-12.col-xl-9 > ul > li:nth-child(${(i * 2) - 1}) > div.row.gx-0.align-items-center > div.col-12.col-md.px-3.pb-4.pe-md-0.pb-md-0.game-progress > div.row.gx-0.progress-units-top.pb-2 > div:first-child',
+          []).forEach((element) {
+        parsedGames[i]['gameRatio'] = element['title'].trim();
+      });
+      //? Retrieves game EXP
+      exophase.getElement(
+          '#app > div > div.row.user-container > div.col-12.col-xl-9 > ul > li:nth-child(${(i * 2) - 1}) > div.row.gx-0.align-items-center > div.col-12.col-md.px-3.pb-4.pe-md-0.pb-md-0.game-progress > div.row.gx-0.progress-units-top.pb-2 > div:nth-child(2)',
+          []).forEach((element) {
+        parsedGames[i]['gameRatio'] =
+            int.parse(element['title'].replaceAll(",", "").trim());
+      });
+      //? Retrieves game bronze trophies
+      exophase.getElement(
+          '#app > div > div.row.user-container > div.col-12.col-xl-9 > ul > li:nth-child(${(i * 2) - 1}) > div.row.gx-0.align-items-center > div.col-12.col-md.px-3.pb-4.pe-md-0.pb-md-0.game-progress > div.holders > div > span.bronze',
+          []).forEach((element) {
+        parsedGames[i]['gameBronze'] = int.parse(element['title'].trim());
+      });
+      //? Retrieves game silver trophies
+      exophase.getElement(
+          '#app > div > div.row.user-container > div.col-12.col-xl-9 > ul > li:nth-child(${(i * 2) - 1}) > div.row.gx-0.align-items-center > div.col-12.col-md.px-3.pb-4.pe-md-0.pb-md-0.game-progress > div.holders > div > span.silver',
+          []).forEach((element) {
+        parsedGames[i]['gameSilver'] = int.parse(element['title'].trim());
+      });
+      //? Retrieves game gold trophies
+      exophase.getElement(
+          '#app > div > div.row.user-container > div.col-12.col-xl-9 > ul > li:nth-child(${(i * 2) - 1}) > div.row.gx-0.align-items-center > div.col-12.col-md.px-3.pb-4.pe-md-0.pb-md-0.game-progress > div.holders > div > span.gold',
+          []).forEach((element) {
+        parsedGames[i]['gameGold'] = int.parse(element['title'].trim());
+      });
+      //? Retrieves game platinum trophies
+      exophase.getElement(
+          '#app > div > div.row.user-container > div.col-12.col-xl-9 > ul > li:nth-child(${(i * 2) - 1}) > div.row.gx-0.align-items-center > div.col-12.col-md.px-3.pb-4.pe-md-0.pb-md-0.game-progress > div.holders > div > span.platinum',
+          []).forEach((element) {
+        parsedGames[i]['gamePlatinum'] = 1;
+      });
+      //? Retrieves game percentage progress
+      exophase.getElement(
+          '#app > div > div.row.user-container > div.col-12.col-xl-9 > ul > li:nth-child(${(i * 2) - 1}) > div.row.gx-0.align-items-center > div.col-12.col-md.px-3.pb-4.pe-md-0.pb-md-0.game-progress > div.progress > div',
+          ['style']).forEach((element) {
+        parsedGames[i]['gamePercentage'] = int.parse(element['attributes']
+                ['style']
+            .replaceAll("%;", "")
+            .replaceAll("width: ", "")
+            .trim());
+      });
+      //? Retrieves game last played date
+      exophase.getElement(
+          '#app > div > div.row.user-container > div.col-12.col-xl-9 > ul > li:nth-child(${(i * 2) - 1}) > div.row.gx-0.align-items-center > div.col-12.col-md.col-lastplayed.text-center.text-md-end.mb-2.mb-md-0 > div.lastplayed',
+          []).forEach((element) {
+        parsedGames[i]['gameLastPlayed'] = element['title'].trim();
+      });
+    }
   } catch (e) {
+    print("error scanning Exophase");
     parsedData = {};
     settings.put('exophase', false);
   }
   // print(parsedData);
   settings.put('exophaseDump', parsedData);
+  // print(parsedGames);
+  settings.put('exophaseGames', parsedGames);
   return parsedData;
 }
 
@@ -621,7 +734,6 @@ Future<Map> trueTrophiesInfo(String user) async {
   await tt.loadWebPage('gamer/$user/');
   Map<String, dynamic> parsedData = {};
   try {
-    // TODO True Trophies routing
     //? True Trophies games list:
     //? https://www.truetrophies.com/gamer/
     //! ${parsedData['psnID']}
@@ -663,7 +775,6 @@ Future<Map> trueTrophiesInfo(String user) async {
       parsedData['avatar'] =
           "https://www.truetrophies.com/" + element['attributes']['src'];
     });
-    print(parsedData);
     //? Retrieves PSN Level and TrueTrophy level
     tt.getElement(
         '#frm > div.page.tt.limit > div.main.middle > main > div.panel-header.t.gamer > div.scores > span:nth-child(2)',
@@ -676,7 +787,6 @@ Future<Map> trueTrophiesInfo(String user) async {
             int.parse(element['title'].replaceAll(",", ""));
       }
     });
-    print(parsedData);
     //! Retrieves trophy data
     //? Retrieves Total trophies
     tt.getElement(
@@ -721,7 +831,6 @@ Future<Map> trueTrophiesInfo(String user) async {
           .replaceAll(",", "")
           .trim());
     });
-    print(parsedData);
     //! Retrieves Profile overall statistics
     //? Retrieves total ganes
     tt.getElement(
@@ -749,7 +858,6 @@ Future<Map> trueTrophiesInfo(String user) async {
                 .toStringAsFixed(3);
       }
     });
-    print(parsedData);
     //? Retrieves TrueTrophy Ratio
     tt.getElement(
         '#frm > div.page.tt.limit > div.main.middle > main > div.panel-header.t.gamer > div.badges > div > div > a',
@@ -782,10 +890,11 @@ Future<Map> trueTrophiesInfo(String user) async {
           int.parse(element['title'].replaceAll(",", "").trim());
     });
   } catch (e) {
+    print("error scanning True Trophies");
     parsedData = {};
     settings.put('trueTrophies', false);
   }
-  print(parsedData);
+  // print(parsedData);
   settings.put('trueTrophiesDump', parsedData);
   return parsedData;
 }
@@ -941,6 +1050,7 @@ Future<Map> psn100Info(String user) async {
           int.parse(element['title'].replaceAll(",", "").trim());
     });
   } catch (e) {
+    print("error scanning PSN 100%");
     parsedData = {};
     settings.put('psn100', false);
   }
@@ -1357,6 +1467,9 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
+  //? The Debouncer (class created above) is now instantiated here so the search is delayed until the user stops typing.
+  Debouncer debounce = Debouncer(milliseconds: 2000);
+
   //? These are the bits of information, they are processed by each individual function if there is no error and
   //? then stored on the database on the user's device. This is done to save resources and not request every time
   //? the user performs an update to the UI.
@@ -1370,11 +1483,21 @@ class _MyHomePageState extends State<MyHomePage> {
   void updateProfiles() async {
     //? First it changes the information on every document to be as updating, so every block displays a spinning icon
     setState(() {
-      psnpDump = {'update': true};
-      psntlDump = {'update': true};
-      exophaseDump = {'update': true};
-      trueTrophiesDump = {'update': true};
-      psn100Dump = {'update': true};
+      if (settings.get("psnp")) {
+        psnpDump = {'update': true};
+      }
+      if (settings.get("psntl")) {
+        psntlDump = {'update': true};
+      }
+      if (settings.get("exophase")) {
+        exophaseDump = {'update': true};
+      }
+      if (settings.get("trueTrophies")) {
+        trueTrophiesDump = {'update': true};
+      }
+      if (settings.get("psn100")) {
+        psn100Dump = {'update': true};
+      }
     });
     //? then, if it's enabled, it updates PSNP first while waiting the result to not start the other websites yet.
     if (settings.get("psnp")) {
@@ -1415,9 +1538,6 @@ class _MyHomePageState extends State<MyHomePage> {
 
   @override
   Widget build(BuildContext context) {
-    //? The Debouncer (class created above) is now instantiated here so the search is delayed until the user stops typing.
-    Debouncer debounce = Debouncer(milliseconds: 800);
-
     //? Default BoxDecoration used
     BoxDecoration boxDeco() => BoxDecoration(
         color:
@@ -2086,6 +2206,7 @@ class _MyHomePageState extends State<MyHomePage> {
                       ),
                     ),
                   ),
+                //! This option allows the user to delete their PSN data off the application
                 if (settings.get("psnID") != null)
                   InkWell(
                     child: Row(
@@ -2112,6 +2233,7 @@ class _MyHomePageState extends State<MyHomePage> {
                         settings.delete('psntlDump');
                         psntlDump = null;
                         settings.delete('exophaseDump');
+                        settings.delete('exophaseGames');
                         exophaseDump = null;
                         settings.delete('trueTrophiesDump');
                         trueTrophiesDump = null;
@@ -2389,7 +2511,6 @@ class _MyHomePageState extends State<MyHomePage> {
                     child: ListView(
                       children: [
                         // //! PSN Profiles card display
-                        //TODO PSN Profiles waypoint
                         if (settings.get("psnp") != false)
                           Container(
                             margin: EdgeInsets.all(15),
@@ -2434,11 +2555,6 @@ class _MyHomePageState extends State<MyHomePage> {
                                                       MainAxisAlignment
                                                           .spaceBetween,
                                                   children: [
-                                                    //? Country flag
-                                                    Image.network(
-                                                        "https://raw.githubusercontent.com/hjnilsson/country-flags/master/png100px/${snapshot.data['country']}.png",
-                                                        height: 20),
-                                                    SizedBox(width: 5),
                                                     Tooltip(
                                                       message: snapshot
                                                               .data['about'] ??
@@ -2449,7 +2565,12 @@ class _MyHomePageState extends State<MyHomePage> {
                                                         style: textSelection(
                                                             "textLightBold"),
                                                       ),
-                                                    )
+                                                    ),
+                                                    SizedBox(width: 5),
+                                                    //? Country flag
+                                                    Image.network(
+                                                        "https://raw.githubusercontent.com/hjnilsson/country-flags/master/png100px/${snapshot.data['country']}.png",
+                                                        height: 20),
                                                   ]),
                                               //? Level, level progress and level icon
                                               //TODO Update this with the actual current icons and also add the formula for the old leveling system.
@@ -2758,7 +2879,6 @@ class _MyHomePageState extends State<MyHomePage> {
                             ),
                           ),
                         // ! PSN Trophy Leaders card display
-                        //TODO PSN Trophy Leaders waypoint
                         if (settings.get("psntl") != false)
                           Container(
                             margin: EdgeInsets.all(15),
@@ -2823,16 +2943,16 @@ class _MyHomePageState extends State<MyHomePage> {
                                                       MainAxisAlignment
                                                           .spaceBetween,
                                                   children: [
-                                                    //? Country flag
-                                                    Image.network(
-                                                        "https://raw.githubusercontent.com/hjnilsson/country-flags/master/png100px/${snapshot.data['country']}.png",
-                                                        height: 20),
-                                                    SizedBox(width: 5),
                                                     Text(
                                                       snapshot.data["psnID"],
                                                       style: textSelection(
                                                           "textLightBold"),
-                                                    )
+                                                    ),
+                                                    SizedBox(width: 5),
+                                                    //? Country flag
+                                                    Image.network(
+                                                        "https://raw.githubusercontent.com/hjnilsson/country-flags/master/png100px/${snapshot.data['country']}.png",
+                                                        height: 20),
                                                   ]),
                                               //? Level, level progress and level icon
                                               Padding(
@@ -3013,7 +3133,7 @@ class _MyHomePageState extends State<MyHomePage> {
                             ),
                           ),
                         //! Exophase card display
-                        //TODO Exophase waypoint
+                        // TODO exophase waypoint
                         if (settings.get("exophase") != false)
                           Container(
                             margin: EdgeInsets.all(15),
@@ -3028,227 +3148,240 @@ class _MyHomePageState extends State<MyHomePage> {
                                 //? Display card info if all information is successfully fetched
                                 if (snapshot.data != null &&
                                     snapshot.data['update'] != true) {
-                                  return Column(
-                                    mainAxisAlignment: MainAxisAlignment.start,
-                                    children: [
-                                      //? Contains your basic information about profile name, PSN level,
-                                      //? trophy count, avatar, country flag, etc
-                                      Row(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.spaceBetween,
-                                        children: [
-                                          //? Avatar PSN Trophy Leaders
-                                          Column(
-                                            mainAxisAlignment:
-                                                MainAxisAlignment.center,
-                                            children: [
-                                              Image.network(
-                                                snapshot.data['avatar'] ??
-                                                    "https://i.psnprofiles.com/avatars/m/Gfba90ec21.png",
-                                                height: 60,
-                                              )
-                                            ],
-                                          ),
-                                          //? Column with PSN ID, trophy count
-                                          Column(
-                                            mainAxisAlignment:
-                                                MainAxisAlignment.start,
-                                            children: [
-                                              //? Country flag and PSN ID
-                                              Row(
+                                  return InkWell(
+                                    onTap: () => Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                            builder: (context) =>
+                                                ExophaseProfile())),
+                                    child: Column(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.start,
+                                      children: [
+                                        //? Contains your basic information about profile name, PSN level,
+                                        //? trophy count, avatar, country flag, etc
+                                        Row(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.spaceBetween,
+                                          children: [
+                                            //? Avatar PSN Trophy Leaders
+                                            Column(
+                                              mainAxisAlignment:
+                                                  MainAxisAlignment.center,
+                                              children: [
+                                                Image.network(
+                                                  snapshot.data['avatar'] ??
+                                                      "https://i.psnprofiles.com/avatars/m/Gfba90ec21.png",
+                                                  height: 60,
+                                                )
+                                              ],
+                                            ),
+                                            //? Column with PSN ID, trophy count
+                                            Column(
+                                              mainAxisAlignment:
+                                                  MainAxisAlignment.start,
+                                              children: [
+                                                //? Country flag and PSN ID
+                                                Row(
+                                                    mainAxisSize:
+                                                        MainAxisSize.max,
+                                                    mainAxisAlignment:
+                                                        MainAxisAlignment
+                                                            .spaceBetween,
+                                                    children: [
+                                                      Text(
+                                                        snapshot.data["psnID"],
+                                                        style: textSelection(
+                                                            "textLightBold"),
+                                                      ),
+                                                      SizedBox(width: 5),
+                                                      //? Country flag
+                                                      Image.network(
+                                                          "https://raw.githubusercontent.com/hjnilsson/country-flags/master/png100px/${snapshot.data['country']}.png",
+                                                          height: 20),
+                                                    ]),
+                                                //? Level, level progress and level icon
+                                                Padding(
+                                                  padding:
+                                                      const EdgeInsets.all(5.0),
+                                                  child: Row(
+                                                    children: [
+                                                      Image.asset(
+                                                        img['oldLevel'],
+                                                        height: 25,
+                                                      ),
+                                                      SizedBox(
+                                                        width: 5,
+                                                      ),
+                                                      Text(
+                                                          "${snapshot.data['level'].toString()} (${snapshot.data['levelProgress']})",
+                                                          style: textSelection(
+                                                              "")),
+                                                    ],
+                                                  ),
+                                                ),
+                                                //? This row contains the trophy icons and the quantity the user has acquired of them
+                                                Row(
                                                   mainAxisSize:
                                                       MainAxisSize.max,
                                                   mainAxisAlignment:
                                                       MainAxisAlignment
                                                           .spaceBetween,
                                                   children: [
-                                                    //? Country flag
-                                                    Image.network(
-                                                        "https://raw.githubusercontent.com/hjnilsson/country-flags/master/png100px/${snapshot.data['country']}.png",
-                                                        height: 20),
-                                                    SizedBox(width: 5),
-                                                    Text(
-                                                      snapshot.data["psnID"],
-                                                      style: textSelection(
-                                                          "textLightBold"),
-                                                    )
-                                                  ]),
-                                              //? Level, level progress and level icon
-                                              Padding(
-                                                padding:
-                                                    const EdgeInsets.all(5.0),
-                                                child: Row(
-                                                  children: [
-                                                    Image.asset(
-                                                      img['oldLevel'],
-                                                      height: 25,
-                                                    ),
-                                                    SizedBox(
-                                                      width: 5,
-                                                    ),
-                                                    Text(
-                                                        "${snapshot.data['level'].toString()} (${snapshot.data['levelProgress']})",
-                                                        style:
-                                                            textSelection("")),
+                                                    trophyType('platinum',
+                                                        quantity: snapshot
+                                                            .data['platinum']),
+                                                    SizedBox(width: 20),
+                                                    trophyType('gold',
+                                                        quantity: snapshot
+                                                            .data['gold']),
+                                                    SizedBox(width: 20),
+                                                    trophyType('silver',
+                                                        quantity: snapshot
+                                                            .data['silver']),
+                                                    SizedBox(width: 20),
+                                                    trophyType('bronze',
+                                                        quantity: snapshot
+                                                            .data['bronze']),
+                                                    SizedBox(width: 20),
+                                                    trophyType('total',
+                                                        quantity:
+                                                            "${snapshot.data['total'].toString()}"),
                                                   ],
                                                 ),
-                                              ),
-                                              //? This row contains the trophy icons and the quantity the user has acquired of them
-                                              Row(
-                                                mainAxisSize: MainAxisSize.max,
-                                                mainAxisAlignment:
-                                                    MainAxisAlignment
-                                                        .spaceBetween,
-                                                children: [
-                                                  trophyType('platinum',
-                                                      quantity: snapshot
-                                                          .data['platinum']),
-                                                  SizedBox(width: 20),
-                                                  trophyType('gold',
-                                                      quantity: snapshot
-                                                          .data['gold']),
-                                                  SizedBox(width: 20),
-                                                  trophyType('silver',
-                                                      quantity: snapshot
-                                                          .data['silver']),
-                                                  SizedBox(width: 20),
-                                                  trophyType('bronze',
-                                                      quantity: snapshot
-                                                          .data['bronze']),
-                                                  SizedBox(width: 20),
-                                                  trophyType('total',
-                                                      quantity:
-                                                          "${snapshot.data['total'].toString()}"),
-                                                ],
-                                              ),
-                                            ],
-                                          ),
-                                          InkWell(
-                                            child: Tooltip(
-                                              message: "Exophase",
-                                              child: Image.network(
-                                                "https://www.exophase.com/assets/zeal/_icons/favicon.ico",
-                                                scale: 4,
-                                              ),
+                                              ],
                                             ),
-                                            onTap: () async {
-                                              String userProfile =
-                                                  "https://www.exophase.com/psn/user/${snapshot.data['psnID']}/";
-                                              if (await canLaunch(
-                                                  userProfile)) {
-                                                await launch(userProfile);
-                                              }
-                                            },
-                                          ),
-                                        ],
-                                      ),
-                                      SizedBox(height: 15),
-                                      Divider(
-                                          color: themeSelector['secondary']
-                                              [settings.get('theme')],
-                                          thickness: 3),
-                                      //? Bottom row without avatar, has information about games played,
-                                      //? completion, gameplay hours, country/world rankings, etc
-                                      SingleChildScrollView(
-                                        padding: EdgeInsets.all(0),
-                                        scrollDirection: Axis.horizontal,
-                                        child: Row(
-                                          children: [
-                                            Padding(
-                                              padding:
-                                                  const EdgeInsets.symmetric(
-                                                      vertical: 0,
-                                                      horizontal: 10.0),
-                                              child: Text(
-                                                "${regionalText["home"]["games"]}\n${snapshot.data['games'].toString()}",
-                                                style: textSelection(""),
-                                                textAlign: TextAlign.center,
+                                            InkWell(
+                                              child: Tooltip(
+                                                message: "Exophase",
+                                                child: Image.network(
+                                                  "https://www.exophase.com/assets/zeal/_icons/favicon.ico",
+                                                  scale: 4,
+                                                ),
                                               ),
+                                              onTap: () async {
+                                                String userProfile =
+                                                    "https://www.exophase.com/psn/user/${snapshot.data['psnID']}/";
+                                                if (await canLaunch(
+                                                    userProfile)) {
+                                                  await launch(userProfile);
+                                                }
+                                              },
                                             ),
-                                            Padding(
-                                              padding:
-                                                  const EdgeInsets.symmetric(
-                                                      vertical: 0,
-                                                      horizontal: 10.0),
-                                              child: Text(
-                                                "${regionalText["home"]["complete"]}\n${snapshot.data['complete'].toString()} (${snapshot.data['completePercentage']}%)",
-                                                style: textSelection(""),
-                                                textAlign: TextAlign.center,
-                                              ),
-                                            ),
-                                            Padding(
-                                              padding:
-                                                  const EdgeInsets.symmetric(
-                                                      vertical: 0,
-                                                      horizontal: 10.0),
-                                              child: Text(
-                                                "${regionalText["home"]["incomplete"]}\n${snapshot.data['incomplete'].toString()} (${snapshot.data['incompletePercentage']}%)",
-                                                style: textSelection(""),
-                                                textAlign: TextAlign.center,
-                                              ),
-                                            ),
-                                            Padding(
-                                              padding:
-                                                  const EdgeInsets.symmetric(
-                                                      vertical: 0,
-                                                      horizontal: 10.0),
-                                              child: Text(
-                                                "${regionalText["home"]["completion"]}\n${snapshot.data['completion']}",
-                                                style: textSelection(""),
-                                                textAlign: TextAlign.center,
-                                              ),
-                                            ),
-                                            Tooltip(
-                                              message: "PS4/PS5",
-                                              child: Padding(
+                                          ],
+                                        ),
+                                        SizedBox(height: 15),
+                                        Divider(
+                                            color: themeSelector['secondary']
+                                                [settings.get('theme')],
+                                            thickness: 3),
+                                        //? Bottom row without avatar, has information about games played,
+                                        //? completion, gameplay hours, country/world rankings, etc
+                                        SingleChildScrollView(
+                                          padding: EdgeInsets.all(0),
+                                          scrollDirection: Axis.horizontal,
+                                          child: Row(
+                                            children: [
+                                              Padding(
                                                 padding:
-                                                    const EdgeInsets.all(10.0),
+                                                    const EdgeInsets.symmetric(
+                                                        vertical: 0,
+                                                        horizontal: 10.0),
                                                 child: Text(
-                                                  "${regionalText["home"]["hours"]}\n${snapshot.data['hours']}",
+                                                  "${regionalText["home"]["games"]}\n${snapshot.data['games'].toString()}",
                                                   style: textSelection(""),
                                                   textAlign: TextAlign.center,
                                                 ),
                                               ),
-                                            ),
-                                            Padding(
-                                              padding:
-                                                  const EdgeInsets.symmetric(
-                                                      vertical: 0,
-                                                      horizontal: 10.0),
-                                              child: Text(
-                                                "${regionalText["home"]["exp"]}\n${snapshot.data['exp']}",
-                                                style: textSelection(""),
-                                                textAlign: TextAlign.center,
+                                              Padding(
+                                                padding:
+                                                    const EdgeInsets.symmetric(
+                                                        vertical: 0,
+                                                        horizontal: 10.0),
+                                                child: Text(
+                                                  "${regionalText["home"]["complete"]}\n${snapshot.data['complete'].toString()} (${snapshot.data['completePercentage']}%)",
+                                                  style: textSelection(""),
+                                                  textAlign: TextAlign.center,
+                                                ),
                                               ),
-                                            ),
-                                            Padding(
-                                              padding:
-                                                  const EdgeInsets.symmetric(
-                                                      vertical: 0,
-                                                      horizontal: 10.0),
-                                              child: Text(
-                                                "${regionalText["home"]["countryRank"]}\n${snapshot.data['countryRank'] != null ? snapshot.data['countryRank'].toString() + " " : "❌"}${snapshot.data['countryUp'] ?? ""}",
-                                                style: textSelection(""),
-                                                textAlign: TextAlign.center,
+                                              Padding(
+                                                padding:
+                                                    const EdgeInsets.symmetric(
+                                                        vertical: 0,
+                                                        horizontal: 10.0),
+                                                child: Text(
+                                                  "${regionalText["home"]["incomplete"]}\n${snapshot.data['incomplete'].toString()} (${snapshot.data['incompletePercentage']}%)",
+                                                  style: textSelection(""),
+                                                  textAlign: TextAlign.center,
+                                                ),
                                               ),
-                                            ),
-                                            Padding(
-                                              padding:
-                                                  const EdgeInsets.symmetric(
-                                                      vertical: 0,
-                                                      horizontal: 10.0),
-                                              child: Text(
-                                                "${regionalText["home"]["worldRank"]}\n${snapshot.data['worldRank'] != null ? snapshot.data['worldRank'].toString() + " " : "❌"}${snapshot.data['worldUp'] ?? ""}",
-                                                style: textSelection(""),
-                                                textAlign: TextAlign.center,
+                                              Padding(
+                                                padding:
+                                                    const EdgeInsets.symmetric(
+                                                        vertical: 0,
+                                                        horizontal: 10.0),
+                                                child: Text(
+                                                  "${regionalText["home"]["completion"]}\n${snapshot.data['completion']}",
+                                                  style: textSelection(""),
+                                                  textAlign: TextAlign.center,
+                                                ),
                                               ),
-                                            ),
-                                          ],
-                                        ),
-                                      )
-                                    ],
+                                              if (snapshot.data['hours'] !=
+                                                  null)
+                                                Tooltip(
+                                                  message: "PS4/PS5",
+                                                  child: Padding(
+                                                    padding:
+                                                        const EdgeInsets.all(
+                                                            10.0),
+                                                    child: Text(
+                                                      "${regionalText["home"]["hours"]}\n${snapshot.data['hours']}",
+                                                      style: textSelection(""),
+                                                      textAlign:
+                                                          TextAlign.center,
+                                                    ),
+                                                  ),
+                                                ),
+                                              Padding(
+                                                padding:
+                                                    const EdgeInsets.symmetric(
+                                                        vertical: 0,
+                                                        horizontal: 10.0),
+                                                child: Text(
+                                                  "${regionalText["home"]["exp"]}\n${snapshot.data['exp']}",
+                                                  style: textSelection(""),
+                                                  textAlign: TextAlign.center,
+                                                ),
+                                              ),
+                                              Padding(
+                                                padding:
+                                                    const EdgeInsets.symmetric(
+                                                        vertical: 0,
+                                                        horizontal: 10.0),
+                                                child: Text(
+                                                  "${regionalText["home"]["countryRank"]}\n${snapshot.data['countryRank'] != null ? snapshot.data['countryRank'].toString() + " " : "❌"}${snapshot.data['countryUp'] ?? ""}",
+                                                  style: textSelection(""),
+                                                  textAlign: TextAlign.center,
+                                                ),
+                                              ),
+                                              Padding(
+                                                padding:
+                                                    const EdgeInsets.symmetric(
+                                                        vertical: 0,
+                                                        horizontal: 10.0),
+                                                child: Text(
+                                                  "${regionalText["home"]["worldRank"]}\n${snapshot.data['worldRank'] != null ? snapshot.data['worldRank'].toString() + " " : "❌"}${snapshot.data['worldUp'] ?? ""}",
+                                                  style: textSelection(""),
+                                                  textAlign: TextAlign.center,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        )
+                                      ],
+                                    ),
                                   );
                                 } //? Display error screen if fails to fetch information
                                 else if (snapshot.data == null) {
@@ -3278,7 +3411,6 @@ class _MyHomePageState extends State<MyHomePage> {
                             ),
                           ),
                         //! True Trophies card display
-                        //TODO True Trophies waypoint
                         if (settings.get("trueTrophies") != false)
                           Container(
                             margin: EdgeInsets.all(15),
@@ -3329,6 +3461,15 @@ class _MyHomePageState extends State<MyHomePage> {
                                                       MainAxisAlignment
                                                           .spaceBetween,
                                                   children: [
+                                                    Text(
+                                                      snapshot.data["psnID"],
+                                                      style: textSelection(
+                                                          "textLightBold"),
+                                                    ),
+                                                    if (snapshot
+                                                            .data['country'] !=
+                                                        null)
+                                                      SizedBox(width: 5),
                                                     //? Country flag
                                                     if (snapshot
                                                             .data['country'] !=
@@ -3337,15 +3478,6 @@ class _MyHomePageState extends State<MyHomePage> {
                                                           snapshot
                                                               .data['country'],
                                                           height: 20),
-                                                    if (snapshot
-                                                            .data['country'] !=
-                                                        null)
-                                                      SizedBox(width: 5),
-                                                    Text(
-                                                      snapshot.data["psnID"],
-                                                      style: textSelection(
-                                                          "textLightBold"),
-                                                    )
                                                   ]),
                                               //? Level, level progress and level icon
                                               Padding(
@@ -3568,8 +3700,8 @@ class _MyHomePageState extends State<MyHomePage> {
                                 }
                               },
                             ),
-                          ), //! Exophase card display
-                        //TODO PSN 100% waypoint
+                          ),
+                        //! PSN 100% card display
                         if (settings.get("psn100") != false)
                           Container(
                             margin: EdgeInsets.all(15),
@@ -3620,16 +3752,16 @@ class _MyHomePageState extends State<MyHomePage> {
                                                       MainAxisAlignment
                                                           .spaceBetween,
                                                   children: [
-                                                    //? Country flag
-                                                    Image.network(
-                                                        "https://raw.githubusercontent.com/hjnilsson/country-flags/master/png100px/${snapshot.data['country']}.png",
-                                                        height: 20),
-                                                    SizedBox(width: 5),
                                                     Text(
                                                       snapshot.data["psnID"],
                                                       style: textSelection(
                                                           "textLightBold"),
-                                                    )
+                                                    ),
+                                                    SizedBox(width: 5),
+                                                    //? Country flag
+                                                    Image.network(
+                                                        "https://raw.githubusercontent.com/hjnilsson/country-flags/master/png100px/${snapshot.data['country']}.png",
+                                                        height: 20),
                                                   ]),
                                               //? Level, level progress and level icon
                                               Padding(
@@ -3993,7 +4125,6 @@ class _MyHomePageState extends State<MyHomePage> {
                         onTap: () => showDialog(
                             context: context,
                             builder: (context) {
-                              //TODO Versioning waypoint
                               //? The function that will fetch the latest GitHub update will be declared here
                               //? to be used on the FutureBuilder() below
                               Future<Map<String, dynamic>> yuraUpdate() async {
@@ -4350,7 +4481,13 @@ class _MyHomePageState extends State<MyHomePage> {
             ),
           ),
         ),
-        floatingActionButton: settings.get("psnID") == null
+        floatingActionButton: settings.get("psnID") == null ||
+                (psnpDump == {'update': true} &&
+                        psntlDump == {'update': true} &&
+                        exophaseDump == {'update': true} &&
+                        trueTrophiesDump == {'update': true} &&
+                        psn100Dump == {'update': true}) ==
+                    true
             ? null
             : FloatingActionButton(
                 onPressed: () {

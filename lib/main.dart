@@ -1,4 +1,4 @@
-import 'dart:io';
+import 'dart:io' show Platform;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:hive/hive.dart';
@@ -25,6 +25,14 @@ void main() async {
       box.put("theme", 'pink');
       //? Sets default trophy icons as Yura's icons
       box.put("trophyType", 'yura');
+      //? Enables fetching information from all websites
+      box.put("psnp", true);
+      box.put("psntl", true);
+      box.put("trueTrophies", true);
+      box.put("exophase", true);
+      box.put("psn100", true);
+      //? Picks the loading widget to be used
+      box.put('loading', "pouringHourglass");
     }
   });
 
@@ -621,7 +629,7 @@ Future<Map> exophaseInfo(String user) async {
     //? ngames is defined to check how many games this should scan for
     //? if the user has more than 50 (default initial game display for exophase) games on their profile, scan for 50
     //? otherwise scan the number of games. Currently using only 20 games to hasten the bug testing process
-    int ngames = parsedData['games'] > 50 ? 52 : parsedData['games'] + 1;
+    int ngames = parsedData['games'] > 50 ? 52 : parsedData['games'] + 2;
     for (var i = 1; i < ngames; i++) {
       parsedGames[i] = {};
       //? Retrieves game image
@@ -674,9 +682,9 @@ Future<Map> exophaseInfo(String user) async {
       });
       //? Retrieves game EXP
       exophase.getElement(
-          '#app > div > div.row.user-container > div.col-12.col-xl-9 > ul > li:nth-child(${(i * 2) - 1}) > div.row.gx-0.align-items-center > div.col-12.col-md.px-3.pb-4.pe-md-0.pb-md-0.game-progress > div.row.gx-0.progress-units-top.pb-2 > div:nth-child(2)',
+          '#app > div > div.row.user-container > div.col-12.col-xl-9 > ul > li:nth-child(${(i * 2) - 1}) > div.row.gx-0.align-items-center > div.col-12.col-md.px-3.pb-4.pe-md-0.pb-md-0.game-progress > div.row.gx-0.progress-units-top.pb-2 > div:nth-child(3)',
           []).forEach((element) {
-        parsedGames[i]['gameRatio'] =
+        parsedGames[i]['gameEXP'] =
             int.parse(element['title'].replaceAll(",", "").trim());
       });
       //? Retrieves game bronze trophies
@@ -725,7 +733,7 @@ Future<Map> exophaseInfo(String user) async {
     parsedData = {};
     settings.put('exophase', false);
   }
-  // print(parsedData);
+  print(parsedData);
   settings.put('exophaseDump', parsedData);
   // print(parsedGames);
   settings.put('exophaseGames', parsedGames);
@@ -1062,208 +1070,9 @@ Future<Map> psn100Info(String user) async {
   return parsedData;
 }
 
-// TODO consertar funções para DART
-// function newPsnLevel(plat, gold, silver, bronze) {
-//             let totalExp = 0 * plat + 90 * gold + 30 * silver + 15 * bronze;
-//             let gap;
-//             let tier;
-//             let fromPreviousTier;
-//             if (totalExp < 5940) {
-//               // range = 1-99
-//               gap = 60;
-//               tier = 1;
-//               fromPreviousTier = 0;
-//             } else if (totalExp < 14940) {
-//               // range = 100-199
-//               gap = 90;
-//               tier = 2;
-//               fromPreviousTier = 5940;
-//             } else if (totalExp < 59940) {
-//               // range = 200-299
-//               gap = 450;
-//               tier = 3;
-//               fromPreviousTier = 14940;
-//             } else if (totalExp < 149940) {
-//               // range = 300-399
-//               gap = 900;
-//               tier = 4;
-//               fromPreviousTier = 59940;
-//             } else if (totalExp < 284940) {
-//               // range = 400-499
-//               gap = 1350;
-//               tier = 5;
-//               fromPreviousTier = 149940;
-//             } else if (totalExp < 464940) {
-//               // range = 500-599
-//               gap = 1800;
-//               tier = 6;
-//               fromPreviousTier = 284940;
-//             } else if (totalExp < 689940) {
-//               // range = 600-699
-//               gap = 2250;
-//               tier = 7;
-//               fromPreviousTier = 464940;
-//             } else if (totalExp < 959940) {
-//               // range = 700-799
-//               gap = 2700;
-//               tier = 8;
-//               fromPreviousTier = 689940;
-//             } else if (totalExp < 1274940) {
-//               // range = 800-899
-//               gap = 3150;
-//               tier = 9;
-//               fromPreviousTier = 959940;
-//             } else if (totalExp < 1634940) {
-//               // range = 900-999
-//               gap = 3600;
-//               tier = 10;
-//               fromPreviousTier = 1274940;
-//             } else if (totalExp < 1994940) {
-//               // range = 1000-1099
-//               // Note: these are not actually enabled on PSN, but rather projected on trophy websites.
-//               gap = 4050;
-//               tier = 11;
-//               fromPreviousTier = 1634940;
-//             } else if (totalExp < 2399940) {
-//               // range = 1100-1199
-//               // Note: these are not actually enabled on PSN, but rather projected on trophy websites.
-//               gap = 4500;
-//               tier = 12;
-//               fromPreviousTier = 1994940;
-//             } else if (totalExp < 2894940) {
-//               // range = 1200-1299
-//               // Note: these are not actually enabled on PSN, but rather projected on trophy websites.
-//               gap = 4950;
-//               tier = 13;
-//               fromPreviousTier = 2399940;
-//             } else if (totalExp < 3434940) {
-//               // range = 1300-1399
-//               // Note: these are not actually enabled on PSN, but rather projected on trophy websites.
-//               gap = 5400;
-//               tier = 14;
-//               fromPreviousTier = 2894940;
-//             } else if (totalExp < 4019940) {
-//               // range = 1400-1499
-//               // Note: these are not actually enabled on PSN, but rather projected on trophy websites.
-//               gap = 5850;
-//               tier = 15;
-//               fromPreviousTier = 3434940;
-//             } else if (totalExp < 4649940) {
-//               // range = 1500-1599
-//               // Note: these are not actually enabled on PSN, but rather projected on trophy websites.
-//               gap = 6300;
-//               tier = 16;
-//               fromPreviousTier = 4019940;
-//             } else if (totalExp < 5324940) {
-//               // range = 1600-1699
-//               // Note: these are not actually enabled on PSN, but rather projected on trophy websites.
-//               gap = 6750;
-//               tier = 17;
-//               fromPreviousTier = 4649940;
-//             } else if (totalExp < 6034940) {
-//               // range = 1700-1799
-//               // Note: these are not actually enabled on PSN, but rather projected on trophy websites.
-//               gap = 7100;
-//               tier = 18;
-//               fromPreviousTier = 5324940;
-//             } else if (totalExp < 6789940) {
-//               // range = 1800-1899
-//               // Note: these are not actually enabled on PSN, but rather projected on trophy websites.
-//               gap = 7550;
-//               tier = 19;
-//               fromPreviousTier = 6034940;
-//             } else if (totalExp < 7589940) {
-//               // range = 1900-1999
-//               // Note: these are not actually enabled on PSN, but rather projected on trophy websites.
-//               gap = 8000;
-//               tier = 20;
-//               fromPreviousTier = 6789940;
-//             } else {
-//               // range = 2000+
-//               // Note: these are not actually enabled on PSN, but rather projected on trophy websites.
-//               return `${emotes.levelPlat} **2000+** (100.00%)`;
-//             }
-//             let extraEXP = totalExp - fromPreviousTier;
-//             progressPercentage = (((extraEXP % gap) / gap) * 100).toFixed(2);
-//             currentLevel = Math.floor(extraEXP / gap) + (tier - 1) * 100;
-
-//             function levelTier(bracket) {
-//               if (bracket == 1) {
-//                 return emotes.levelBronze1;
-//               }
-//               if (bracket == 2) {
-//                 return emotes.levelBronze2;
-//               }
-//               if (bracket == 3) {
-//                 return emotes.levelBronze3;
-//               }
-//               if (bracket == 4) {
-//                 return emotes.levelSilver1;
-//               }
-//               if (bracket == 5) {
-//                 return emotes.levelSilver2;
-//               }
-//               if (bracket == 6) {
-//                 return emotes.levelSilver3;
-//               }
-//               if (bracket == 7) {
-//                 return emotes.levelGold1;
-//               }
-//               if (bracket == 8) {
-//                 return emotes.levelGold2;
-//               }
-//               if (bracket == 9 || bracket == 10) {
-//                 if (bracket == 10 && Math.floor(extraEXP / gap) == 99) {
-//                   return emotes.levelPlat;
-//                 }
-//                 return emotes.levelGold3;
-//               }
-//               if (bracket > 10) {
-//                 return emotes.levelPlat;
-//               }
-//             }
-//             return `${levelTier(
-//               tier
-//             )} **${currentLevel}** (${progressPercentage}%)`;
-//           }
-
-//           function oldPsnLevel(plat, gold, silver, bronze) {
-//             let totalExp = 0 * plat + 90 * gold + 30 * silver + 15 * bronze;
-//             if (totalExp == 0) {
-//               return "**1**";
-//             } else if (totalExp < 200) {
-//               return "**2**";
-//             } else if (totalExp < 600) {
-//               return "**3**";
-//             } else if (totalExp < 1200) {
-//               return "**4**";
-//             } else if (totalExp < 2400) {
-//               return "**5**";
-//             } else if (totalExp < 4000) {
-//               return "**6**";
-//             } else if (totalExp < 16000) {
-//               extraEXP = totalExp - 4000;
-//               gap = 2000;
-//               progressPercentage = (((extraEXP % gap) / gap) * 100).toFixed(2);
-//               currentLevel = Math.floor(extraEXP / gap) + 6;
-//               return `**${currentLevel}** (${progressPercentage}%)`;
-//             } else if (totalExp < 128000) {
-//               extraEXP = totalExp - 16000;
-//               gap = 8000;
-//               progressPercentage = (((extraEXP % gap) / gap) * 100).toFixed(2);
-//               currentLevel = Math.floor(extraEXP / gap) + 12;
-//               return `**${currentLevel}** (${progressPercentage}%)`;
-//             } else if (totalExp > 128000) {
-//               extraEXP = totalExp - 128000;
-//               gap = 10000;
-//               progressPercentage = (((extraEXP % gap) / gap) * 100).toFixed(2);
-//               currentLevel = Math.floor(extraEXP / gap) + 26;
-//               return `${emotes.ePSNLevel} **${currentLevel}** (${progressPercentage}%)`;
-//             }
-//           }
-
 //? This function contains all translated strings to be used.
-//? If a language isn't fully supported, it will use the english words instead. TODO Translation waypoint
+//? If a language isn't fully supported, it will use the english words instead.
+// TODO Translation waypoint
 Map<String, Map<String, String>> regionSelect() {
   //? By default, this loads Yura in English. This is done so new updates can be released without needing
   //? to wait for updated translation. Yura will use english text on those new features while a language patch isn't done
@@ -1299,6 +1108,9 @@ Map<String, Map<String, String>> regionSelect() {
       "yuraTrophies": "Use Yura's icons for trophies",
       "oldTrophies": "Use pre-PS5 trophy icons",
       "newTrophies": "Use post-PS5 trophy icons",
+      "levelPicker": "Change level type calculation:",
+      "oldLevel": "Use pre-PS5 leveling system",
+      "newLevel": "Use post-PS5 leveling system",
       "languagePicker": "Change Yura's language:",
       "websitePicker": "Choose which sites to enable/disable:",
       "loadingPicker": "Choose what loading icon do you want to use:",
@@ -1341,19 +1153,21 @@ Map<String, Map<String, String>> regionSelect() {
       "incomplete": "Remove incomplete games",
       "complete": "Remove complete games",
       "backlog": "Remove backlog (0%) games",
-      "psv": "Remove PS Vita games",
-      "ps3": "Remove ps3 games",
-      "ps4": "Remove ps4 games",
-      "ps5": "Remove ps5 games",
+      "timed": "Display only games with tracked time",
       "mustNotPlatinum": "Remove games where a platinum trophy was earned",
       "mustPlatinum": "Remove games where a platinum trophy was not earned",
+      "togglePlatforms": "Filter systems:",
+      "psv": "Remove PS Vita games",
+      "ps3": "Remove PS3 games",
+      "ps4": "Remove PS4 games",
+      "ps5": "Remove PS5 games",
       "viewType": "Change display:",
       "grid": "Enable grid view",
       "block": "Enable block view",
       "list": "Enable list view",
     },
     //? Since this is just the version number, this doesn't get translated regardless of chosen language.
-    "version": {"version": "v0.8.7"}
+    "version": {"version": "v0.9.16"}
   };
   //? This changes language to Brazilian Portuguese
   if (settings.get("language") == "br") {
@@ -1388,6 +1202,9 @@ Map<String, Map<String, String>> regionSelect() {
       "yuraTrophies": "Use os ícones padrões",
       "oldTrophies": "Use ícones anteriores ao PS5",
       "newTrophies": "Use ícones posteriores ao PS5",
+      "levelPicker": "Mude como seu nível é calculado:",
+      "oldLevel": "Use cálculo pré-PS5",
+      "newLevel": "Use cálculo pós-PS5",
       "languagePicker": "Mude o idioma de Yura:",
       "websitePicker": "Escolha quais sites ativar/desativar:",
       "loadingPicker": "Escolha qual ícone de carregamento deseja usar:",
@@ -1430,19 +1247,20 @@ Map<String, Map<String, String>> regionSelect() {
       "incomplete": "Remova jogos incompletos",
       "complete": "Remova jogos concluídos",
       "backlog": "Remova jogos sem troféus obtidos (0%)",
+      "timed": "Mostrar apenas jogos com tempo registrado",
+      "mustNotPlatinum": "Remova jogos platinados",
+      "mustPlatinum": "Remova jogos não platinados",
+      "togglePlatforms": "Filtre sistemas:",
       "psv": "Remova jogos de PS Vita",
       "ps3": "Remova jogos de PS3",
       "ps4": "Remova jogos de PS4",
       "ps5": "Remove jogos de PS5",
-      "mustNotPlatinum": "Remova jogos platinados",
-      "mustPlatinum": "Remova jogos não platinados",
       "viewType": "Mude a aparência:",
       "grid": "Ativar visualização por tela",
       "block": "Ativar visualização por blocos",
       "list": "Ativar visualização por lista",
     };
   }
-
   return avaiableText;
 }
 
@@ -1455,7 +1273,7 @@ final Map<String, Map<String, Color>> themeSelector = {
     "black": Colors.black87,
     "blue": Colors.blueAccent[700],
     "orange": Colors.orange[900],
-    "white": Colors.white,
+    "white": Colors.blueGrey[900],
     "boredom": Colors.blue
   },
   "secondary": {
@@ -1463,7 +1281,7 @@ final Map<String, Map<String, Color>> themeSelector = {
     "black": Colors.indigo[100],
     "blue": Colors.blue[100],
     "orange": Colors.red[50],
-    "white": Colors.grey,
+    "white": Colors.white,
     "boredom": Colors.white
   }
 };
@@ -1475,25 +1293,25 @@ TextStyle textSelection(String theme) {
     //? Option for light bold text
     return TextStyle(
         color: themeSelector["secondary"][settings.get("theme")],
-        fontSize: 20,
+        fontSize: Platform.isWindows ? 20 : 16,
         fontWeight: FontWeight.bold);
   } else if (theme == "textDark") {
     //? Option for dark thin text
     return TextStyle(
       color: themeSelector["primary"][settings.get("theme")],
-      fontSize: 16,
+      fontSize: Platform.isWindows ? 16 : 12,
     );
   } else if (theme == "textDarkBold") {
 //? Option for dark bold text
     return TextStyle(
         color: themeSelector["primary"][settings.get("theme")],
-        fontSize: 20,
+        fontSize: Platform.isWindows ? 20 : 16,
         fontWeight: FontWeight.bold);
   } else {
     //? Option for light thin text
     return TextStyle(
       color: themeSelector["secondary"][settings.get("theme")],
-      fontSize: 16,
+      fontSize: Platform.isWindows ? 16 : 12,
     );
   }
 }
@@ -1590,28 +1408,279 @@ String trophyStyle(String type) {
 //? This returns a properly named and formatted Tooltip'd Row() of trophy icon + spacing + number of trophies
 //? Number of trophies and formatting is optional. If not provided, only the proper Image.asset()
 //? will be returned, without spacing and without number of trophies. If not provided, it will use default textLight formatting
-Tooltip trophyType(String type, {quantity = -1, TextStyle style}) {
+Tooltip trophyType(String type,
+    {quantity = -1, TextStyle style, String size = "big"}) {
   return Tooltip(
     message: regionalText['trophy'][type],
     child: Row(
       children: [
-        Image.asset(trophyStyle(type), height: type == 'total' ? 25 : 30),
+        Image.asset(trophyStyle(type),
+            //? checks if a size was provided. if yes, retuns smaller trophies
+            //? if not, checks if it's a trophy cluster and returns a slightly smaller image if so
+            height: size == "small"
+                ? Platform.isWindows
+                    ? 20
+                    : 10
+                : type == 'total'
+                    ? Platform.isWindows
+                        ? 25
+                        : 14
+                    : Platform.isWindows
+                        ? 30
+                        : 15),
+        if (quantity != -1) SizedBox(width: Platform.isWindows ? 5 : 3),
         if (quantity != -1)
-          SizedBox(
-            width: 5,
-          ),
-        if (quantity != -1)
-          Text(
-            quantity != double.nan ? quantity.toString() : quantity,
-            style: style ??
-                TextStyle(
-                  color: themeSelector["secondary"][settings.get("theme")],
-                  fontSize: 16,
-                ),
-          ),
+          Text(quantity != double.nan ? quantity.toString() : quantity,
+              style: style ?? textSelection("")),
       ],
     ),
   );
+}
+
+Row levelType(int plat, int gold, int silver, int bronze) {
+  Row newPsnLevel(int plat, int gold, int silver, int bronze) {
+    int totalExp = 0 * plat + 90 * gold + 30 * silver + 15 * bronze;
+    int gap;
+    int tier;
+    int fromPreviousTier;
+    if (totalExp < 5940) {
+      // range = 1-99
+      gap = 60;
+      tier = 1;
+      fromPreviousTier = 0;
+    } else if (totalExp < 14940) {
+      // range = 100-199
+      gap = 90;
+      tier = 2;
+      fromPreviousTier = 5940;
+    } else if (totalExp < 59940) {
+      // range = 200-299
+      gap = 450;
+      tier = 3;
+      fromPreviousTier = 14940;
+    } else if (totalExp < 149940) {
+      // range = 300-399
+      gap = 900;
+      tier = 4;
+      fromPreviousTier = 59940;
+    } else if (totalExp < 284940) {
+      // range = 400-499
+      gap = 1350;
+      tier = 5;
+      fromPreviousTier = 149940;
+    } else if (totalExp < 464940) {
+      // range = 500-599
+      gap = 1800;
+      tier = 6;
+      fromPreviousTier = 284940;
+    } else if (totalExp < 689940) {
+      // range = 600-699
+      gap = 2250;
+      tier = 7;
+      fromPreviousTier = 464940;
+    } else if (totalExp < 959940) {
+      // range = 700-799
+      gap = 2700;
+      tier = 8;
+      fromPreviousTier = 689940;
+    } else if (totalExp < 1274940) {
+      // range = 800-899
+      gap = 3150;
+      tier = 9;
+      fromPreviousTier = 959940;
+    } else if (totalExp < 1634940) {
+      // range = 900-999
+      gap = 3600;
+      tier = 10;
+      fromPreviousTier = 1274940;
+    } else if (totalExp < 1994940) {
+      // range = 1000-1099
+      // Note: these are not actually enabled on PSN, but rather projected on trophy websites.
+      gap = 4050;
+      tier = 11;
+      fromPreviousTier = 1634940;
+    } else if (totalExp < 2399940) {
+      // range = 1100-1199
+      // Note: these are not actually enabled on PSN, but rather projected on trophy websites.
+      gap = 4500;
+      tier = 12;
+      fromPreviousTier = 1994940;
+    } else if (totalExp < 2894940) {
+      // range = 1200-1299
+      // Note: these are not actually enabled on PSN, but rather projected on trophy websites.
+      gap = 4950;
+      tier = 13;
+      fromPreviousTier = 2399940;
+    } else if (totalExp < 3434940) {
+      // range = 1300-1399
+      // Note: these are not actually enabled on PSN, but rather projected on trophy websites.
+      gap = 5400;
+      tier = 14;
+      fromPreviousTier = 2894940;
+    } else if (totalExp < 4019940) {
+      // range = 1400-1499
+      // Note: these are not actually enabled on PSN, but rather projected on trophy websites.
+      gap = 5850;
+      tier = 15;
+      fromPreviousTier = 3434940;
+    } else if (totalExp < 4649940) {
+      // range = 1500-1599
+      // Note: these are not actually enabled on PSN, but rather projected on trophy websites.
+      gap = 6300;
+      tier = 16;
+      fromPreviousTier = 4019940;
+    } else if (totalExp < 5324940) {
+      // range = 1600-1699
+      // Note: these are not actually enabled on PSN, but rather projected on trophy websites.
+      gap = 6750;
+      tier = 17;
+      fromPreviousTier = 4649940;
+    } else if (totalExp < 6034940) {
+      // range = 1700-1799
+      // Note: these are not actually enabled on PSN, but rather projected on trophy websites.
+      gap = 7100;
+      tier = 18;
+      fromPreviousTier = 5324940;
+    } else if (totalExp < 6789940) {
+      // range = 1800-1899
+      // Note: these are not actually enabled on PSN, but rather projected on trophy websites.
+      gap = 7550;
+      tier = 19;
+      fromPreviousTier = 6034940;
+    } else if (totalExp < 7589940) {
+      // range = 1900-1999
+      // Note: these are not actually enabled on PSN, but rather projected on trophy websites.
+      gap = 8000;
+      tier = 20;
+      fromPreviousTier = 6789940;
+    } else {
+      // range = 2000+
+      // Note: these are not actually enabled on PSN, but rather projected on trophy websites.
+      return Row(children: [
+        Image.asset(img['platinumlevel'], scale: Platform.isWindows ? 3 : 4),
+        SizedBox(width: Platform.isWindows ? 5 : 3),
+        Text("2000 (100%)", style: textSelection(""))
+      ]);
+    }
+
+    int extraEXP = totalExp - fromPreviousTier;
+    String progressPercentage =
+        (((extraEXP % gap) / gap) * 100).toStringAsFixed(2);
+    String currentLevel =
+        ((extraEXP / gap).floor() + (tier - 1) * 100).toString();
+
+    String levelTier(int bracket) {
+      if (bracket == 1) {
+        return img['bronze1'];
+      }
+      if (bracket == 2) {
+        return img['bronze2'];
+      }
+      if (bracket == 3) {
+        return img['bronze3'];
+      }
+      if (bracket == 4) {
+        return img['silver1'];
+      }
+      if (bracket == 5) {
+        return img['silver2'];
+      }
+      if (bracket == 6) {
+        return img['silver3'];
+      }
+      if (bracket == 7) {
+        return img['gold1'];
+      }
+      if (bracket == 8) {
+        return img['gold2'];
+      }
+      if (bracket == 9 || bracket == 10) {
+        if (bracket == 10 && (extraEXP / gap).floor() == 99) {
+          return img['platinumlevel'];
+        }
+        return img['gold3'];
+      } else {
+        return img['platinumlevel'];
+      }
+    }
+
+    return Row(children: [
+      Image.asset(levelTier(tier), scale: Platform.isWindows ? 3 : 4),
+      SizedBox(width: Platform.isWindows ? 5 : 3),
+      Text("$currentLevel ($progressPercentage%)", style: textSelection(""))
+    ]);
+  }
+
+  Row oldPsnLevel(plat, gold, silver, bronze) {
+    int totalExp = 0 * plat + 90 * gold + 30 * silver + 15 * bronze;
+    if (totalExp == 0) {
+      return Row(children: [
+        Image.asset(img['oldLevel'], scale: Platform.isWindows ? 1 : 1.3),
+        Text("1", style: textSelection(""))
+      ]);
+    } else if (totalExp < 200) {
+      return Row(children: [
+        Image.asset(img['oldLevel'], scale: Platform.isWindows ? 1 : 1.3),
+        Text("2", style: textSelection(""))
+      ]);
+    } else if (totalExp < 600) {
+      return Row(children: [
+        Image.asset(img['oldLevel'], scale: Platform.isWindows ? 1 : 1.3),
+        Text("3", style: textSelection(""))
+      ]);
+    } else if (totalExp < 1200) {
+      return Row(children: [
+        Image.asset(img['oldLevel'], scale: Platform.isWindows ? 1 : 1.3),
+        Text("4", style: textSelection(""))
+      ]);
+    } else if (totalExp < 2400) {
+      return Row(children: [
+        Image.asset(img['oldLevel'], scale: Platform.isWindows ? 1 : 1.3),
+        Text("5", style: textSelection(""))
+      ]);
+    } else if (totalExp < 4000) {
+      return Row(children: [
+        Image.asset(img['oldLevel'], scale: Platform.isWindows ? 1 : 1.3),
+        Text("6", style: textSelection(""))
+      ]);
+    } else if (totalExp < 16000) {
+      int extraEXP = totalExp - 4000;
+      int gap = 2000;
+      double progressPercentage =
+          double.parse((((extraEXP % gap) / gap) * 100).toStringAsFixed(2));
+      int currentLevel = (extraEXP / gap).floor() + 6;
+      return Row(children: [
+        Image.asset(img['oldLevel'], scale: Platform.isWindows ? 1 : 1.3),
+        Text("$currentLevel ($progressPercentage%)", style: textSelection(""))
+      ]);
+    } else if (totalExp < 128000) {
+      int extraEXP = totalExp - 16000;
+      int gap = 8000;
+      double progressPercentage =
+          double.parse((((extraEXP % gap) / gap) * 100).toStringAsFixed(2));
+      int currentLevel = (extraEXP / gap).floor() + 12;
+      return Row(children: [
+        Image.asset(img['oldLevel'], scale: Platform.isWindows ? 1 : 1.3),
+        Text("$currentLevel ($progressPercentage%)", style: textSelection(""))
+      ]);
+    } else {
+      int extraEXP = totalExp - 128000;
+      int gap = 10000;
+      double progressPercentage =
+          double.parse((((extraEXP % gap) / gap) * 100).toStringAsFixed(2));
+      int currentLevel = (extraEXP / gap).floor() + 26;
+      return Row(children: [
+        Image.asset(img['oldLevel'], scale: Platform.isWindows ? 1 : 1.3),
+        Text("$currentLevel ($progressPercentage%)", style: textSelection(""))
+      ]);
+    }
+  }
+
+  if (settings.get('levelType') == "new") {
+    return newPsnLevel(plat, gold, silver, bronze);
+  } else {
+    return oldPsnLevel(plat, gold, silver, bronze);
+  }
 }
 
 //? This function will return a loading selector, you just need to provide the theme
@@ -1720,52 +1789,52 @@ class _MyHomePageState extends State<MyHomePage> {
     //? First it changes the information on every document to be as updating, so every block displays a spinning icon
     setState(() {
       isUpdating = true;
-      if (settings.get("psnp")) {
+      if (settings.get("psnp") == true) {
         psnpDump = {'update': true};
       }
-      if (settings.get("psntl")) {
+      if (settings.get("psntl") == true) {
         psntlDump = {'update': true};
       }
-      if (settings.get("exophase")) {
+      if (settings.get("exophase") == true) {
         exophaseDump = {'update': true};
       }
-      if (settings.get("trueTrophies")) {
+      if (settings.get("trueTrophies") == true) {
         trueTrophiesDump = {'update': true};
       }
-      if (settings.get("psn100")) {
+      if (settings.get("psn100") == true) {
         psn100Dump = {'update': true};
       }
     });
     //? then, if it's enabled, it updates PSNP first while waiting the result to not start the other websites yet.
-    if (settings.get("psnp")) {
+    if (settings.get("psnp") == true) {
       psnpDump = await psnpInfo(settings.get("psnID"));
       setState(() {
         psnpDump = settings.get("psnpDump");
       });
     }
     //? then, if it's enabled, it updates PSN Trophy Leaders and waits the result.
-    if (settings.get("psntl")) {
+    if (settings.get("psntl") == true) {
       psntlDump = await psntlInfo(settings.get("psnID"));
       setState(() {
         psntlDump = settings.get("psntlDump");
       });
     }
     //? then, if it's enabled, it updates Exophase and waits the result.
-    if (settings.get("exophase")) {
+    if (settings.get("exophase") == true) {
       exophaseDump = await exophaseInfo(settings.get("psnID"));
       setState(() {
         exophaseDump = settings.get("exophaseDump");
       });
     }
     //? then, if it's enabled, it updates True Trophies and waits the result.
-    if (settings.get("trueTrophies")) {
+    if (settings.get("trueTrophies") == true) {
       trueTrophiesDump = await trueTrophiesInfo(settings.get("psnID"));
       setState(() {
         trueTrophiesDump = settings.get("trueTrophiesDump");
       });
     }
     //? then, if it's enabled, it updates PSN100 and waits the result.
-    if (settings.get("psn100")) {
+    if (settings.get("psn100") == true) {
       psn100Dump = await psn100Info(settings.get("psnID"));
       setState(() {
         psn100Dump = settings.get("psn100Dump");
@@ -1819,698 +1888,757 @@ class _MyHomePageState extends State<MyHomePage> {
                 color: themeSelector["secondary"][settings.get("theme")],
                 borderRadius: BorderRadius.all(Radius.circular(25))),
             width: 350,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                AppBar(
-                  shape: RoundedRectangleBorder(
-                      borderRadius:
-                          BorderRadius.vertical(top: Radius.circular(25))),
-                  title: Text(
-                    regionalText["home"]["settings"],
-                    style: textSelection(""),
-                  ),
-                  centerTitle: true,
-                  automaticallyImplyLeading: false,
-                  backgroundColor: themeSelector["primary"]
-                      [settings.get("theme")],
-                  actions: [
-                    IconButton(
-                        splashColor: Colors.transparent,
-                        hoverColor: Colors.transparent,
-                        icon: Icon(
-                          Icons.close,
-                          color: themeSelector["secondary"]
-                              [settings.get("theme")],
-                        ),
-                        onPressed: () {
-                          Navigator.pop(context);
-                        })
-                  ],
-                ),
-                //? Permite que o usuário troque o tipo de troféus do aplicativo.
-                //? O usuário não verá a opção de trocar para o tipo de troféu que estiver ativo
-                Padding(
-                  padding: const EdgeInsets.all(10.0),
-                  child: Center(
-                    child: Text(
-                      regionalText["settings"]["trophyPicker"],
-                      style: textSelection("textDark"),
-                      textAlign: TextAlign.center,
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  AppBar(
+                    shape: RoundedRectangleBorder(
+                        borderRadius:
+                            BorderRadius.vertical(top: Radius.circular(25))),
+                    title: Text(
+                      regionalText["home"]["settings"],
+                      style: textSelection(""),
                     ),
-                  ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 10),
-                  child: Wrap(
-                    children: [
-                      //? Option to use Yura's trophies as default display
-                      if (settings.get('trophyType') != "yura")
-                        Tooltip(
-                          message: regionalText["settings"]["yuraTrophies"],
-                          child: InkWell(
-                              child: Image.asset(
-                                img['platFill'],
-                                height: 50,
-                                width: 75,
-                              ),
-                              onTap: () => {
-                                    setState(() {
-                                      settings.put('trophyType', 'yura');
-                                    }),
-                                  }),
-                        ),
-                      //? Option to use old PSN trophies as default display
-                      if (settings.get('trophyType') != "old")
-                        Tooltip(
-                          message: regionalText["settings"]["oldTrophies"],
-                          child: InkWell(
-                              child: Image.asset(
-                                img['oldPlatinum'],
-                                height: 50,
-                                width: 75,
-                              ),
-                              onTap: () => {
-                                    setState(() {
-                                      settings.put('trophyType', 'old');
-                                    }),
-                                  }),
-                        ),
-                      //? Option to use new PSN trophies as default display
-                      if (settings.get('trophyType') != "new")
-                        Tooltip(
-                          message: regionalText["settings"]["newTrophies"],
-                          child: InkWell(
-                              child: Image.asset(
-                                img['newPlatinum'],
-                                height: 50,
-                                width: 75,
-                              ),
-                              onTap: () => {
-                                    setState(() {
-                                      settings.put('trophyType', 'new');
-                                    }),
-                                  }),
-                        ),
+                    centerTitle: true,
+                    automaticallyImplyLeading: false,
+                    backgroundColor: themeSelector["primary"]
+                        [settings.get("theme")],
+                    actions: [
+                      IconButton(
+                          splashColor: Colors.transparent,
+                          hoverColor: Colors.transparent,
+                          icon: Icon(
+                            Icons.close,
+                            color: themeSelector["secondary"]
+                                [settings.get("theme")],
+                          ),
+                          onPressed: () {
+                            Navigator.pop(context);
+                          })
                     ],
                   ),
-                ),
-                //? Permite que o usuário troque o idioma do aplicativo.
-                //? O usuário não verá a opção de trocar para o mesmo idioma que estiver ativo
-                Padding(
-                  padding: const EdgeInsets.all(10.0),
-                  child: Center(
-                    child: Text(
-                      regionalText["settings"]["languagePicker"],
-                      style: textSelection("textDark"),
-                      textAlign: TextAlign.center,
-                    ),
-                  ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 10),
-                  child: Wrap(
-                    spacing: 5,
-                    children: [
-                      if (settings.get('language') != "br")
-                        Tooltip(
-                          message: 'Português - Brasil',
-                          child: MaterialButton(
-                              hoverColor: Colors.transparent,
-                              materialTapTargetSize:
-                                  MaterialTapTargetSize.shrinkWrap,
-                              child: Image.network(
-                                "https://raw.githubusercontent.com/hjnilsson/country-flags/master/png100px/br.png",
-                                height: 50,
-                                width: 75,
-                              ),
-                              onPressed: () {
-                                setState(() {
-                                  settings.put('language', 'br');
-                                  regionalText = regionSelect();
-                                });
-                              }),
-                        ),
-                      if (settings.get('language') != "us")
-                        Tooltip(
-                          message: "English - United States of America",
-                          child: MaterialButton(
-                              hoverColor: Colors.transparent,
-                              materialTapTargetSize:
-                                  MaterialTapTargetSize.shrinkWrap,
-                              child: Image.network(
-                                "https://raw.githubusercontent.com/hjnilsson/country-flags/master/png100px/us.png",
-                                height: 50,
-                                width: 75,
-                              ),
-                              onPressed: () {
-                                setState(() {
-                                  settings.put('language', 'us');
-                                  regionalText = regionSelect();
-                                });
-                              }),
-                        ),
-                    ],
-                  ),
-                ),
-                //? Permite que o usuário selecione quais sites vão ser carregados na aba principal
-                //? Sites selecionados terão uma borda verde, sites desativados terão uma borda vermelha,
-                //? sites problemáticos terão uma borda amarela, quando ativa.
-                Padding(
-                  padding: const EdgeInsets.all(10.0),
-                  child: Center(
-                    child: Text(
-                      regionalText["settings"]["websitePicker"],
-                      style: textSelection("textDark"),
-                      textAlign: TextAlign.center,
-                    ),
-                  ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 10),
-                  child: Wrap(
-                    spacing: 5,
-                    children: [
-                      Tooltip(
-                        message: 'PSNProfiles',
-                        child: InkWell(
-                            child: Container(
-                              decoration: BoxDecoration(
-                                //? To paint the border, we check the value of the settings for this website is true.
-                                //? If it's false or null (never set), we will paint red.
-                                border: Border.all(
-                                    color: settings.get('psnp') != false
-                                        ? Colors.green
-                                        : Colors.red,
-                                    width: 5),
-                                borderRadius:
-                                    BorderRadius.all(Radius.circular(5)),
-                              ),
-                              child: Image.network(
-                                "https://psnprofiles.com/favicon.ico",
-                                scale: 2,
-                              ),
-                            ),
-                            onTap: () {
-                              setState(() {
-                                if (settings.get('psnp') != false) {
-                                  settings.put('psnp', false);
-                                } else {
-                                  settings.put('psnp', true);
-                                }
-                              });
-                            }),
-                      ),
-                      Tooltip(
-                        message: 'PSN Trophy Leaders (🐌)',
-                        child: InkWell(
-                            child: Container(
-                              decoration: BoxDecoration(
-                                //? To paint the border, we check the value of the settings for this website is true.
-                                //? If it's false or null (never set), we will paint red.
-                                border: Border.all(
-                                    color: settings.get('psntl') != false
-                                        ? Colors.orange
-                                        : Colors.red,
-                                    width: 5),
-                                borderRadius:
-                                    BorderRadius.all(Radius.circular(5)),
-                              ),
-                              child: Image.network(
-                                "https://psntl.com/favicon.ico",
-                                scale: 0.5,
-                              ),
-                            ),
-                            onTap: () {
-                              setState(() {
-                                if (settings.get('psntl') != false) {
-                                  settings.put('psntl', false);
-                                } else {
-                                  settings.put('psntl', true);
-                                }
-                              });
-                            }),
-                      ),
-                      Tooltip(
-                        message: 'Exophase',
-                        child: InkWell(
-                            child: Container(
-                              decoration: BoxDecoration(
-                                //? To paint the border, we check the value of the settings for this website is true.
-                                //? If it's false or null (never set), we will paint red.
-                                border: Border.all(
-                                    color: settings.get('exophase') != false
-                                        ? Colors.green
-                                        : Colors.red,
-                                    width: 5),
-                                borderRadius:
-                                    BorderRadius.all(Radius.circular(5)),
-                              ),
-                              child: Image.network(
-                                "https://www.exophase.com/assets/zeal/_icons/favicon.ico",
-                                scale: 4,
-                              ),
-                            ),
-                            onTap: () {
-                              setState(() {
-                                if (settings.get('exophase') != false) {
-                                  settings.put('exophase', false);
-                                } else {
-                                  settings.put('exophase', true);
-                                }
-                              });
-                            }),
-                      ),
-                      Tooltip(
-                        message: 'True Trophies',
-                        child: InkWell(
-                            child: Container(
-                              decoration: BoxDecoration(
-                                //? To paint the border, we check the value of the settings for this website is true.
-                                //? If it's false or null (never set), we will paint red.
-                                border: Border.all(
-                                    color: settings.get('trueTrophies') != false
-                                        ? Colors.green
-                                        : Colors.red,
-                                    width: 5),
-                                borderRadius:
-                                    BorderRadius.all(Radius.circular(5)),
-                              ),
-                              child: Image.network(
-                                "https://truetrophies.com/favicon.ico",
-                                scale: 0.5,
-                              ),
-                            ),
-                            onTap: () {
-                              setState(() {
-                                if (settings.get('trueTrophies') != false) {
-                                  settings.put('trueTrophies', false);
-                                } else {
-                                  settings.put('trueTrophies', true);
-                                }
-                              });
-                            }),
-                      ),
-                      Tooltip(
-                        message: 'PSN100',
-                        child: InkWell(
-                            child: Container(
-                              decoration: BoxDecoration(
-                                //? To paint the border, we check the value of the settings for this website is true.
-                                //? If it's false or null (never set), we will paint red.
-                                border: Border.all(
-                                    color: settings.get('psn100') != false
-                                        ? Colors.green
-                                        : Colors.red,
-                                    width: 5),
-                                borderRadius:
-                                    BorderRadius.all(Radius.circular(5)),
-                              ),
-                              child: Image.asset(
-                                img['psn100'],
-                                height: 32,
-                              ),
-                            ),
-                            onTap: () {
-                              setState(() {
-                                if (settings.get('psn100') != false) {
-                                  settings.put('psn100', false);
-                                } else {
-                                  settings.put('psn100', true);
-                                }
-                              });
-                            }),
-                      ),
-                    ],
-                  ),
-                ),
-                //? Permite que o usuário selecione estilo de carregamento o usuário quer visualizar no aplicativo
-                Padding(
-                  padding: const EdgeInsets.all(10.0),
-                  child: Center(
-                    child: Text(
-                      regionalText["settings"]["loadingPicker"],
-                      style: textSelection("textDark"),
-                      textAlign: TextAlign.center,
-                    ),
-                  ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 10),
-                  child: Wrap(
-                    spacing: 5,
-                    children: [
-                      InkWell(
-                          child: Container(
-                              padding: EdgeInsets.all(0),
-                              width: 60,
-                              height: 60,
-                              decoration: BoxDecoration(
-                                //? To paint the border, we check the value of the settings for this website is true.
-                                //? If it's false or null (never set), we will paint red.
-                                border: Border.all(
-                                    color: settings.get('loading') ==
-                                            "fadingCircle"
-                                        ? Colors.green
-                                        : Colors.red,
-                                    width: 5),
-                                borderRadius:
-                                    BorderRadius.all(Radius.circular(5)),
-                              ),
-                              child: loadingSelector("fadingCircle", "dark")),
-                          onTap: () {
-                            setState(() {
-                              if (settings.get('loading') != "fadingCircle") {
-                                settings.put('loading', "fadingCircle");
-                              }
-                            });
-                          }),
-                      InkWell(
-                          child: Container(
-                              padding: EdgeInsets.all(0),
-                              width: 60,
-                              height: 60,
-                              decoration: BoxDecoration(
-                                //? To paint the border, we check the value of the settings for this website is true.
-                                //? If it's false or null (never set), we will paint red.
-                                border: Border.all(
-                                    color:
-                                        settings.get('loading') == "fadingFour"
-                                            ? Colors.green
-                                            : Colors.red,
-                                    width: 5),
-                                borderRadius:
-                                    BorderRadius.all(Radius.circular(5)),
-                              ),
-                              child: loadingSelector("fadingFour", "dark")),
-                          onTap: () {
-                            setState(() {
-                              if (settings.get('loading') != "fadingFour") {
-                                settings.put('loading', "fadingFour");
-                              }
-                            });
-                          }),
-                      InkWell(
-                          child: Container(
-                              padding: EdgeInsets.all(0),
-                              width: 60,
-                              height: 60,
-                              decoration: BoxDecoration(
-                                //? To paint the border, we check the value of the settings for this website is true.
-                                //? If it's false or null (never set), we will paint red.
-                                border: Border.all(
-                                    color:
-                                        settings.get('loading') == "fadingGrid"
-                                            ? Colors.green
-                                            : Colors.red,
-                                    width: 5),
-                                borderRadius:
-                                    BorderRadius.all(Radius.circular(5)),
-                              ),
-                              child: loadingSelector("fadingGrid", "dark")),
-                          onTap: () {
-                            setState(() {
-                              if (settings.get('loading') != "fadingGrid") {
-                                settings.put('loading', "fadingGrid");
-                              }
-                            });
-                          }),
-                      InkWell(
-                          child: Container(
-                              padding: EdgeInsets.all(0),
-                              width: 60,
-                              height: 60,
-                              decoration: BoxDecoration(
-                                //? To paint the border, we check the value of the settings for this website is true.
-                                //? If it's false or null (never set), we will paint red.
-                                border: Border.all(
-                                    color: settings.get('loading') == "cubeGrid"
-                                        ? Colors.green
-                                        : Colors.red,
-                                    width: 5),
-                                borderRadius:
-                                    BorderRadius.all(Radius.circular(5)),
-                              ),
-                              child: loadingSelector("cubeGrid", "dark")),
-                          onTap: () {
-                            setState(() {
-                              if (settings.get('loading') != "cubeGrid") {
-                                settings.put('loading', "cubeGrid");
-                              }
-                            });
-                          }),
-                      InkWell(
-                          child: Container(
-                              padding: EdgeInsets.all(0),
-                              width: 60,
-                              height: 60,
-                              decoration: BoxDecoration(
-                                //? To paint the border, we check the value of the settings for this website is true.
-                                //? If it's false or null (never set), we will paint red.
-                                border: Border.all(
-                                    color: settings.get('loading') ==
-                                            "pouringHourglass"
-                                        ? Colors.green
-                                        : Colors.red,
-                                    width: 5),
-                                borderRadius:
-                                    BorderRadius.all(Radius.circular(5)),
-                              ),
-                              child:
-                                  loadingSelector("pouringHourglass", "dark")),
-                          onTap: () {
-                            setState(() {
-                              if (settings.get('loading') !=
-                                  "pouringHourglass") {
-                                settings.put('loading', "pouringHourglass");
-                              }
-                            });
-                          }),
-                    ],
-                  ),
-                ),
-                //? Permite que o usuário troque o tema do aplicativo.
-                //? O usuário não verá a opção de trocar para o mesmo tema que estiver ativo
-                Padding(
-                  padding: const EdgeInsets.all(10.0),
-                  child: Center(
-                    child: Text(
-                      regionalText["settings"]["themePicker"],
-                      style: textSelection("textDark"),
-                      textAlign: TextAlign.center,
-                    ),
-                  ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 10),
-                  child: Wrap(
-                    spacing: 10,
-                    runSpacing: 10,
-                    children: [
-                      if (settings.get('theme') != "pink")
-                        Tooltip(
-                          message: regionalText["settings"]["pink"],
-                          child: InkWell(
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Container(
-                                    width: 25,
-                                    height: 50,
-                                    color: themeSelector["primary"]["pink"],
-                                  ),
-                                  Container(
-                                    width: 25,
-                                    height: 50,
-                                    color: themeSelector["secondary"]["pink"],
-                                  )
-                                ],
-                              ),
-                              onTap: () => {
-                                    setState(() {
-                                      settings.put('theme', 'pink');
-                                    }),
-                                  }),
-                        ),
-                      if (settings.get('theme') != "orange")
-                        Tooltip(
-                          message: regionalText["settings"]["orange"],
-                          child: InkWell(
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Container(
-                                    width: 25,
-                                    height: 50,
-                                    color: themeSelector["primary"]["orange"],
-                                  ),
-                                  Container(
-                                    width: 25,
-                                    height: 50,
-                                    color: themeSelector["secondary"]["orange"],
-                                  )
-                                ],
-                              ),
-                              onTap: () => {
-                                    setState(() {
-                                      settings.put('theme', 'orange');
-                                    }),
-                                  }),
-                        ),
-                      if (settings.get('theme') != "blue")
-                        Tooltip(
-                          message: regionalText["settings"]["blue"],
-                          child: InkWell(
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Container(
-                                    width: 25,
-                                    height: 50,
-                                    color: themeSelector["primary"]["blue"],
-                                  ),
-                                  Container(
-                                    width: 25,
-                                    height: 50,
-                                    color: themeSelector["secondary"]["blue"],
-                                  )
-                                ],
-                              ),
-                              onTap: () => {
-                                    setState(() {
-                                      settings.put('theme', 'blue');
-                                    }),
-                                  }),
-                        ),
-                      if (settings.get('theme') != "black")
-                        Tooltip(
-                          message: regionalText["settings"]["black"],
-                          child: InkWell(
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Container(
-                                    width: 25,
-                                    height: 50,
-                                    color: themeSelector["primary"]["black"],
-                                  ),
-                                  Container(
-                                    width: 25,
-                                    height: 50,
-                                    color: themeSelector["secondary"]["black"],
-                                  )
-                                ],
-                              ),
-                              onTap: () => {
-                                    setState(() {
-                                      settings.put('theme', 'black');
-                                    }),
-                                  }),
-                        ),
-                      if (settings.get('theme') != "white")
-                        Tooltip(
-                          message: regionalText["settings"]["white"],
-                          child: InkWell(
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Container(
-                                    width: 25,
-                                    height: 50,
-                                    color: themeSelector["primary"]["white"],
-                                  ),
-                                  Container(
-                                    width: 25,
-                                    height: 50,
-                                    color: themeSelector["secondary"]["white"],
-                                  )
-                                ],
-                              ),
-                              onTap: () => {
-                                    setState(() {
-                                      settings.put('theme', 'white');
-                                    }),
-                                  }),
-                        ),
-                      if (settings.get('theme') != "boredom")
-                        Tooltip(
-                          message: regionalText["settings"]["boredom"],
-                          child: InkWell(
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Container(
-                                    width: 25,
-                                    height: 50,
-                                    color: themeSelector["primary"]["boredom"],
-                                  ),
-                                  Container(
-                                    width: 25,
-                                    height: 50,
-                                    color: themeSelector["secondary"]
-                                        ["boredom"],
-                                  )
-                                ],
-                              ),
-                              onTap: () => {
-                                    setState(() {
-                                      settings.put('theme', 'boredom');
-                                    }),
-                                  }),
-                        ),
-                    ],
-                  ),
-                ),
-                if (settings.get("psnID") != null)
+                  //? Allows the user to change the trophy type
+                  //? User cannot change to the currently chosen type
                   Padding(
-                    padding: const EdgeInsets.all(10.0),
+                    padding: EdgeInsets.all(Platform.isWindows ? 10.0 : 5.0),
                     child: Center(
                       child: Text(
-                        regionalText["settings"]["removePSN"],
+                        regionalText["settings"]["trophyPicker"],
                         style: textSelection("textDark"),
+                        textAlign: TextAlign.center,
                       ),
                     ),
                   ),
-                //! This option allows the user to delete their PSN data off the application
-                if (settings.get("psnID") != null)
-                  InkWell(
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
+                  Padding(
+                    padding: EdgeInsets.symmetric(
+                        horizontal: Platform.isWindows ? 10.0 : 5.0),
+                    child: Wrap(
                       children: [
-                        Icon(
-                          Icons.delete,
-                          color: themeSelector["primary"]
-                              [settings.get("theme")],
-                          size: 30,
-                        ),
-                        SizedBox(width: 10),
-                        Text(
-                          settings.get('psnID'),
-                          style: textSelection("textDark"),
-                        )
+                        //? Option to use Yura's trophies as default display
+                        if (settings.get('trophyType') != "yura")
+                          Tooltip(
+                            message: regionalText["settings"]["yuraTrophies"],
+                            child: InkWell(
+                                child: Image.asset(
+                                  img['platFill'],
+                                  height: 50,
+                                  width: 75,
+                                ),
+                                onTap: () => {
+                                      setState(() {
+                                        settings.put('trophyType', 'yura');
+                                      }),
+                                    }),
+                          ),
+                        //? Option to use old PSN trophies as default display
+                        if (settings.get('trophyType') != "old")
+                          Tooltip(
+                            message: regionalText["settings"]["oldTrophies"],
+                            child: InkWell(
+                                child: Image.asset(
+                                  img['oldPlatinum'],
+                                  height: 50,
+                                  width: 75,
+                                ),
+                                onTap: () => {
+                                      setState(() {
+                                        settings.put('trophyType', 'old');
+                                      }),
+                                    }),
+                          ),
+                        //? Option to use new PSN trophies as default display
+                        if (settings.get('trophyType') != "new")
+                          Tooltip(
+                            message: regionalText["settings"]["newTrophies"],
+                            child: InkWell(
+                                child: Image.asset(
+                                  img['newPlatinum'],
+                                  height: 50,
+                                  width: 75,
+                                ),
+                                onTap: () => {
+                                      setState(() {
+                                        settings.put('trophyType', 'new');
+                                      }),
+                                    }),
+                          ),
                       ],
                     ),
-                    onTap: () {
-                      setState(() {
-                        settings.delete("psnID");
-                        settings.delete('psnpDump');
-                        psnpDump = null;
-                        settings.delete('psntlDump');
-                        psntlDump = null;
-                        settings.delete('exophaseDump');
-                        settings.delete('exophaseGames');
-                        exophaseDump = null;
-                        settings.delete('trueTrophiesDump');
-                        trueTrophiesDump = null;
-                        settings.delete('psn100Dump');
-                        psn100Dump = null;
-                      });
-                    },
                   ),
-                SizedBox(
-                  height: 20,
-                ),
-              ],
+                  //? Allows the user to change the leveling system used
+                  //? User cannot change to the currently chosen system
+                  Padding(
+                    padding: EdgeInsets.all(Platform.isWindows ? 10.0 : 5.0),
+                    child: Center(
+                      child: Text(
+                        regionalText["settings"]["levelPicker"],
+                        style: textSelection("textDark"),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                  ),
+                  Padding(
+                    padding: EdgeInsets.symmetric(
+                        horizontal: Platform.isWindows ? 10.0 : 5.0),
+                    child: Wrap(
+                      children: [
+                        //? Option to use Yura's trophies as default display
+                        if (settings.get('levelType') != "new")
+                          Tooltip(
+                            message: regionalText["settings"]["newLevel"],
+                            child: InkWell(
+                                child: Image.asset(
+                                  img['platinumlevel'],
+                                  height: 50,
+                                  width: 75,
+                                ),
+                                onTap: () => {
+                                      setState(() {
+                                        settings.put('levelType', 'new');
+                                      }),
+                                    }),
+                          ),
+                        //? Option to use old PSN trophies as default display
+                        if (settings.get('levelType') == "new")
+                          Tooltip(
+                            message: regionalText["settings"]["oldLevel"],
+                            child: InkWell(
+                                child: Image.asset(img['oldLevel'], scale: 0.7),
+                                onTap: () => {
+                                      setState(() {
+                                        settings.put('levelType', 'old');
+                                      }),
+                                    }),
+                          ),
+                      ],
+                    ),
+                  ),
+                  //? Permite que o usuário troque o idioma do aplicativo.
+                  //? O usuário não verá a opção de trocar para o mesmo idioma que estiver ativo
+                  Padding(
+                    padding: EdgeInsets.all(Platform.isWindows ? 10.0 : 5.0),
+                    child: Center(
+                      child: Text(
+                        regionalText["settings"]["languagePicker"],
+                        style: textSelection("textDark"),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                  ),
+                  Padding(
+                    padding: EdgeInsets.symmetric(
+                        horizontal: Platform.isWindows ? 10.0 : 5.0),
+                    child: Wrap(
+                      spacing: 5,
+                      children: [
+                        if (settings.get('language') != "br")
+                          Tooltip(
+                            message: 'Português - Brasil',
+                            child: MaterialButton(
+                                hoverColor: Colors.transparent,
+                                materialTapTargetSize:
+                                    MaterialTapTargetSize.shrinkWrap,
+                                child: Image.network(
+                                  "https://raw.githubusercontent.com/hjnilsson/country-flags/master/png100px/br.png",
+                                  height: 50,
+                                  width: 75,
+                                ),
+                                onPressed: () {
+                                  setState(() {
+                                    settings.put('language', 'br');
+                                    regionalText = regionSelect();
+                                  });
+                                }),
+                          ),
+                        if (settings.get('language') != "us")
+                          Tooltip(
+                            message: "English - United States of America",
+                            child: MaterialButton(
+                                hoverColor: Colors.transparent,
+                                materialTapTargetSize:
+                                    MaterialTapTargetSize.shrinkWrap,
+                                child: Image.network(
+                                  "https://raw.githubusercontent.com/hjnilsson/country-flags/master/png100px/us.png",
+                                  height: 50,
+                                  width: 75,
+                                ),
+                                onPressed: () {
+                                  setState(() {
+                                    settings.put('language', 'us');
+                                    regionalText = regionSelect();
+                                  });
+                                }),
+                          ),
+                      ],
+                    ),
+                  ),
+                  //? Permite que o usuário selecione quais sites vão ser carregados na aba principal
+                  //? Sites selecionados terão uma borda verde, sites desativados terão uma borda vermelha,
+                  //? sites problemáticos terão uma borda amarela, quando ativa.
+                  Padding(
+                    padding: EdgeInsets.all(Platform.isWindows ? 10.0 : 5.0),
+                    child: Center(
+                      child: Text(
+                        regionalText["settings"]["websitePicker"],
+                        style: textSelection("textDark"),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                  ),
+                  Padding(
+                    padding: EdgeInsets.symmetric(
+                        horizontal: Platform.isWindows ? 10.0 : 5.0),
+                    child: Wrap(
+                      spacing: 5,
+                      children: [
+                        Tooltip(
+                          message: 'PSNProfiles',
+                          child: InkWell(
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  //? To paint the border, we check the value of the settings for this website is true.
+                                  //? If it's false or null (never set), we will paint red.
+                                  border: Border.all(
+                                      color: settings.get('psnp') != false
+                                          ? Colors.green
+                                          : Colors.red,
+                                      width: 5),
+                                  borderRadius:
+                                      BorderRadius.all(Radius.circular(5)),
+                                ),
+                                child: Image.network(
+                                    "https://psnprofiles.com/favicon.ico",
+                                    scale: 2),
+                              ),
+                              onTap: () {
+                                setState(() {
+                                  if (settings.get('psnp') != false) {
+                                    settings.put('psnp', false);
+                                  } else {
+                                    settings.put('psnp', true);
+                                  }
+                                });
+                              }),
+                        ),
+                        Tooltip(
+                          message: 'PSN Trophy Leaders (🐌)',
+                          child: InkWell(
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  //? To paint the border, we check the value of the settings for this website is true.
+                                  //? If it's false or null (never set), we will paint red.
+                                  border: Border.all(
+                                      color: settings.get('psntl') != false
+                                          ? Colors.orange
+                                          : Colors.red,
+                                      width: 5),
+                                  borderRadius:
+                                      BorderRadius.all(Radius.circular(5)),
+                                ),
+                                child: Image.network(
+                                    "https://psntl.com/favicon.ico",
+                                    scale: 0.5),
+                              ),
+                              onTap: () {
+                                setState(() {
+                                  if (settings.get('psntl') != false) {
+                                    settings.put('psntl', false);
+                                  } else {
+                                    settings.put('psntl', true);
+                                  }
+                                });
+                              }),
+                        ),
+                        Tooltip(
+                          message: 'Exophase',
+                          child: InkWell(
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  //? To paint the border, we check the value of the settings for this website is true.
+                                  //? If it's false or null (never set), we will paint red.
+                                  border: Border.all(
+                                      color: settings.get('exophase') != false
+                                          ? Colors.green
+                                          : Colors.red,
+                                      width: 5),
+                                  borderRadius:
+                                      BorderRadius.all(Radius.circular(5)),
+                                ),
+                                child: Image.network(
+                                  "https://www.exophase.com/assets/zeal/_icons/favicon.ico",
+                                  scale: 4,
+                                ),
+                              ),
+                              onTap: () {
+                                setState(() {
+                                  if (settings.get('exophase') != false) {
+                                    settings.put('exophase', false);
+                                  } else {
+                                    settings.put('exophase', true);
+                                  }
+                                });
+                              }),
+                        ),
+                        Tooltip(
+                          message: 'True Trophies',
+                          child: InkWell(
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  //? To paint the border, we check the value of the settings for this website is true.
+                                  //? If it's false or null (never set), we will paint red.
+                                  border: Border.all(
+                                      color:
+                                          settings.get('trueTrophies') != false
+                                              ? Colors.green
+                                              : Colors.red,
+                                      width: 5),
+                                  borderRadius:
+                                      BorderRadius.all(Radius.circular(5)),
+                                ),
+                                child: Image.network(
+                                  "https://truetrophies.com/favicon.ico",
+                                  scale: 0.5,
+                                ),
+                              ),
+                              onTap: () {
+                                setState(() {
+                                  if (settings.get('trueTrophies') != false) {
+                                    settings.put('trueTrophies', false);
+                                  } else {
+                                    settings.put('trueTrophies', true);
+                                  }
+                                });
+                              }),
+                        ),
+                        Tooltip(
+                          message: 'PSN100',
+                          child: InkWell(
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  //? To paint the border, we check the value of the settings for this website is true.
+                                  //? If it's false or null (never set), we will paint red.
+                                  border: Border.all(
+                                      color: settings.get('psn100') != false
+                                          ? Colors.green
+                                          : Colors.red,
+                                      width: 5),
+                                  borderRadius:
+                                      BorderRadius.all(Radius.circular(5)),
+                                ),
+                                child: Image.asset(
+                                  img['psn100'],
+                                  height: 32,
+                                ),
+                              ),
+                              onTap: () {
+                                setState(() {
+                                  if (settings.get('psn100') != false) {
+                                    settings.put('psn100', false);
+                                  } else {
+                                    settings.put('psn100', true);
+                                  }
+                                });
+                              }),
+                        ),
+                      ],
+                    ),
+                  ),
+                  //? Permite que o usuário selecione estilo de carregamento o usuário quer visualizar no aplicativo
+                  Padding(
+                    padding: EdgeInsets.all(Platform.isWindows ? 10.0 : 5.0),
+                    child: Center(
+                      child: Text(
+                        regionalText["settings"]["loadingPicker"],
+                        style: textSelection("textDark"),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                  ),
+                  Padding(
+                    padding: EdgeInsets.symmetric(
+                        horizontal: Platform.isWindows ? 10.0 : 5.0),
+                    child: Wrap(
+                      spacing: 5,
+                      children: [
+                        InkWell(
+                            child: Container(
+                                padding: EdgeInsets.all(0),
+                                width: 60,
+                                height: 60,
+                                decoration: BoxDecoration(
+                                  //? To paint the border, we check the value of the settings for this website is true.
+                                  //? If it's false or null (never set), we will paint red.
+                                  border: Border.all(
+                                      color: settings.get('loading') ==
+                                              "fadingCircle"
+                                          ? Colors.green
+                                          : Colors.red,
+                                      width: 5),
+                                  borderRadius:
+                                      BorderRadius.all(Radius.circular(5)),
+                                ),
+                                child: loadingSelector("fadingCircle", "dark")),
+                            onTap: () {
+                              setState(() {
+                                if (settings.get('loading') != "fadingCircle") {
+                                  settings.put('loading', "fadingCircle");
+                                }
+                              });
+                            }),
+                        InkWell(
+                            child: Container(
+                                padding: EdgeInsets.all(0),
+                                width: 60,
+                                height: 60,
+                                decoration: BoxDecoration(
+                                  //? To paint the border, we check the value of the settings for this website is true.
+                                  //? If it's false or null (never set), we will paint red.
+                                  border: Border.all(
+                                      color: settings.get('loading') ==
+                                              "fadingFour"
+                                          ? Colors.green
+                                          : Colors.red,
+                                      width: 5),
+                                  borderRadius:
+                                      BorderRadius.all(Radius.circular(5)),
+                                ),
+                                child: loadingSelector("fadingFour", "dark")),
+                            onTap: () {
+                              setState(() {
+                                if (settings.get('loading') != "fadingFour") {
+                                  settings.put('loading', "fadingFour");
+                                }
+                              });
+                            }),
+                        InkWell(
+                            child: Container(
+                                padding: EdgeInsets.all(0),
+                                width: 60,
+                                height: 60,
+                                decoration: BoxDecoration(
+                                  //? To paint the border, we check the value of the settings for this website is true.
+                                  //? If it's false or null (never set), we will paint red.
+                                  border: Border.all(
+                                      color: settings.get('loading') ==
+                                              "fadingGrid"
+                                          ? Colors.green
+                                          : Colors.red,
+                                      width: 5),
+                                  borderRadius:
+                                      BorderRadius.all(Radius.circular(5)),
+                                ),
+                                child: loadingSelector("fadingGrid", "dark")),
+                            onTap: () {
+                              setState(() {
+                                if (settings.get('loading') != "fadingGrid") {
+                                  settings.put('loading', "fadingGrid");
+                                }
+                              });
+                            }),
+                        InkWell(
+                            child: Container(
+                                padding: EdgeInsets.all(0),
+                                width: 60,
+                                height: 60,
+                                decoration: BoxDecoration(
+                                  //? To paint the border, we check the value of the settings for this website is true.
+                                  //? If it's false or null (never set), we will paint red.
+                                  border: Border.all(
+                                      color:
+                                          settings.get('loading') == "cubeGrid"
+                                              ? Colors.green
+                                              : Colors.red,
+                                      width: 5),
+                                  borderRadius:
+                                      BorderRadius.all(Radius.circular(5)),
+                                ),
+                                child: loadingSelector("cubeGrid", "dark")),
+                            onTap: () {
+                              setState(() {
+                                if (settings.get('loading') != "cubeGrid") {
+                                  settings.put('loading', "cubeGrid");
+                                }
+                              });
+                            }),
+                        InkWell(
+                            child: Container(
+                                padding: EdgeInsets.all(0),
+                                width: 60,
+                                height: 60,
+                                decoration: BoxDecoration(
+                                  //? To paint the border, we check the value of the settings for this website is true.
+                                  //? If it's false or null (never set), we will paint red.
+                                  border: Border.all(
+                                      color: settings.get('loading') ==
+                                              "pouringHourglass"
+                                          ? Colors.green
+                                          : Colors.red,
+                                      width: 5),
+                                  borderRadius:
+                                      BorderRadius.all(Radius.circular(5)),
+                                ),
+                                child: loadingSelector(
+                                    "pouringHourglass", "dark")),
+                            onTap: () {
+                              setState(() {
+                                if (settings.get('loading') !=
+                                    "pouringHourglass") {
+                                  settings.put('loading', "pouringHourglass");
+                                }
+                              });
+                            }),
+                      ],
+                    ),
+                  ),
+                  //? Permite que o usuário troque o tema do aplicativo.
+                  //? O usuário não verá a opção de trocar para o mesmo tema que estiver ativo
+                  Padding(
+                    padding: EdgeInsets.all(Platform.isWindows ? 10.0 : 5.0),
+                    child: Center(
+                      child: Text(
+                        regionalText["settings"]["themePicker"],
+                        style: textSelection("textDark"),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                  ),
+                  Padding(
+                    padding: EdgeInsets.symmetric(
+                        horizontal: Platform.isWindows ? 10.0 : 5.0),
+                    child: Wrap(
+                      spacing: 10,
+                      runSpacing: 10,
+                      children: [
+                        if (settings.get('theme') != "pink")
+                          Tooltip(
+                            message: regionalText["settings"]["pink"],
+                            child: InkWell(
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Container(
+                                      width: 25,
+                                      height: 50,
+                                      color: themeSelector["primary"]["pink"],
+                                    ),
+                                    Container(
+                                      width: 25,
+                                      height: 50,
+                                      color: themeSelector["secondary"]["pink"],
+                                    )
+                                  ],
+                                ),
+                                onTap: () => {
+                                      setState(() {
+                                        settings.put('theme', 'pink');
+                                      }),
+                                    }),
+                          ),
+                        if (settings.get('theme') != "orange")
+                          Tooltip(
+                            message: regionalText["settings"]["orange"],
+                            child: InkWell(
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Container(
+                                      width: 25,
+                                      height: 50,
+                                      color: themeSelector["primary"]["orange"],
+                                    ),
+                                    Container(
+                                      width: 25,
+                                      height: 50,
+                                      color: themeSelector["secondary"]
+                                          ["orange"],
+                                    )
+                                  ],
+                                ),
+                                onTap: () => {
+                                      setState(() {
+                                        settings.put('theme', 'orange');
+                                      }),
+                                    }),
+                          ),
+                        if (settings.get('theme') != "blue")
+                          Tooltip(
+                            message: regionalText["settings"]["blue"],
+                            child: InkWell(
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Container(
+                                      width: 25,
+                                      height: 50,
+                                      color: themeSelector["primary"]["blue"],
+                                    ),
+                                    Container(
+                                      width: 25,
+                                      height: 50,
+                                      color: themeSelector["secondary"]["blue"],
+                                    )
+                                  ],
+                                ),
+                                onTap: () => {
+                                      setState(() {
+                                        settings.put('theme', 'blue');
+                                      }),
+                                    }),
+                          ),
+                        if (settings.get('theme') != "black")
+                          Tooltip(
+                            message: regionalText["settings"]["black"],
+                            child: InkWell(
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Container(
+                                      width: 25,
+                                      height: 50,
+                                      color: themeSelector["primary"]["black"],
+                                    ),
+                                    Container(
+                                      width: 25,
+                                      height: 50,
+                                      color: themeSelector["secondary"]
+                                          ["black"],
+                                    )
+                                  ],
+                                ),
+                                onTap: () => {
+                                      setState(() {
+                                        settings.put('theme', 'black');
+                                      }),
+                                    }),
+                          ),
+                        if (settings.get('theme') != "white")
+                          Tooltip(
+                            message: regionalText["settings"]["white"],
+                            child: InkWell(
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Container(
+                                      width: 25,
+                                      height: 50,
+                                      color: themeSelector["primary"]["white"],
+                                    ),
+                                    Container(
+                                      width: 25,
+                                      height: 50,
+                                      color: themeSelector["secondary"]
+                                          ["white"],
+                                    )
+                                  ],
+                                ),
+                                onTap: () => {
+                                      setState(() {
+                                        settings.put('theme', 'white');
+                                      }),
+                                    }),
+                          ),
+                        if (settings.get('theme') != "boredom")
+                          Tooltip(
+                            message: regionalText["settings"]["boredom"],
+                            child: InkWell(
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Container(
+                                      width: 25,
+                                      height: 50,
+                                      color: themeSelector["primary"]
+                                          ["boredom"],
+                                    ),
+                                    Container(
+                                      width: 25,
+                                      height: 50,
+                                      color: themeSelector["secondary"]
+                                          ["boredom"],
+                                    )
+                                  ],
+                                ),
+                                onTap: () => {
+                                      setState(() {
+                                        settings.put('theme', 'boredom');
+                                      }),
+                                    }),
+                          ),
+                      ],
+                    ),
+                  ),
+                  if (settings.get("psnID") != null)
+                    Padding(
+                      padding: EdgeInsets.all(Platform.isWindows ? 10.0 : 5.0),
+                      child: Center(
+                        child: Text(
+                          regionalText["settings"]["removePSN"],
+                          style: textSelection("textDark"),
+                        ),
+                      ),
+                    ),
+                  //! This option allows the user to delete their PSN data off the application
+                  if (settings.get("psnID") != null)
+                    InkWell(
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.delete,
+                            color: themeSelector["primary"]
+                                [settings.get("theme")],
+                            size: 30,
+                          ),
+                          SizedBox(width: Platform.isWindows ? 10.0 : 5.0),
+                          Text(
+                            settings.get('psnID'),
+                            style: textSelection("textDark"),
+                          )
+                        ],
+                      ),
+                      onTap: () {
+                        setState(() {
+                          settings.delete("psnID");
+                          settings.delete('psnpDump');
+                          psnpDump = null;
+                          settings.delete('psntlDump');
+                          psntlDump = null;
+                          settings.delete('exophaseDump');
+                          settings.delete('exophaseGames');
+                          exophaseDump = null;
+                          settings.delete('trueTrophiesDump');
+                          trueTrophiesDump = null;
+                          settings.delete('psn100Dump');
+                          psn100Dump = null;
+                        });
+                      },
+                    ),
+                  SizedBox(
+                    height: 20,
+                  ),
+                ],
+              ),
             ),
           ),
         ),
@@ -2518,8 +2646,9 @@ class _MyHomePageState extends State<MyHomePage> {
           child: Container(
             decoration: BoxDecoration(
                 gradient: RadialGradient(colors: [
-              Colors.white,
-              themeSelector["secondary"][settings.get("theme")],
+              themeSelector["primary"][settings.get("theme")].withOpacity(0.4),
+              themeSelector["secondary"][settings.get("theme")]
+                  .withOpacity(0.4),
             ])),
             width: MediaQuery.of(context).size.width,
             child: Column(
@@ -2545,7 +2674,7 @@ class _MyHomePageState extends State<MyHomePage> {
                                 hintText: regionalText['home']['IDhere']),
                             textAlign: TextAlign.center,
                             autocorrect: false,
-                            autofocus: true,
+                            // autofocus: true,
                             onChanged: (text) {
                               debounce.run(() {
                                 //! Perform search here later to validate the ID provided
@@ -2573,7 +2702,7 @@ class _MyHomePageState extends State<MyHomePage> {
                               message: "PSN Profiles",
                               child: Container(
                                 height: 50,
-                                width: 220,
+                                width: Platform.isWindows ? 200 : 150,
                                 decoration: boxDeco(),
                                 child: Row(
                                   mainAxisAlignment:
@@ -2604,27 +2733,30 @@ class _MyHomePageState extends State<MyHomePage> {
                               message: 'PSN Trophy Leaders (🐌)',
                               child: Container(
                                 height: 50,
-                                width: 220,
+                                width: Platform.isWindows ? 200 : 150,
                                 decoration: boxDeco(),
-                                child: Row(
-                                  mainAxisAlignment:
-                                      MainAxisAlignment.spaceEvenly,
-                                  children: [
-                                    Padding(
-                                      padding: const EdgeInsets.all(5.0),
-                                      child: Image.network(
-                                        "https://psntl.com/favicon.ico",
-                                        scale: 0.5,
+                                child: SingleChildScrollView(
+                                  scrollDirection: Axis.horizontal,
+                                  child: Row(
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceEvenly,
+                                    children: [
+                                      Padding(
+                                        padding: const EdgeInsets.all(5.0),
+                                        child: Image.network(
+                                          "https://psntl.com/favicon.ico",
+                                          scale: 0.5,
+                                        ),
                                       ),
-                                    ),
-                                    Padding(
-                                      padding: const EdgeInsets.all(5.0),
-                                      child: Text(
-                                        'PSN Trophy Leaders',
-                                        style: textSelection(""),
-                                      ),
-                                    )
-                                  ],
+                                      Padding(
+                                        padding: const EdgeInsets.all(5.0),
+                                        child: Text(
+                                          'PSN Trophy Leaders',
+                                          style: textSelection(""),
+                                        ),
+                                      )
+                                    ],
+                                  ),
                                 ),
                               ),
                             ),
@@ -2641,7 +2773,7 @@ class _MyHomePageState extends State<MyHomePage> {
                               message: "True Trophies",
                               child: Container(
                                 height: 50,
-                                width: 220,
+                                width: Platform.isWindows ? 200 : 150,
                                 decoration: boxDeco(),
                                 child: Row(
                                   mainAxisAlignment:
@@ -2672,7 +2804,7 @@ class _MyHomePageState extends State<MyHomePage> {
                               message: "Exophase",
                               child: Container(
                                 height: 50,
-                                width: 220,
+                                width: Platform.isWindows ? 200 : 150,
                                 decoration: boxDeco(),
                                 child: Row(
                                   mainAxisAlignment:
@@ -2709,7 +2841,7 @@ class _MyHomePageState extends State<MyHomePage> {
                               message: "PSN 100%",
                               child: Container(
                                 height: 50,
-                                width: 220,
+                                width: Platform.isWindows ? 200 : 150,
                                 decoration: boxDeco(),
                                 child: Row(
                                   mainAxisAlignment:
@@ -2805,7 +2937,8 @@ class _MyHomePageState extends State<MyHomePage> {
                                           Image.network(
                                             snapshot.data['avatar'] ??
                                                 "https://i.psnprofiles.com/avatars/m/Gfba90ec21.png",
-                                            height: 60,
+                                            height:
+                                                Platform.isWindows ? 60 : 50,
                                           ),
                                           //? Column with PSN ID, About Me (on hover), trophy count
                                           Column(
@@ -2838,173 +2971,14 @@ class _MyHomePageState extends State<MyHomePage> {
                                                         height: 20),
                                                   ]),
                                               //? Level, level progress and level icon
-                                              //TODO Update this with the actual current icons and also add the formula for the old leveling system.
                                               Padding(
                                                 padding:
                                                     const EdgeInsets.all(5.0),
-                                                child: Row(
-                                                  children: [
-                                                    Image.asset(
-                                                      img['oldLevel'],
-                                                      height: 25,
-                                                    ),
-                                                    SizedBox(width: 5),
-                                                    Text(
-                                                        "${snapshot.data['level'].toString()} (${snapshot.data['levelProgress']})",
-                                                        style:
-                                                            textSelection("")),
-                                                  ],
-                                                ),
-                                              ),
-                                              //? This row contains the trophy icons and the quantity the user has acquired of them
-                                              Row(
-                                                mainAxisSize: MainAxisSize.max,
-                                                mainAxisAlignment:
-                                                    MainAxisAlignment
-                                                        .spaceBetween,
-                                                children: [
-                                                  trophyType('platinum',
-                                                      quantity: snapshot
-                                                          .data['platinum']),
-                                                  SizedBox(width: 20),
-                                                  trophyType('gold',
-                                                      quantity: snapshot
-                                                          .data['gold']),
-                                                  SizedBox(width: 20),
-                                                  trophyType('silver',
-                                                      quantity: snapshot
-                                                          .data['silver']),
-                                                  SizedBox(width: 20),
-                                                  trophyType('bronze',
-                                                      quantity: snapshot
-                                                          .data['bronze']),
-                                                  SizedBox(width: 20),
-                                                  trophyType('total',
-                                                      quantity:
-                                                          "${snapshot.data['total'].toString()} (${snapshot.data['totalPercentage']}%)"),
-                                                ],
-                                              ),
-                                              SingleChildScrollView(
-                                                scrollDirection:
-                                                    Axis.horizontal,
-                                                child: Row(
-                                                  mainAxisSize:
-                                                      MainAxisSize.max,
-                                                  mainAxisAlignment:
-                                                      MainAxisAlignment
-                                                          .spaceBetween,
-                                                  children: [
-                                                    Tooltip(
-                                                      message:
-                                                          regionalText['trophy']
-                                                              ['ultraRare'],
-                                                      child: Row(
-                                                        children: [
-                                                          Image.asset(
-                                                              img['rarity6'],
-                                                              height: 15),
-                                                          SizedBox(width: 5),
-                                                          Text(
-                                                            snapshot.data[
-                                                                    'ultraRare']
-                                                                .toString(),
-                                                            style:
-                                                                textSelection(
-                                                                    ""),
-                                                          ),
-                                                        ],
-                                                      ),
-                                                    ),
-                                                    SizedBox(width: 20),
-                                                    Tooltip(
-                                                      message:
-                                                          regionalText['trophy']
-                                                              ['veryRare'],
-                                                      child: Row(
-                                                        children: [
-                                                          Image.asset(
-                                                              img['rarity5'],
-                                                              height: 15),
-                                                          SizedBox(width: 5),
-                                                          Text(
-                                                            snapshot.data[
-                                                                    'veryRare']
-                                                                .toString(),
-                                                            style:
-                                                                textSelection(
-                                                                    ""),
-                                                          )
-                                                        ],
-                                                      ),
-                                                    ),
-                                                    SizedBox(width: 20),
-                                                    Tooltip(
-                                                      message:
-                                                          regionalText['trophy']
-                                                              ['rare'],
-                                                      child: Row(
-                                                        children: [
-                                                          Image.asset(
-                                                              img['rarity4'],
-                                                              height: 15),
-                                                          SizedBox(width: 5),
-                                                          Text(
-                                                            snapshot
-                                                                .data['rare']
-                                                                .toString(),
-                                                            style:
-                                                                textSelection(
-                                                                    ""),
-                                                          )
-                                                        ],
-                                                      ),
-                                                    ),
-                                                    SizedBox(width: 20),
-                                                    Tooltip(
-                                                      message:
-                                                          regionalText['trophy']
-                                                              ['uncommon'],
-                                                      child: Row(
-                                                        children: [
-                                                          Image.asset(
-                                                              img['rarity3'],
-                                                              height: 15),
-                                                          SizedBox(width: 5),
-                                                          Text(
-                                                            snapshot.data[
-                                                                    'uncommon']
-                                                                .toString(),
-                                                            style:
-                                                                textSelection(
-                                                                    ""),
-                                                          )
-                                                        ],
-                                                      ),
-                                                    ),
-                                                    SizedBox(width: 20),
-                                                    Tooltip(
-                                                      message:
-                                                          regionalText['trophy']
-                                                              ['common'],
-                                                      child: Row(
-                                                        children: [
-                                                          Image.asset(
-                                                              img['rarity1'],
-                                                              height: 20),
-                                                          SizedBox(width: 5),
-                                                          Text(
-                                                            snapshot
-                                                                .data['common']
-                                                                .toString(),
-                                                            style:
-                                                                textSelection(
-                                                                    ""),
-                                                          )
-                                                        ],
-                                                      ),
-                                                    ),
-                                                  ],
-                                                ),
+                                                child: levelType(
+                                                    snapshot.data['platinum'],
+                                                    snapshot.data['gold'],
+                                                    snapshot.data['silver'],
+                                                    snapshot.data['bronze']),
                                               ),
                                             ],
                                           ),
@@ -3026,6 +3000,153 @@ class _MyHomePageState extends State<MyHomePage> {
                                             },
                                           ),
                                         ],
+                                      ), //? This row contains the trophy icons and the quantity the user has acquired of them
+                                      SingleChildScrollView(
+                                        scrollDirection: Axis.horizontal,
+                                        child: Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.spaceBetween,
+                                          children: [
+                                            trophyType('platinum',
+                                                quantity:
+                                                    snapshot.data['platinum']),
+                                            SizedBox(
+                                                width: Platform.isWindows
+                                                    ? 20
+                                                    : 5),
+                                            trophyType('gold',
+                                                quantity:
+                                                    snapshot.data['gold']),
+                                            SizedBox(
+                                                width: Platform.isWindows
+                                                    ? 20
+                                                    : 5),
+                                            trophyType('silver',
+                                                quantity:
+                                                    snapshot.data['silver']),
+                                            SizedBox(
+                                                width: Platform.isWindows
+                                                    ? 20
+                                                    : 5),
+                                            trophyType('bronze',
+                                                quantity:
+                                                    snapshot.data['bronze']),
+                                            SizedBox(
+                                                width: Platform.isWindows
+                                                    ? 20
+                                                    : 5),
+                                            trophyType('total',
+                                                quantity:
+                                                    "${snapshot.data['total'].toString()} (${snapshot.data['totalPercentage']}%)"),
+                                          ],
+                                        ),
+                                      ),
+                                      SingleChildScrollView(
+                                        scrollDirection: Axis.horizontal,
+                                        child: Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.spaceBetween,
+                                          children: [
+                                            Tooltip(
+                                              message: regionalText['trophy']
+                                                  ['ultraRare'],
+                                              child: Row(
+                                                children: [
+                                                  Image.asset(img['rarity6'],
+                                                      height: 15),
+                                                  SizedBox(width: 5),
+                                                  Text(
+                                                    snapshot.data['ultraRare']
+                                                        .toString(),
+                                                    style: textSelection(""),
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                            SizedBox(
+                                                width: Platform.isWindows
+                                                    ? 20
+                                                    : 5),
+                                            Tooltip(
+                                              message: regionalText['trophy']
+                                                  ['veryRare'],
+                                              child: Row(
+                                                children: [
+                                                  Image.asset(img['rarity5'],
+                                                      height: 15),
+                                                  SizedBox(width: 5),
+                                                  Text(
+                                                    snapshot.data['veryRare']
+                                                        .toString(),
+                                                    style: textSelection(""),
+                                                  )
+                                                ],
+                                              ),
+                                            ),
+                                            SizedBox(
+                                                width: Platform.isWindows
+                                                    ? 20
+                                                    : 5),
+                                            Tooltip(
+                                              message: regionalText['trophy']
+                                                  ['rare'],
+                                              child: Row(
+                                                children: [
+                                                  Image.asset(img['rarity4'],
+                                                      height: 15),
+                                                  SizedBox(width: 5),
+                                                  Text(
+                                                    snapshot.data['rare']
+                                                        .toString(),
+                                                    style: textSelection(""),
+                                                  )
+                                                ],
+                                              ),
+                                            ),
+                                            SizedBox(
+                                                width: Platform.isWindows
+                                                    ? 20
+                                                    : 5),
+                                            Tooltip(
+                                              message: regionalText['trophy']
+                                                  ['uncommon'],
+                                              child: Row(
+                                                children: [
+                                                  Image.asset(img['rarity3'],
+                                                      height: 15),
+                                                  SizedBox(width: 5),
+                                                  Text(
+                                                    snapshot.data['uncommon']
+                                                        .toString(),
+                                                    style: textSelection(""),
+                                                  )
+                                                ],
+                                              ),
+                                            ),
+                                            SizedBox(
+                                                width: Platform.isWindows
+                                                    ? 20
+                                                    : 5),
+                                            Tooltip(
+                                              message: regionalText['trophy']
+                                                  ['common'],
+                                              child: Row(
+                                                children: [
+                                                  Image.asset(img['rarity1'],
+                                                      height: 20),
+                                                  SizedBox(width: 5),
+                                                  Text(
+                                                    snapshot.data['common']
+                                                        .toString(),
+                                                    style: textSelection(""),
+                                                  )
+                                                ],
+                                              ),
+                                            ),
+                                          ],
+                                        ),
                                       ),
                                       Divider(
                                         color: themeSelector['secondary']
@@ -3042,9 +3163,10 @@ class _MyHomePageState extends State<MyHomePage> {
                                               MainAxisAlignment.spaceBetween,
                                           children: [
                                             Padding(
-                                              padding:
-                                                  const EdgeInsets.symmetric(
-                                                      horizontal: 10.0),
+                                              padding: EdgeInsets.symmetric(
+                                                  horizontal: Platform.isWindows
+                                                      ? 10.0
+                                                      : 5.0),
                                               child: Text(
                                                 "${regionalText["home"]["games"]}\n${snapshot.data['games'].toString()}",
                                                 style: textSelection(""),
@@ -3052,9 +3174,10 @@ class _MyHomePageState extends State<MyHomePage> {
                                               ),
                                             ),
                                             Padding(
-                                              padding:
-                                                  const EdgeInsets.symmetric(
-                                                      horizontal: 10.0),
+                                              padding: EdgeInsets.symmetric(
+                                                  horizontal: Platform.isWindows
+                                                      ? 10.0
+                                                      : 5.0),
                                               child: Text(
                                                 "${regionalText["home"]["complete"]}\n${snapshot.data['complete'].toString()} (${snapshot.data['completePercentage']}%)",
                                                 style: textSelection(""),
@@ -3062,9 +3185,11 @@ class _MyHomePageState extends State<MyHomePage> {
                                               ),
                                             ),
                                             Padding(
-                                              padding:
-                                                  const EdgeInsets.symmetric(
-                                                      horizontal: 10.0),
+                                              padding: EdgeInsets.symmetric(
+                                                  horizontal:
+                                                      Platform.isWindows == true
+                                                          ? 10.0
+                                                          : 5.0),
                                               child: Text(
                                                 "${regionalText["home"]["incomplete"]}\n${snapshot.data['incomplete'].toString()} (${snapshot.data['incompletePercentage']}%)",
                                                 style: textSelection(""),
@@ -3072,9 +3197,10 @@ class _MyHomePageState extends State<MyHomePage> {
                                               ),
                                             ),
                                             Padding(
-                                              padding:
-                                                  const EdgeInsets.symmetric(
-                                                      horizontal: 10.0),
+                                              padding: EdgeInsets.symmetric(
+                                                  horizontal: Platform.isWindows
+                                                      ? 10.0
+                                                      : 5.0),
                                               child: Text(
                                                 "${regionalText["home"]["completion"]}\n${snapshot.data['completion']}",
                                                 style: textSelection(""),
@@ -3082,9 +3208,10 @@ class _MyHomePageState extends State<MyHomePage> {
                                               ),
                                             ),
                                             Padding(
-                                              padding:
-                                                  const EdgeInsets.symmetric(
-                                                      horizontal: 10.0),
+                                              padding: EdgeInsets.symmetric(
+                                                  horizontal: Platform.isWindows
+                                                      ? 10.0
+                                                      : 5.0),
                                               child: Text(
                                                 "${regionalText["home"]["unearned"]}\n${snapshot.data['unearned'].toString()} (${snapshot.data['unearnedPercentage']}%)",
                                                 style: textSelection(""),
@@ -3092,9 +3219,10 @@ class _MyHomePageState extends State<MyHomePage> {
                                               ),
                                             ),
                                             Padding(
-                                              padding:
-                                                  const EdgeInsets.symmetric(
-                                                      horizontal: 10.0),
+                                              padding: EdgeInsets.symmetric(
+                                                  horizontal: Platform.isWindows
+                                                      ? 10.0
+                                                      : 5.0),
                                               child: Text(
                                                 "${regionalText["home"]["countryRank"]}\n${snapshot.data['countryRank'] != null ? snapshot.data['countryRank'].toString() + " " : "❌"}${snapshot.data['countryUp'] ?? ""}",
                                                 style: textSelection(""),
@@ -3102,9 +3230,10 @@ class _MyHomePageState extends State<MyHomePage> {
                                               ),
                                             ),
                                             Padding(
-                                              padding:
-                                                  const EdgeInsets.symmetric(
-                                                      horizontal: 10.0),
+                                              padding: EdgeInsets.symmetric(
+                                                  horizontal: Platform.isWindows
+                                                      ? 10.0
+                                                      : 5.0),
                                               child: Text(
                                                 "${regionalText["home"]["worldRank"]}\n${snapshot.data['worldRank'] != null ? snapshot.data['worldRank'].toString() + " " : "❌"}${snapshot.data['worldUp'] ?? ""}",
                                                 style: textSelection(""),
@@ -3128,7 +3257,10 @@ class _MyHomePageState extends State<MyHomePage> {
                                               [settings.get("theme")],
                                           size: 30,
                                         ),
-                                        SizedBox(width: 10),
+                                        SizedBox(
+                                            width: Platform.isWindows
+                                                ? 10.0
+                                                : 5.0),
                                         Text(
                                           "PSNProfiles",
                                           style: textSelection("textLightBold"),
@@ -3178,7 +3310,9 @@ class _MyHomePageState extends State<MyHomePage> {
                                               Image.network(
                                                 snapshot.data['avatar'] ??
                                                     "https://i.psnprofiles.com/avatars/m/Gfba90ec21.png",
-                                                height: 60,
+                                                height: Platform.isWindows
+                                                    ? 60
+                                                    : 50,
                                               ),
                                               //? PSNTL Mimic feature
                                               Tooltip(
@@ -3223,50 +3357,13 @@ class _MyHomePageState extends State<MyHomePage> {
                                               Padding(
                                                 padding:
                                                     const EdgeInsets.all(5.0),
-                                                child: Row(
-                                                  children: [
-                                                    Image.asset(
-                                                      img['oldLevel'],
-                                                      height: 25,
-                                                    ),
-                                                    SizedBox(
-                                                      width: 5,
-                                                    ),
-                                                    Text(
-                                                        "${snapshot.data['level'].toString()} (${snapshot.data['levelProgress']})",
-                                                        style:
-                                                            textSelection("")),
-                                                  ],
-                                                ),
+                                                child: levelType(
+                                                    snapshot.data['platinum'],
+                                                    snapshot.data['gold'],
+                                                    snapshot.data['silver'],
+                                                    snapshot.data['bronze']),
                                               ),
                                               //? This row contains the trophy icons and the quantity the user has acquired of them
-                                              Row(
-                                                mainAxisSize: MainAxisSize.max,
-                                                mainAxisAlignment:
-                                                    MainAxisAlignment
-                                                        .spaceBetween,
-                                                children: [
-                                                  trophyType('platinum',
-                                                      quantity: snapshot
-                                                          .data['platinum']),
-                                                  SizedBox(width: 20),
-                                                  trophyType('gold',
-                                                      quantity: snapshot
-                                                          .data['gold']),
-                                                  SizedBox(width: 20),
-                                                  trophyType('silver',
-                                                      quantity: snapshot
-                                                          .data['silver']),
-                                                  SizedBox(width: 20),
-                                                  trophyType('bronze',
-                                                      quantity: snapshot
-                                                          .data['bronze']),
-                                                  SizedBox(width: 20),
-                                                  trophyType('total',
-                                                      quantity:
-                                                          "${snapshot.data['total'].toString()}"),
-                                                ],
-                                              ),
                                             ],
                                           ),
                                           InkWell(
@@ -3289,6 +3386,39 @@ class _MyHomePageState extends State<MyHomePage> {
                                           ),
                                         ],
                                       ),
+                                      Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.spaceBetween,
+                                        children: [
+                                          trophyType('platinum',
+                                              quantity:
+                                                  snapshot.data['platinum']),
+                                          SizedBox(
+                                              width:
+                                                  Platform.isWindows ? 20 : 5),
+                                          trophyType('gold',
+                                              quantity: snapshot.data['gold']),
+                                          SizedBox(
+                                              width:
+                                                  Platform.isWindows ? 20 : 5),
+                                          trophyType('silver',
+                                              quantity:
+                                                  snapshot.data['silver']),
+                                          SizedBox(
+                                              width:
+                                                  Platform.isWindows ? 20 : 5),
+                                          trophyType('bronze',
+                                              quantity:
+                                                  snapshot.data['bronze']),
+                                          SizedBox(
+                                              width:
+                                                  Platform.isWindows ? 20 : 5),
+                                          trophyType('total',
+                                              quantity:
+                                                  "${snapshot.data['total'].toString()}"),
+                                        ],
+                                      ),
                                       Divider(
                                         color: themeSelector['secondary']
                                             [settings.get('theme')],
@@ -3305,9 +3435,10 @@ class _MyHomePageState extends State<MyHomePage> {
                                               MainAxisAlignment.spaceBetween,
                                           children: [
                                             Padding(
-                                              padding:
-                                                  const EdgeInsets.symmetric(
-                                                      horizontal: 10.0),
+                                              padding: EdgeInsets.symmetric(
+                                                  horizontal: Platform.isWindows
+                                                      ? 10.0
+                                                      : 5.0),
                                               child: Text(
                                                 "${regionalText["home"]["games"]}\n${snapshot.data['games'].toString()}",
                                                 style: textSelection(""),
@@ -3315,9 +3446,10 @@ class _MyHomePageState extends State<MyHomePage> {
                                               ),
                                             ),
                                             Padding(
-                                              padding:
-                                                  const EdgeInsets.symmetric(
-                                                      horizontal: 10.0),
+                                              padding: EdgeInsets.symmetric(
+                                                  horizontal: Platform.isWindows
+                                                      ? 10.0
+                                                      : 5.0),
                                               child: Text(
                                                 "${regionalText["home"]["completion"]}\n${snapshot.data['completion']}",
                                                 style: textSelection(""),
@@ -3325,9 +3457,10 @@ class _MyHomePageState extends State<MyHomePage> {
                                               ),
                                             ),
                                             Padding(
-                                              padding:
-                                                  const EdgeInsets.symmetric(
-                                                      horizontal: 10.0),
+                                              padding: EdgeInsets.symmetric(
+                                                  horizontal: Platform.isWindows
+                                                      ? 10.0
+                                                      : 5.0),
                                               child: Text(
                                                 "${regionalText["home"]["standard"]}\n${snapshot.data['standard'].toString()} ${snapshot.data['standardChange']}",
                                                 style: textSelection(""),
@@ -3335,9 +3468,10 @@ class _MyHomePageState extends State<MyHomePage> {
                                               ),
                                             ),
                                             Padding(
-                                              padding:
-                                                  const EdgeInsets.symmetric(
-                                                      horizontal: 10.0),
+                                              padding: EdgeInsets.symmetric(
+                                                  horizontal: Platform.isWindows
+                                                      ? 10.0
+                                                      : 5.0),
                                               child: Text(
                                                 "${regionalText["home"]["adjusted"]}\n${snapshot.data['adjusted'].toString()} ${snapshot.data['adjustedChange']}",
                                                 style: textSelection(""),
@@ -3345,9 +3479,10 @@ class _MyHomePageState extends State<MyHomePage> {
                                               ),
                                             ),
                                             Padding(
-                                              padding:
-                                                  const EdgeInsets.symmetric(
-                                                      horizontal: 10.0),
+                                              padding: EdgeInsets.symmetric(
+                                                  horizontal: Platform.isWindows
+                                                      ? 10.0
+                                                      : 5.0),
                                               child: Text(
                                                 "${regionalText["home"]["completist"]}\n${snapshot.data['completist'].toString()} ${snapshot.data['completistChange']}",
                                                 style: textSelection(""),
@@ -3355,9 +3490,10 @@ class _MyHomePageState extends State<MyHomePage> {
                                               ),
                                             ),
                                             Padding(
-                                              padding:
-                                                  const EdgeInsets.symmetric(
-                                                      horizontal: 10.0),
+                                              padding: EdgeInsets.symmetric(
+                                                  horizontal: Platform.isWindows
+                                                      ? 10.0
+                                                      : 5.0),
                                               child: Text(
                                                 "${regionalText["home"]["rarity"]}\n${snapshot.data['rarity'].toString()} ${snapshot.data['rarityChange']}",
                                                 style: textSelection(""),
@@ -3381,7 +3517,10 @@ class _MyHomePageState extends State<MyHomePage> {
                                               [settings.get("theme")],
                                           size: 30,
                                         ),
-                                        SizedBox(width: 10),
+                                        SizedBox(
+                                            width: Platform.isWindows
+                                                ? 10.0
+                                                : 5.0),
                                         Text(
                                           'PSN Trophy Leaders (🐌)',
                                           style: textSelection("textLightBold"),
@@ -3398,7 +3537,6 @@ class _MyHomePageState extends State<MyHomePage> {
                             ),
                           ),
                         //! Exophase card display
-                        // TODO exophase waypoint
                         if (settings.get("exophase") != false)
                           Container(
                             margin: EdgeInsets.all(15),
@@ -3431,7 +3569,7 @@ class _MyHomePageState extends State<MyHomePage> {
                                           mainAxisAlignment:
                                               MainAxisAlignment.spaceBetween,
                                           children: [
-                                            //? Avatar PSN Trophy Leaders
+                                            //? Avatar Exophase
                                             Column(
                                               mainAxisAlignment:
                                                   MainAxisAlignment.center,
@@ -3439,7 +3577,9 @@ class _MyHomePageState extends State<MyHomePage> {
                                                 Image.network(
                                                   snapshot.data['avatar'] ??
                                                       "https://i.psnprofiles.com/avatars/m/Gfba90ec21.png",
-                                                  height: 60,
+                                                  height: Platform.isWindows
+                                                      ? 60
+                                                      : 50,
                                                 )
                                               ],
                                             ),
@@ -3471,50 +3611,11 @@ class _MyHomePageState extends State<MyHomePage> {
                                                 Padding(
                                                   padding:
                                                       const EdgeInsets.all(5.0),
-                                                  child: Row(
-                                                    children: [
-                                                      Image.asset(
-                                                        img['oldLevel'],
-                                                        height: 25,
-                                                      ),
-                                                      SizedBox(
-                                                        width: 5,
-                                                      ),
-                                                      Text(
-                                                          "${snapshot.data['level'].toString()} (${snapshot.data['levelProgress']})",
-                                                          style: textSelection(
-                                                              "")),
-                                                    ],
-                                                  ),
-                                                ),
-                                                //? This row contains the trophy icons and the quantity the user has acquired of them
-                                                Row(
-                                                  mainAxisSize:
-                                                      MainAxisSize.max,
-                                                  mainAxisAlignment:
-                                                      MainAxisAlignment
-                                                          .spaceBetween,
-                                                  children: [
-                                                    trophyType('platinum',
-                                                        quantity: snapshot
-                                                            .data['platinum']),
-                                                    SizedBox(width: 20),
-                                                    trophyType('gold',
-                                                        quantity: snapshot
-                                                            .data['gold']),
-                                                    SizedBox(width: 20),
-                                                    trophyType('silver',
-                                                        quantity: snapshot
-                                                            .data['silver']),
-                                                    SizedBox(width: 20),
-                                                    trophyType('bronze',
-                                                        quantity: snapshot
-                                                            .data['bronze']),
-                                                    SizedBox(width: 20),
-                                                    trophyType('total',
-                                                        quantity:
-                                                            "${snapshot.data['total'].toString()}"),
-                                                  ],
+                                                  child: levelType(
+                                                      snapshot.data['platinum'],
+                                                      snapshot.data['gold'],
+                                                      snapshot.data['silver'],
+                                                      snapshot.data['bronze']),
                                                 ),
                                               ],
                                             ),
@@ -3537,6 +3638,45 @@ class _MyHomePageState extends State<MyHomePage> {
                                             ),
                                           ],
                                         ),
+                                        //? This row contains the trophy icons and the quantity the user has acquired of them
+                                        Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.spaceBetween,
+                                          children: [
+                                            trophyType('platinum',
+                                                quantity:
+                                                    snapshot.data['platinum']),
+                                            SizedBox(
+                                                width: Platform.isWindows
+                                                    ? 20
+                                                    : 5),
+                                            trophyType('gold',
+                                                quantity:
+                                                    snapshot.data['gold']),
+                                            SizedBox(
+                                                width: Platform.isWindows
+                                                    ? 20
+                                                    : 5),
+                                            trophyType('silver',
+                                                quantity:
+                                                    snapshot.data['silver']),
+                                            SizedBox(
+                                                width: Platform.isWindows
+                                                    ? 20
+                                                    : 5),
+                                            trophyType('bronze',
+                                                quantity:
+                                                    snapshot.data['bronze']),
+                                            SizedBox(
+                                                width: Platform.isWindows
+                                                    ? 20
+                                                    : 5),
+                                            trophyType('total',
+                                                quantity:
+                                                    "${snapshot.data['total'].toString()}"),
+                                          ],
+                                        ),
                                         SizedBox(height: 5),
                                         Divider(
                                             color: themeSelector['secondary']
@@ -3550,10 +3690,12 @@ class _MyHomePageState extends State<MyHomePage> {
                                           child: Row(
                                             children: [
                                               Padding(
-                                                padding:
-                                                    const EdgeInsets.symmetric(
-                                                        vertical: 0,
-                                                        horizontal: 10.0),
+                                                padding: EdgeInsets.symmetric(
+                                                    vertical: 0,
+                                                    horizontal:
+                                                        Platform.isWindows
+                                                            ? 10.0
+                                                            : 5.0),
                                                 child: Text(
                                                   "${regionalText["home"]["games"]}\n${snapshot.data['games'].toString()}",
                                                   style: textSelection(""),
@@ -3561,10 +3703,12 @@ class _MyHomePageState extends State<MyHomePage> {
                                                 ),
                                               ),
                                               Padding(
-                                                padding:
-                                                    const EdgeInsets.symmetric(
-                                                        vertical: 0,
-                                                        horizontal: 10.0),
+                                                padding: EdgeInsets.symmetric(
+                                                    vertical: 0,
+                                                    horizontal:
+                                                        Platform.isWindows
+                                                            ? 10.0
+                                                            : 5.0),
                                                 child: Text(
                                                   "${regionalText["home"]["complete"]}\n${snapshot.data['complete'].toString()} (${snapshot.data['completePercentage']}%)",
                                                   style: textSelection(""),
@@ -3572,10 +3716,12 @@ class _MyHomePageState extends State<MyHomePage> {
                                                 ),
                                               ),
                                               Padding(
-                                                padding:
-                                                    const EdgeInsets.symmetric(
-                                                        vertical: 0,
-                                                        horizontal: 10.0),
+                                                padding: EdgeInsets.symmetric(
+                                                    vertical: 0,
+                                                    horizontal:
+                                                        Platform.isWindows
+                                                            ? 10.0
+                                                            : 5.0),
                                                 child: Text(
                                                   "${regionalText["home"]["incomplete"]}\n${snapshot.data['incomplete'].toString()} (${snapshot.data['incompletePercentage']}%)",
                                                   style: textSelection(""),
@@ -3583,10 +3729,12 @@ class _MyHomePageState extends State<MyHomePage> {
                                                 ),
                                               ),
                                               Padding(
-                                                padding:
-                                                    const EdgeInsets.symmetric(
-                                                        vertical: 0,
-                                                        horizontal: 10.0),
+                                                padding: EdgeInsets.symmetric(
+                                                    vertical: 0,
+                                                    horizontal:
+                                                        Platform.isWindows
+                                                            ? 10.0
+                                                            : 5.0),
                                                 child: Text(
                                                   "${regionalText["home"]["completion"]}\n${snapshot.data['completion']}",
                                                   style: textSelection(""),
@@ -3598,10 +3746,13 @@ class _MyHomePageState extends State<MyHomePage> {
                                                 Tooltip(
                                                   message: "PS4/PS5",
                                                   child: Padding(
-                                                    padding: const EdgeInsets
-                                                            .symmetric(
-                                                        vertical: 0,
-                                                        horizontal: 10.0),
+                                                    padding:
+                                                        EdgeInsets.symmetric(
+                                                            vertical: 0,
+                                                            horizontal: Platform
+                                                                    .isWindows
+                                                                ? 10.0
+                                                                : 5.0),
                                                     child: Text(
                                                       "${regionalText["home"]["hours"]}\n${snapshot.data['hours']}",
                                                       style: textSelection(""),
@@ -3611,10 +3762,12 @@ class _MyHomePageState extends State<MyHomePage> {
                                                   ),
                                                 ),
                                               Padding(
-                                                padding:
-                                                    const EdgeInsets.symmetric(
-                                                        vertical: 0,
-                                                        horizontal: 10.0),
+                                                padding: EdgeInsets.symmetric(
+                                                    vertical: 0,
+                                                    horizontal:
+                                                        Platform.isWindows
+                                                            ? 10.0
+                                                            : 5.0),
                                                 child: Text(
                                                   "${regionalText["home"]["exp"]}\n${snapshot.data['exp']}",
                                                   style: textSelection(""),
@@ -3622,10 +3775,12 @@ class _MyHomePageState extends State<MyHomePage> {
                                                 ),
                                               ),
                                               Padding(
-                                                padding:
-                                                    const EdgeInsets.symmetric(
-                                                        vertical: 0,
-                                                        horizontal: 10.0),
+                                                padding: EdgeInsets.symmetric(
+                                                    vertical: 0,
+                                                    horizontal:
+                                                        Platform.isWindows
+                                                            ? 10.0
+                                                            : 5.0),
                                                 child: Text(
                                                   "${regionalText["home"]["countryRank"]}\n${snapshot.data['countryRank'] != null ? snapshot.data['countryRank'].toString() + " " : "❌"}${snapshot.data['countryUp'] ?? ""}",
                                                   style: textSelection(""),
@@ -3633,10 +3788,12 @@ class _MyHomePageState extends State<MyHomePage> {
                                                 ),
                                               ),
                                               Padding(
-                                                padding:
-                                                    const EdgeInsets.symmetric(
-                                                        vertical: 0,
-                                                        horizontal: 10.0),
+                                                padding: EdgeInsets.symmetric(
+                                                    vertical: 0,
+                                                    horizontal:
+                                                        Platform.isWindows
+                                                            ? 10.0
+                                                            : 5.0),
                                                 child: Text(
                                                   "${regionalText["home"]["worldRank"]}\n${snapshot.data['worldRank'] != null ? snapshot.data['worldRank'].toString() + " " : "❌"}${snapshot.data['worldUp'] ?? ""}",
                                                   style: textSelection(""),
@@ -3661,7 +3818,10 @@ class _MyHomePageState extends State<MyHomePage> {
                                               [settings.get("theme")],
                                           size: 30,
                                         ),
-                                        SizedBox(width: 10),
+                                        SizedBox(
+                                            width: Platform.isWindows
+                                                ? 10.0
+                                                : 5.0),
                                         Text(
                                           "Exophase",
                                           style: textSelection("textLightBold"),
@@ -3710,7 +3870,9 @@ class _MyHomePageState extends State<MyHomePage> {
                                               Image.network(
                                                 snapshot.data['avatar'] ??
                                                     "https://i.psnprofiles.com/avatars/m/Gfba90ec21.png",
-                                                height: 60,
+                                                height: Platform.isWindows
+                                                    ? 60
+                                                    : 50,
                                               )
                                             ],
                                           ),
@@ -3749,113 +3911,11 @@ class _MyHomePageState extends State<MyHomePage> {
                                               Padding(
                                                 padding:
                                                     const EdgeInsets.all(5.0),
-                                                child: Row(
-                                                  children: [
-                                                    Image.asset(
-                                                      img['oldLevel'],
-                                                      height: 25,
-                                                    ),
-                                                    SizedBox(
-                                                      width: 5,
-                                                    ),
-                                                    Text(
-                                                        "${snapshot.data['level'].toString()}",
-                                                        style:
-                                                            textSelection("")),
-                                                  ],
-                                                ),
-                                              ),
-                                              //? This row contains the trophy icons and the quantity the user has acquired of them
-                                              Row(
-                                                mainAxisSize: MainAxisSize.max,
-                                                mainAxisAlignment:
-                                                    MainAxisAlignment
-                                                        .spaceBetween,
-                                                children: [
-                                                  trophyType('platinum',
-                                                      quantity: snapshot
-                                                          .data['platinum']),
-                                                  SizedBox(width: 20),
-                                                  trophyType('gold',
-                                                      quantity: snapshot
-                                                          .data['gold']),
-                                                  SizedBox(width: 20),
-                                                  trophyType('silver',
-                                                      quantity: snapshot
-                                                          .data['silver']),
-                                                  SizedBox(width: 20),
-                                                  trophyType('bronze',
-                                                      quantity: snapshot
-                                                          .data['bronze']),
-                                                  SizedBox(width: 20),
-                                                  trophyType('total',
-                                                      quantity:
-                                                          "${snapshot.data['total'].toString()}"),
-                                                ],
-                                              ),
-                                              Row(
-                                                mainAxisSize: MainAxisSize.max,
-                                                mainAxisAlignment:
-                                                    MainAxisAlignment
-                                                        .spaceBetween,
-                                                children: [
-                                                  Tooltip(
-                                                    message: "TrueScore",
-                                                    child: Row(children: [
-                                                      Image.network(
-                                                          "https://www.truetrophies.com/images/badges/tt-emblem-mono.png",
-                                                          color: themeSelector[
-                                                                  "secondary"][
-                                                              settings.get(
-                                                                  "theme")],
-                                                          height: 20),
-                                                      SizedBox(width: 5),
-                                                      Text(
-                                                          snapshot
-                                                              .data['trueScore']
-                                                              .toString(),
-                                                          style:
-                                                              textSelection(""))
-                                                    ]),
-                                                  ),
-                                                  SizedBox(width: 20),
-                                                  Tooltip(
-                                                    message: "TrueLevel",
-                                                    child: Row(children: [
-                                                      Icon(Icons.star,
-                                                          color: themeSelector[
-                                                                  "secondary"][
-                                                              settings.get(
-                                                                  "theme")],
-                                                          size: 20),
-                                                      SizedBox(width: 5),
-                                                      Text(
-                                                          snapshot.data[
-                                                                  'trueTrophyLevel']
-                                                              .toString(),
-                                                          style:
-                                                              textSelection(""))
-                                                    ]),
-                                                  ),
-                                                  SizedBox(width: 20),
-                                                  Tooltip(
-                                                    message: "TrueRatio",
-                                                    child: Row(children: [
-                                                      Icon(Icons.donut_large,
-                                                          color: themeSelector[
-                                                                  "secondary"][
-                                                              settings.get(
-                                                                  "theme")],
-                                                          size: 20),
-                                                      SizedBox(width: 5),
-                                                      Text(
-                                                          snapshot.data['ratio']
-                                                              .toString(),
-                                                          style:
-                                                              textSelection(""))
-                                                    ]),
-                                                  ),
-                                                ],
+                                                child: levelType(
+                                                    snapshot.data['platinum'],
+                                                    snapshot.data['gold'],
+                                                    snapshot.data['silver'],
+                                                    snapshot.data['bronze']),
                                               ),
                                             ],
                                           ),
@@ -3878,6 +3938,100 @@ class _MyHomePageState extends State<MyHomePage> {
                                           ),
                                         ],
                                       ),
+                                      //? This row contains the trophy icons and the quantity the user has acquired of them
+                                      Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.spaceBetween,
+                                        children: [
+                                          trophyType('platinum',
+                                              quantity:
+                                                  snapshot.data['platinum']),
+                                          SizedBox(
+                                              width:
+                                                  Platform.isWindows ? 20 : 5),
+                                          trophyType('gold',
+                                              quantity: snapshot.data['gold']),
+                                          SizedBox(
+                                              width:
+                                                  Platform.isWindows ? 20 : 5),
+                                          trophyType('silver',
+                                              quantity:
+                                                  snapshot.data['silver']),
+                                          SizedBox(
+                                              width:
+                                                  Platform.isWindows ? 20 : 5),
+                                          trophyType('bronze',
+                                              quantity:
+                                                  snapshot.data['bronze']),
+                                          SizedBox(
+                                              width:
+                                                  Platform.isWindows ? 20 : 5),
+                                          trophyType('total',
+                                              quantity:
+                                                  "${snapshot.data['total'].toString()}"),
+                                        ],
+                                      ),
+                                      Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.spaceBetween,
+                                        children: [
+                                          Tooltip(
+                                            message: "TrueScore",
+                                            child: Row(children: [
+                                              Image.network(
+                                                  "https://www.truetrophies.com/images/badges/tt-emblem-mono.png",
+                                                  color: themeSelector[
+                                                          "secondary"]
+                                                      [settings.get("theme")],
+                                                  height: 20),
+                                              SizedBox(width: 5),
+                                              Text(
+                                                  snapshot.data['trueScore']
+                                                      .toString(),
+                                                  style: textSelection(""))
+                                            ]),
+                                          ),
+                                          SizedBox(
+                                              width:
+                                                  Platform.isWindows ? 20 : 5),
+                                          Tooltip(
+                                            message: "TrueLevel",
+                                            child: Row(children: [
+                                              Icon(Icons.star,
+                                                  color: themeSelector[
+                                                          "secondary"]
+                                                      [settings.get("theme")],
+                                                  size: 20),
+                                              SizedBox(width: 5),
+                                              Text(
+                                                  snapshot
+                                                      .data['trueTrophyLevel']
+                                                      .toString(),
+                                                  style: textSelection(""))
+                                            ]),
+                                          ),
+                                          SizedBox(
+                                              width:
+                                                  Platform.isWindows ? 20 : 5),
+                                          Tooltip(
+                                            message: "TrueRatio",
+                                            child: Row(children: [
+                                              Icon(Icons.donut_large,
+                                                  color: themeSelector[
+                                                          "secondary"]
+                                                      [settings.get("theme")],
+                                                  size: 20),
+                                              SizedBox(width: 5),
+                                              Text(
+                                                  snapshot.data['ratio']
+                                                      .toString(),
+                                                  style: textSelection(""))
+                                            ]),
+                                          ),
+                                        ],
+                                      ),
                                       Divider(
                                         color: themeSelector['secondary']
                                             [settings.get('theme')],
@@ -3892,10 +4046,11 @@ class _MyHomePageState extends State<MyHomePage> {
                                         child: Row(
                                           children: [
                                             Padding(
-                                              padding:
-                                                  const EdgeInsets.symmetric(
-                                                      vertical: 0,
-                                                      horizontal: 10.0),
+                                              padding: EdgeInsets.symmetric(
+                                                  vertical: 0,
+                                                  horizontal: Platform.isWindows
+                                                      ? 10.0
+                                                      : 5.0),
                                               child: Text(
                                                 "${regionalText["home"]["games"]}\n${snapshot.data['games'].toString()}",
                                                 style: textSelection(""),
@@ -3903,10 +4058,11 @@ class _MyHomePageState extends State<MyHomePage> {
                                               ),
                                             ),
                                             Padding(
-                                              padding:
-                                                  const EdgeInsets.symmetric(
-                                                      vertical: 0,
-                                                      horizontal: 10.0),
+                                              padding: EdgeInsets.symmetric(
+                                                  vertical: 0,
+                                                  horizontal: Platform.isWindows
+                                                      ? 10.0
+                                                      : 5.0),
                                               child: Text(
                                                 "${regionalText["home"]["complete"]}\n${snapshot.data['complete'].toString()} (${snapshot.data['completePercentage']}%)",
                                                 style: textSelection(""),
@@ -3914,10 +4070,11 @@ class _MyHomePageState extends State<MyHomePage> {
                                               ),
                                             ),
                                             Padding(
-                                              padding:
-                                                  const EdgeInsets.symmetric(
-                                                      vertical: 0,
-                                                      horizontal: 10.0),
+                                              padding: EdgeInsets.symmetric(
+                                                  vertical: 0,
+                                                  horizontal: Platform.isWindows
+                                                      ? 10.0
+                                                      : 5.0),
                                               child: Text(
                                                 "${regionalText["home"]["incomplete"]}\n${snapshot.data['incomplete'].toString()} (${snapshot.data['incompletePercentage']}%)",
                                                 style: textSelection(""),
@@ -3925,10 +4082,11 @@ class _MyHomePageState extends State<MyHomePage> {
                                               ),
                                             ),
                                             Padding(
-                                              padding:
-                                                  const EdgeInsets.symmetric(
-                                                      vertical: 0,
-                                                      horizontal: 10.0),
+                                              padding: EdgeInsets.symmetric(
+                                                  vertical: 0,
+                                                  horizontal: Platform.isWindows
+                                                      ? 10.0
+                                                      : 5.0),
                                               child: Text(
                                                 "${regionalText["home"]["completion"]}\n${snapshot.data['completion'].toString()}%\n(+${snapshot.data['completionIncrease']} ➡️ ${snapshot.data['completion'].ceil().toString()}%)",
                                                 style: textSelection(""),
@@ -3952,7 +4110,10 @@ class _MyHomePageState extends State<MyHomePage> {
                                               [settings.get("theme")],
                                           size: 30,
                                         ),
-                                        SizedBox(width: 10),
+                                        SizedBox(
+                                            width: Platform.isWindows
+                                                ? 10.0
+                                                : 5.0),
                                         Text(
                                           "True Trophies",
                                           style: textSelection("textLightBold"),
@@ -4001,7 +4162,9 @@ class _MyHomePageState extends State<MyHomePage> {
                                               Image.network(
                                                 snapshot.data['avatar'] ??
                                                     "https://i.psnprofiles.com/avatars/m/Gfba90ec21.png",
-                                                height: 60,
+                                                height: Platform.isWindows
+                                                    ? 60
+                                                    : 50,
                                               )
                                             ],
                                           ),
@@ -4033,49 +4196,11 @@ class _MyHomePageState extends State<MyHomePage> {
                                               Padding(
                                                 padding:
                                                     const EdgeInsets.all(5.0),
-                                                child: Row(
-                                                  children: [
-                                                    Image.asset(
-                                                      img['oldLevel'],
-                                                      height: 25,
-                                                    ),
-                                                    SizedBox(
-                                                      width: 5,
-                                                    ),
-                                                    Text(
-                                                        "${snapshot.data['level'].toString()} (${snapshot.data['levelProgress']})",
-                                                        style:
-                                                            textSelection("")),
-                                                  ],
-                                                ),
-                                              ),
-                                              //? This row contains the trophy icons and the quantity the user has acquired of them
-                                              Row(
-                                                mainAxisSize: MainAxisSize.max,
-                                                mainAxisAlignment:
-                                                    MainAxisAlignment
-                                                        .spaceBetween,
-                                                children: [
-                                                  trophyType('platinum',
-                                                      quantity: snapshot
-                                                          .data['platinum']),
-                                                  SizedBox(width: 20),
-                                                  trophyType('gold',
-                                                      quantity: snapshot
-                                                          .data['gold']),
-                                                  SizedBox(width: 20),
-                                                  trophyType('silver',
-                                                      quantity: snapshot
-                                                          .data['silver']),
-                                                  SizedBox(width: 20),
-                                                  trophyType('bronze',
-                                                      quantity: snapshot
-                                                          .data['bronze']),
-                                                  SizedBox(width: 20),
-                                                  trophyType('total',
-                                                      quantity:
-                                                          "${snapshot.data['total'].toString()}"),
-                                                ],
+                                                child: levelType(
+                                                    snapshot.data['platinum'],
+                                                    snapshot.data['gold'],
+                                                    snapshot.data['silver'],
+                                                    snapshot.data['bronze']),
                                               ),
                                             ],
                                           ),
@@ -4098,6 +4223,40 @@ class _MyHomePageState extends State<MyHomePage> {
                                           ),
                                         ],
                                       ),
+                                      //? This row contains the trophy icons and the quantity the user has acquired of them
+                                      Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.spaceBetween,
+                                        children: [
+                                          trophyType('platinum',
+                                              quantity:
+                                                  snapshot.data['platinum']),
+                                          SizedBox(
+                                              width:
+                                                  Platform.isWindows ? 20 : 5),
+                                          trophyType('gold',
+                                              quantity: snapshot.data['gold']),
+                                          SizedBox(
+                                              width:
+                                                  Platform.isWindows ? 20 : 5),
+                                          trophyType('silver',
+                                              quantity:
+                                                  snapshot.data['silver']),
+                                          SizedBox(
+                                              width:
+                                                  Platform.isWindows ? 20 : 5),
+                                          trophyType('bronze',
+                                              quantity:
+                                                  snapshot.data['bronze']),
+                                          SizedBox(
+                                              width:
+                                                  Platform.isWindows ? 20 : 5),
+                                          trophyType('total',
+                                              quantity:
+                                                  "${snapshot.data['total'].toString()}"),
+                                        ],
+                                      ),
                                       Divider(
                                           color: themeSelector['secondary']
                                               [settings.get('theme')],
@@ -4111,10 +4270,11 @@ class _MyHomePageState extends State<MyHomePage> {
                                         child: Row(
                                           children: [
                                             Padding(
-                                              padding:
-                                                  const EdgeInsets.symmetric(
-                                                      vertical: 0,
-                                                      horizontal: 10.0),
+                                              padding: EdgeInsets.symmetric(
+                                                  vertical: 0,
+                                                  horizontal: Platform.isWindows
+                                                      ? 10.0
+                                                      : 5.0),
                                               child: Text(
                                                 "${regionalText["home"]["games"]}\n${snapshot.data['games'].toString()}",
                                                 style: textSelection(""),
@@ -4122,10 +4282,11 @@ class _MyHomePageState extends State<MyHomePage> {
                                               ),
                                             ),
                                             Padding(
-                                              padding:
-                                                  const EdgeInsets.symmetric(
-                                                      vertical: 0,
-                                                      horizontal: 10.0),
+                                              padding: EdgeInsets.symmetric(
+                                                  vertical: 0,
+                                                  horizontal: Platform.isWindows
+                                                      ? 10.0
+                                                      : 5.0),
                                               child: Text(
                                                 "${regionalText["home"]["complete"]}\n${snapshot.data['complete'].toString()} (${snapshot.data['completePercentage']}%)",
                                                 style: textSelection(""),
@@ -4133,10 +4294,11 @@ class _MyHomePageState extends State<MyHomePage> {
                                               ),
                                             ),
                                             Padding(
-                                              padding:
-                                                  const EdgeInsets.symmetric(
-                                                      vertical: 0,
-                                                      horizontal: 10.0),
+                                              padding: EdgeInsets.symmetric(
+                                                  vertical: 0,
+                                                  horizontal: Platform.isWindows
+                                                      ? 10.0
+                                                      : 5.0),
                                               child: Text(
                                                 "${regionalText["home"]["incomplete"]}\n${snapshot.data['incomplete'].toString()} (${snapshot.data['incompletePercentage']}%)",
                                                 style: textSelection(""),
@@ -4144,10 +4306,11 @@ class _MyHomePageState extends State<MyHomePage> {
                                               ),
                                             ),
                                             Padding(
-                                              padding:
-                                                  const EdgeInsets.symmetric(
-                                                      vertical: 0,
-                                                      horizontal: 10.0),
+                                              padding: EdgeInsets.symmetric(
+                                                  vertical: 0,
+                                                  horizontal: Platform.isWindows
+                                                      ? 10.0
+                                                      : 5.0),
                                               child: Text(
                                                 "${regionalText["home"]["completion"]}\n${snapshot.data['completion']}",
                                                 style: textSelection(""),
@@ -4155,10 +4318,11 @@ class _MyHomePageState extends State<MyHomePage> {
                                               ),
                                             ),
                                             Padding(
-                                              padding:
-                                                  const EdgeInsets.symmetric(
-                                                      vertical: 0,
-                                                      horizontal: 10.0),
+                                              padding: EdgeInsets.symmetric(
+                                                  vertical: 0,
+                                                  horizontal: Platform.isWindows
+                                                      ? 10.0
+                                                      : 5.0),
                                               child: Text(
                                                 "${regionalText["home"]["unearned"]}\n${snapshot.data['unearned']}",
                                                 style: textSelection(""),
@@ -4166,10 +4330,11 @@ class _MyHomePageState extends State<MyHomePage> {
                                               ),
                                             ),
                                             Padding(
-                                              padding:
-                                                  const EdgeInsets.symmetric(
-                                                      vertical: 0,
-                                                      horizontal: 10.0),
+                                              padding: EdgeInsets.symmetric(
+                                                  vertical: 0,
+                                                  horizontal: Platform.isWindows
+                                                      ? 10.0
+                                                      : 5.0),
                                               child: Text(
                                                 "${regionalText["home"]["worldRank"]}\n${snapshot.data['worldRank'] != null ? snapshot.data['worldRank'].toString() + " " : "❌"}${snapshot.data['worldUp'] ?? ""}",
                                                 style: textSelection(""),
@@ -4177,10 +4342,11 @@ class _MyHomePageState extends State<MyHomePage> {
                                               ),
                                             ),
                                             Padding(
-                                              padding:
-                                                  const EdgeInsets.symmetric(
-                                                      vertical: 0,
-                                                      horizontal: 10.0),
+                                              padding: EdgeInsets.symmetric(
+                                                  vertical: 0,
+                                                  horizontal: Platform.isWindows
+                                                      ? 10.0
+                                                      : 5.0),
                                               child: Text(
                                                 "${regionalText["home"]["rarity"]}\n${snapshot.data['worldRarity'] != null ? snapshot.data['worldRarity'].toString() + " " : "❌"}${snapshot.data['worldUp'] ?? ""}",
                                                 style: textSelection(""),
@@ -4188,10 +4354,11 @@ class _MyHomePageState extends State<MyHomePage> {
                                               ),
                                             ),
                                             Padding(
-                                              padding:
-                                                  const EdgeInsets.symmetric(
-                                                      vertical: 0,
-                                                      horizontal: 10.0),
+                                              padding: EdgeInsets.symmetric(
+                                                  vertical: 0,
+                                                  horizontal: Platform.isWindows
+                                                      ? 10.0
+                                                      : 5.0),
                                               child: Text(
                                                 "${regionalText["home"]["countryRank"]}\n${snapshot.data['countryRank'] != null ? snapshot.data['countryRank'].toString() + " " : "❌"}${snapshot.data['countryUp'] ?? ""}",
                                                 style: textSelection(""),
@@ -4199,10 +4366,11 @@ class _MyHomePageState extends State<MyHomePage> {
                                               ),
                                             ),
                                             Padding(
-                                              padding:
-                                                  const EdgeInsets.symmetric(
-                                                      vertical: 0,
-                                                      horizontal: 10.0),
+                                              padding: EdgeInsets.symmetric(
+                                                  vertical: 0,
+                                                  horizontal: Platform.isWindows
+                                                      ? 10.0
+                                                      : 5.0),
                                               child: Text(
                                                 "${regionalText["home"]["countryRarity"]}\n${snapshot.data['countryRarity'] != null ? snapshot.data['countryRarity'].toString() + " " : "❌"}${snapshot.data['countryUp'] ?? ""}",
                                                 style: textSelection(""),
@@ -4226,7 +4394,10 @@ class _MyHomePageState extends State<MyHomePage> {
                                               [settings.get("theme")],
                                           size: 30,
                                         ),
-                                        SizedBox(width: 10),
+                                        SizedBox(
+                                            width: Platform.isWindows
+                                                ? 10.0
+                                                : 5.0),
                                         Text(
                                           "PSN 100%",
                                           style: textSelection("textLightBold"),
@@ -4248,7 +4419,7 @@ class _MyHomePageState extends State<MyHomePage> {
                 SingleChildScrollView(
                   scrollDirection: Axis.horizontal,
                   child: Container(
-                    padding: const EdgeInsets.all(10.0),
+                    padding: EdgeInsets.all(Platform.isWindows ? 10.0 : 5.0),
                     width: MediaQuery.of(context).size.width,
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceAround,
@@ -4442,10 +4613,14 @@ class _MyHomePageState extends State<MyHomePage> {
                                       github.getElement(
                                           'body > div.application-main > div > main > div.container-xl.clearfix.new-discussion-timeline.px-3.px-md-4.px-lg-5 > div > div.position-relative.border-top.clearfix > div:nth-child(1) > div > div.col-12.col-md-9.col-lg-10.px-md-3.py-md-4.release-main-section.commit.open.float-left > details > div > div > div.d-flex.flex-justify-between.flex-items-center.py-1.py-md-2.Box-body.px-2 > a',
                                           ['href']).forEach((element) {
-                                        update['updateLink'] =
-                                            "https://github.com" +
-                                                element['attributes']['href']
-                                                    .trim();
+                                        if (element['attributes']['href']
+                                            .trim()
+                                            .contains('.rar')) {
+                                          update['updateLink'] =
+                                              "https://github.com" +
+                                                  element['attributes']['href']
+                                                      .trim();
+                                        }
                                       });
                                       github.getElement(
                                           'body > div.application-main > div > main > div.container-xl.clearfix.new-discussion-timeline.px-3.px-md-4.px-lg-5 > div > div.position-relative.border-top.clearfix > div:nth-child(1) > div > div.col-12.col-md-9.col-lg-10.px-md-3.py-md-4.release-main-section.commit.open.float-left > div.markdown-body > ul > li',
@@ -4473,208 +4648,211 @@ class _MyHomePageState extends State<MyHomePage> {
                                 return StatefulBuilder(
                                     builder: (BuildContext context, setState) {
                                   return Center(
-                                    child: Container(
-                                      width: MediaQuery.of(context).size.width *
-                                          0.7,
-                                      decoration: BoxDecoration(
+                                    child: ClipRRect(
+                                      borderRadius:
+                                          BorderRadius.all(Radius.circular(25)),
+                                      child: Container(
+                                        width:
+                                            MediaQuery.of(context).size.width *
+                                                0.7,
+                                        height:
+                                            MediaQuery.of(context).size.height *
+                                                0.7,
+                                        decoration: BoxDecoration(
                                           color: themeSelector["secondary"]
                                               [settings.get("theme")],
-                                          borderRadius: BorderRadius.all(
-                                              Radius.circular(25))),
-                                      child: Column(
-                                          mainAxisSize: MainAxisSize.min,
-                                          children: [
-                                            AppBar(
-                                              shape: RoundedRectangleBorder(
-                                                  borderRadius:
-                                                      BorderRadius.vertical(
-                                                          top: Radius.circular(
-                                                              25))),
-                                              title: Text(
-                                                "Yura ${regionalText['home']['version']} ${regionalText['version']['version']}",
-                                                style: textSelection(""),
-                                              ),
-                                              centerTitle: true,
-                                              automaticallyImplyLeading: false,
-                                              backgroundColor:
-                                                  themeSelector["primary"]
-                                                      [settings.get("theme")],
-                                              actions: [
-                                                IconButton(
-                                                    splashColor:
-                                                        Colors.transparent,
-                                                    hoverColor:
-                                                        Colors.transparent,
-                                                    icon: Icon(
-                                                      Icons.close,
-                                                      color: themeSelector[
-                                                              "secondary"][
-                                                          settings
-                                                              .get("theme")],
+                                        ),
+                                        child: SingleChildScrollView(
+                                          scrollDirection: Axis.vertical,
+                                          child: Container(
+                                            child: Column(
+                                                mainAxisSize: MainAxisSize.min,
+                                                children: [
+                                                  AppBar(
+                                                    shape: RoundedRectangleBorder(
+                                                        borderRadius:
+                                                            BorderRadius.vertical(
+                                                                top: Radius
+                                                                    .circular(
+                                                                        25))),
+                                                    title: Text(
+                                                      "Yura ${regionalText['home']['version']} ${regionalText['version']['version']}",
+                                                      style: textSelection(""),
                                                     ),
-                                                    onPressed: () {
-                                                      Navigator.pop(context);
-                                                    })
-                                              ],
-                                            ),
-                                            FutureBuilder(
-                                                future: yuraUpdate(),
-                                                builder: (context, snapshot) {
-                                                  return Padding(
-                                                    padding:
-                                                        const EdgeInsets.all(
-                                                            20),
-                                                    child: Column(
-                                                      children: [
-                                                        if (snapshot
-                                                                .connectionState ==
-                                                            ConnectionState
-                                                                .waiting)
-                                                          loadingSelector(
-                                                              settings.get(
-                                                                  'loading'),
-                                                              "dark"),
-                                                        if (snapshot.connectionState ==
-                                                                ConnectionState
-                                                                    .done &&
-                                                            snapshot.data[
-                                                                    'updateNotes'] !=
-                                                                "error")
-                                                          Text(
-                                                            //? This will fetch information from the website. If it works, display the latest version.
-                                                            //? If it doesn't, display a cross mark. While it's loading, should have a "..." text.
-                                                            '${regionalText["bottomButtons"]["latestversion"]} ${snapshot.data['lastVersion']} (${snapshot.data['when']})',
-                                                            style: TextStyle(
-                                                                decoration:
-                                                                    TextDecoration
-                                                                        .none,
-                                                                color: themeSelector[
-                                                                        "primary"]
-                                                                    [
-                                                                    settings.get(
-                                                                        "theme")],
-                                                                fontSize: 16,
-                                                                fontWeight:
-                                                                    FontWeight
-                                                                        .normal),
-                                                            textAlign: TextAlign
-                                                                .center,
-                                                          ),
-                                                        if (snapshot.connectionState ==
-                                                                ConnectionState
-                                                                    .done &&
-                                                            snapshot.data[
-                                                                    'updateNotes'] !=
-                                                                "error")
-                                                          SizedBox(height: 5),
-                                                        if (snapshot.connectionState ==
-                                                                ConnectionState
-                                                                    .done &&
-                                                            snapshot.data[
-                                                                    'updateNotes'] !=
-                                                                "error")
-                                                          Text(
-                                                            snapshot.data[
-                                                                'updateNotes'],
-                                                            style: TextStyle(
-                                                                decoration:
-                                                                    TextDecoration
-                                                                        .none,
-                                                                color: themeSelector[
-                                                                        "primary"]
-                                                                    [
-                                                                    settings.get(
-                                                                        "theme")],
-                                                                fontSize: 16,
-                                                                fontWeight:
-                                                                    FontWeight
-                                                                        .normal),
-                                                          ),
-                                                        if (snapshot.connectionState ==
-                                                                ConnectionState
-                                                                    .done &&
-                                                            snapshot.data[
-                                                                    'updateNotes'] !=
-                                                                "error" &&
-                                                            snapshot.data[
-                                                                    'lastVersion'] !=
-                                                                regionalText[
-                                                                        "version"]
-                                                                    ["version"])
-                                                          SizedBox(height: 20),
-                                                        if (snapshot.connectionState ==
-                                                                ConnectionState
-                                                                    .done &&
-                                                            snapshot.data[
-                                                                    'updateNotes'] !=
-                                                                "error" &&
-                                                            snapshot.data[
-                                                                    'lastVersion'] !=
-                                                                regionalText[
-                                                                        "version"]
-                                                                    ["version"])
-                                                          MaterialButton(
-                                                            shape:
-                                                                RoundedRectangleBorder(
-                                                              borderRadius:
-                                                                  BorderRadius
-                                                                      .circular(
-                                                                          7),
-                                                            ),
-                                                            child: Text(
-                                                              regionalText[
-                                                                      "bottomButtons"]
-                                                                  ["update"],
-                                                              style:
-                                                                  textSelection(
-                                                                      ""),
-                                                            ),
+                                                    centerTitle: true,
+                                                    automaticallyImplyLeading:
+                                                        false,
+                                                    backgroundColor:
+                                                        themeSelector["primary"]
+                                                            [settings
+                                                                .get("theme")],
+                                                    actions: [
+                                                      IconButton(
+                                                          splashColor: Colors
+                                                              .transparent,
+                                                          hoverColor: Colors
+                                                              .transparent,
+                                                          icon: Icon(
+                                                            Icons.close,
                                                             color: themeSelector[
-                                                                    "primary"][
-                                                                settings.get(
+                                                                    "secondary"]
+                                                                [settings.get(
                                                                     "theme")],
-                                                            onPressed:
-                                                                () async {
-                                                              final String
-                                                                  updateLink =
-                                                                  snapshot.data[
-                                                                      'updateLink'];
-                                                              if (await canLaunch(
-                                                                  updateLink)) {
-                                                                launch(
-                                                                    updateLink);
-                                                              }
-                                                            },
                                                           ),
-                                                        if (snapshot
-                                                                .connectionState ==
-                                                            ConnectionState
-                                                                .done)
-                                                          Padding(
-                                                            padding:
-                                                                const EdgeInsets
-                                                                        .only(
-                                                                    top: 10),
-                                                            child: Tooltip(
-                                                              message: regionalText[
-                                                                      "bottomButtons"]
-                                                                  ["updateGif"],
-                                                              child:
-                                                                  Image.network(
-                                                                "https://media1.giphy.com/media/l0MYOVCen1VP32oJW/giphy.gif?cid=ecf05e47df393f6ff6116685798d777331ca08f05afaacfc&rid=giphy.gif",
-                                                                width: MediaQuery.of(
-                                                                            context)
-                                                                        .size
-                                                                        .width *
-                                                                    0.7,
-                                                              ),
-                                                            ),
-                                                          )
-                                                      ],
-                                                    ),
-                                                  );
-                                                })
-                                          ]),
+                                                          onPressed: () {
+                                                            Navigator.pop(
+                                                                context);
+                                                          })
+                                                    ],
+                                                  ),
+                                                  FutureBuilder(
+                                                      future: yuraUpdate(),
+                                                      builder:
+                                                          (context, snapshot) {
+                                                        return Padding(
+                                                          padding:
+                                                              const EdgeInsets
+                                                                  .all(20),
+                                                          child: Column(
+                                                            children: [
+                                                              if (snapshot
+                                                                      .connectionState ==
+                                                                  ConnectionState
+                                                                      .waiting)
+                                                                loadingSelector(
+                                                                    settings.get(
+                                                                        'loading'),
+                                                                    "dark"),
+                                                              if (snapshot.connectionState ==
+                                                                      ConnectionState
+                                                                          .done &&
+                                                                  snapshot.data[
+                                                                          'updateNotes'] !=
+                                                                      "error")
+                                                                Text(
+                                                                  //? This will fetch information from the website. If it works, display the latest version.
+                                                                  //? If it doesn't, display a cross mark. While it's loading, should have a "..." text.
+                                                                  '${regionalText["bottomButtons"]["latestversion"]} ${snapshot.data['lastVersion']} (${snapshot.data['when']})',
+                                                                  style: TextStyle(
+                                                                      decoration:
+                                                                          TextDecoration
+                                                                              .none,
+                                                                      color: themeSelector[
+                                                                              "primary"]
+                                                                          [
+                                                                          settings.get(
+                                                                              "theme")],
+                                                                      fontSize:
+                                                                          16,
+                                                                      fontWeight:
+                                                                          FontWeight
+                                                                              .normal),
+                                                                  textAlign:
+                                                                      TextAlign
+                                                                          .center,
+                                                                ),
+                                                              if (snapshot.connectionState ==
+                                                                      ConnectionState
+                                                                          .done &&
+                                                                  snapshot.data[
+                                                                          'updateNotes'] !=
+                                                                      "error")
+                                                                SizedBox(
+                                                                    height: 5),
+                                                              if (snapshot.connectionState ==
+                                                                      ConnectionState
+                                                                          .done &&
+                                                                  snapshot.data[
+                                                                          'updateNotes'] !=
+                                                                      "error")
+                                                                Text(
+                                                                  snapshot.data[
+                                                                      'updateNotes'],
+                                                                  style: TextStyle(
+                                                                      decoration:
+                                                                          TextDecoration
+                                                                              .none,
+                                                                      color: themeSelector[
+                                                                              "primary"]
+                                                                          [
+                                                                          settings.get(
+                                                                              "theme")],
+                                                                      fontSize:
+                                                                          16,
+                                                                      fontWeight:
+                                                                          FontWeight
+                                                                              .normal),
+                                                                ),
+                                                              if (snapshot.connectionState ==
+                                                                      ConnectionState
+                                                                          .done &&
+                                                                  snapshot.data[
+                                                                          'updateNotes'] !=
+                                                                      "error" &&
+                                                                  snapshot.data[
+                                                                          'lastVersion'] !=
+                                                                      regionalText[
+                                                                              "version"]
+                                                                          [
+                                                                          "version"])
+                                                                SizedBox(
+                                                                    height: 20),
+                                                              if (Platform
+                                                                      .isWindows &&
+                                                                  snapshot.connectionState ==
+                                                                      ConnectionState
+                                                                          .done &&
+                                                                  snapshot.data[
+                                                                          'updateNotes'] !=
+                                                                      "error" &&
+                                                                  snapshot.data[
+                                                                          'lastVersion'] !=
+                                                                      regionalText[
+                                                                              "version"]
+                                                                          [
+                                                                          "version"])
+                                                                MaterialButton(
+                                                                  shape:
+                                                                      RoundedRectangleBorder(
+                                                                    borderRadius:
+                                                                        BorderRadius
+                                                                            .circular(7),
+                                                                  ),
+                                                                  child: Text(
+                                                                    regionalText[
+                                                                            "bottomButtons"]
+                                                                        [
+                                                                        "update"],
+                                                                    style:
+                                                                        textSelection(
+                                                                            ""),
+                                                                  ),
+                                                                  color: themeSelector[
+                                                                          "primary"]
+                                                                      [
+                                                                      settings.get(
+                                                                          "theme")],
+                                                                  onPressed:
+                                                                      () async {
+                                                                    final String
+                                                                        updateLink =
+                                                                        snapshot
+                                                                            .data['updateLink'];
+                                                                    if (await canLaunch(
+                                                                        updateLink)) {
+                                                                      launch(
+                                                                          updateLink);
+                                                                    }
+                                                                  },
+                                                                ),
+                                                            ],
+                                                          ),
+                                                        );
+                                                      })
+                                                ]),
+                                          ),
+                                        ),
+                                      ),
                                     ),
                                   );
                                 });
@@ -4704,7 +4882,7 @@ class _MyHomePageState extends State<MyHomePage> {
                                         [settings.get("theme")],
                                     borderRadius:
                                         BorderRadius.all(Radius.circular(25))),
-                                width: MediaQuery.of(context).size.width * 0.5,
+                                width: MediaQuery.of(context).size.width * 0.8,
                                 child: Column(
                                     mainAxisSize: MainAxisSize.min,
                                     children: [

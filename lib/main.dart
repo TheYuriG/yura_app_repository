@@ -1072,7 +1072,6 @@ Future<Map> psn100Info(String user) async {
 
 //? This function contains all translated strings to be used.
 //? If a language isn't fully supported, it will use the english words instead.
-// TODO Translation waypoint
 Map<String, Map<String, String>> regionSelect() {
   //? By default, this loads Yura in English. This is done so new updates can be released without needing
   //? to wait for updated translation. Yura will use english text on those new features while a language patch isn't done
@@ -1786,27 +1785,13 @@ class _MyHomePageState extends State<MyHomePage> {
 
 //? This function will update every enabled profile in order
   void updateProfiles() async {
-    //? First it changes the information on every document to be as updating, so every block displays a spinning icon
-    setState(() {
-      isUpdating = true;
-      if (settings.get("psnp") == true) {
-        psnpDump = {'update': true};
-      }
-      if (settings.get("psntl") == true) {
-        psntlDump = {'update': true};
-      }
-      if (settings.get("exophase") == true) {
-        exophaseDump = {'update': true};
-      }
-      if (settings.get("trueTrophies") == true) {
-        trueTrophiesDump = {'update': true};
-      }
-      if (settings.get("psn100") == true) {
-        psn100Dump = {'update': true};
-      }
-    });
+    //? First it changes the information on every document to be as updating, so every block displays a loading icon
+    isUpdating = true;
     //? then, if it's enabled, it updates PSNP first while waiting the result to not start the other websites yet.
     if (settings.get("psnp") == true) {
+      setState(() {
+        psnpDump = {'update': true};
+      });
       psnpDump = await psnpInfo(settings.get("psnID"));
       setState(() {
         psnpDump = settings.get("psnpDump");
@@ -1814,6 +1799,9 @@ class _MyHomePageState extends State<MyHomePage> {
     }
     //? then, if it's enabled, it updates PSN Trophy Leaders and waits the result.
     if (settings.get("psntl") == true) {
+      setState(() {
+        psntlDump = {'update': true};
+      });
       psntlDump = await psntlInfo(settings.get("psnID"));
       setState(() {
         psntlDump = settings.get("psntlDump");
@@ -1821,6 +1809,9 @@ class _MyHomePageState extends State<MyHomePage> {
     }
     //? then, if it's enabled, it updates Exophase and waits the result.
     if (settings.get("exophase") == true) {
+      setState(() {
+        exophaseDump = {'update': true};
+      });
       exophaseDump = await exophaseInfo(settings.get("psnID"));
       setState(() {
         exophaseDump = settings.get("exophaseDump");
@@ -1828,6 +1819,9 @@ class _MyHomePageState extends State<MyHomePage> {
     }
     //? then, if it's enabled, it updates True Trophies and waits the result.
     if (settings.get("trueTrophies") == true) {
+      setState(() {
+        trueTrophiesDump = {'update': true};
+      });
       trueTrophiesDump = await trueTrophiesInfo(settings.get("psnID"));
       setState(() {
         trueTrophiesDump = settings.get("trueTrophiesDump");
@@ -1835,14 +1829,16 @@ class _MyHomePageState extends State<MyHomePage> {
     }
     //? then, if it's enabled, it updates PSN100 and waits the result.
     if (settings.get("psn100") == true) {
+      setState(() {
+        psn100Dump = {'update': true};
+      });
       psn100Dump = await psn100Info(settings.get("psnID"));
       setState(() {
         psn100Dump = settings.get("psn100Dump");
       });
     }
-    setState(() {
-      isUpdating = false;
-    });
+
+    isUpdating = false;
   }
 
   @override

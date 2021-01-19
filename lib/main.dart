@@ -25,6 +25,8 @@ void main() async {
       box.put("theme", 'pink');
       //? Sets default trophy icons as Yura's icons
       box.put("trophyType", 'yura');
+      //? Sets level type as new
+      box.put('levelType', 'new');
       //? Enables fetching information from all websites
       box.put("psnp", true);
       box.put("psntl", true);
@@ -46,20 +48,12 @@ bool isUpdating;
 //? Examples of settings saved are the theme colors and language.
 Box settings = Hive.box("settings");
 
-//? Scraper for PSN Profiles
-final WebScraper psnp = WebScraper("https://psnprofiles.com/");
-//? Scraper for PSN Trophy Leaders
-final WebScraper psntl = WebScraper("https://psntrophyleaders.com/");
-//? Scraper for Exophase
-final WebScraper exophase = WebScraper("https://www.exophase.com/");
-//? Scraper for True Trophies
-final WebScraper tt = WebScraper("https://www.truetrophies.com/");
-//? Scraper for PSN 100%
-final WebScraper psn100 = WebScraper("https://psn100.net/");
+//? WebScraper instance for all websites.
+final WebScraper ws = WebScraper();
 
 //? This will make a request to PSNProfiles to retrieve a small clickable profile card
 Future<Map> psnpInfo(String user) async {
-  await psnp.loadWebPage('/$user');
+  await ws.loadFullURL('https://psnprofiles.com/$user');
   Map<String, dynamic> parsedData = {};
   //? https://psnprofiles.com/
   //! parsedData['psnID']
@@ -74,10 +68,12 @@ Future<Map> psnpInfo(String user) async {
   try {
     //! Retrieves basic profile information, like avatar, about me, PSN ID, level, etc
     //? Retrieves PSN ID
-    psnp.getElement('#user-bar > ul > div > div.grow > div:nth-child(1) > span',
-        []).forEach((element) {
-      parsedData['psnID'] = element['title'].trim();
-      if (parsedData['psnID'] != user) {
+    ws
+        .getElementTitle(
+            '#user-bar > ul > div > div.grow > div:nth-child(1) > span')
+        .forEach((element) {
+      parsedData['psnID'] = element.trim();
+      if (parsedData['psnID'] != user && !parsedData['psnID'].contains(' ')) {
         settings.put('psnID', parsedData['psnID']);
       }
     });
@@ -85,120 +81,124 @@ Future<Map> psnpInfo(String user) async {
       throw Error;
     }
     //? Retrieves About Me
-    psnp.getElement('#user-bar > ul > div > div.grow > div > span.comment',
-        []).forEach((element) {
-      parsedData['about'] = element['title'];
+    ws
+        .getElementTitle('#user-bar > ul > div > div.grow > div > span.comment')
+        .forEach((element) {
+      parsedData['about'] = element;
     });
     //? Retrieves avatar if user doesn't have PS+
-    psnp.getElement('#user-bar > div.avatar > img', ['src']).forEach((element) {
-      parsedData['avatar'] = element['attributes']['src'];
+    ws
+        .getElementAttribute('#user-bar > div.avatar > img', 'src')
+        .forEach((element) {
+      parsedData['avatar'] = element;
       parsedData['psPlus'] = false;
     });
     //? Retrieves avatar if user has PS+
-    psnp.getElement('#user-bar > div.avatar > div > img', ['src']).forEach(
-        (element) {
-      parsedData['avatar'] = element['attributes']['src'];
+    ws
+        .getElementAttribute('#user-bar > div.avatar > div > img', 'src')
+        .forEach((element) {
+      parsedData['avatar'] = element;
       parsedData['psPlus'] = true;
     });
     //? Retrieves country
-    psnp.getElement('img#bar-country', ['class']).forEach((element) {
-      parsedData['country'] = element['attributes']['class'].split(" ")[1];
+    ws.getElementAttribute('img#bar-country', 'class').forEach((element) {
+      parsedData['country'] = element.split(" ")[1];
     });
     //? Retrieves PSN Level
-    psnp.getElement('#bar-level > ul > li.icon-sprite.level', []).forEach(
-        (element) {
-      parsedData['level'] = int.parse(element['title'].replaceAll(",", ""));
+    ws
+        .getElementTitle('#bar-level > ul > li.icon-sprite.level')
+        .forEach((element) {
+      parsedData['level'] = int.parse(element.replaceAll(",", ""));
     });
     //? Retrieves PSN Level progress
-    psnp.getElement('#bar-level > div > div', ['style']).forEach((element) {
-      parsedData['levelProgress'] =
-          element['attributes']['style'].split(" ")[1].split(";")[0];
+    ws
+        .getElementAttribute('#bar-level > div > div', 'style')
+        .forEach((element) {
+      parsedData['levelProgress'] = element.split(" ")[1].split(";")[0];
     });
     //! Retrieves trophy data
     //? Retrieves Total trophies
-    psnp.getElement('#user-bar > ul > div > div > li.total', []).forEach(
-        (element) {
-      parsedData['total'] =
-          int.parse(element['title'].replaceAll(",", "").trim());
+    ws
+        .getElementTitle('#user-bar > ul > div > div > li.total')
+        .forEach((element) {
+      parsedData['total'] = int.parse(element.replaceAll(",", "").trim());
     });
     //? Retrieves bronze trophies
-    psnp.getElement('#user-bar > ul > div > div > li.bronze', []).forEach(
-        (element) {
-      parsedData['bronze'] =
-          int.parse(element['title'].replaceAll(",", "").trim());
+    ws
+        .getElementTitle('#user-bar > ul > div > div > li.bronze')
+        .forEach((element) {
+      parsedData['bronze'] = int.parse(element.replaceAll(",", "").trim());
     });
     //? Retrieves silver trophies
-    psnp.getElement('#user-bar > ul > div > div > li.silver', []).forEach(
-        (element) {
-      parsedData['silver'] =
-          int.parse(element['title'].replaceAll(",", "").trim());
+    ws
+        .getElementTitle('#user-bar > ul > div > div > li.silver')
+        .forEach((element) {
+      parsedData['silver'] = int.parse(element.replaceAll(",", "").trim());
     });
     //? Retrieves gold trophies
-    psnp.getElement('#user-bar > ul > div > div > li.gold', []).forEach(
-        (element) {
-      parsedData['gold'] =
-          int.parse(element['title'].replaceAll(",", "").trim());
+    ws
+        .getElementTitle('#user-bar > ul > div > div > li.gold')
+        .forEach((element) {
+      parsedData['gold'] = int.parse(element.replaceAll(",", "").trim());
     });
     //? Retrieves platinum trophies
-    psnp.getElement('#user-bar > ul > div > div > li.platinum', []).forEach(
-        (element) {
-      parsedData['platinum'] =
-          int.parse(element['title'].replaceAll(",", "").trim());
+    ws
+        .getElementTitle('#user-bar > ul > div > div > li.platinum')
+        .forEach((element) {
+      parsedData['platinum'] = int.parse(element.replaceAll(",", "").trim());
     });
     //! Retrieves rarity data
     //? Retrieves ultra rare trophies
-    psnp.getElement(
-        '#content > div.row > div.sidebar.col-xs-4 > div.box.no-top-border > div.xs-hide.lg-show > div > div:nth-child(1) > a > center > span.typo-top',
-        []).forEach((element) {
-      parsedData['ultraRare'] =
-          int.parse(element['title'].replaceAll(",", "").trim());
+    ws
+        .getElementTitle(
+            '#content > div.row > div.sidebar.col-xs-4 > div.box.no-top-border > div.xs-hide.lg-show > div > div:nth-child(1) > a > center > span.typo-top')
+        .forEach((element) {
+      parsedData['ultraRare'] = int.parse(element.replaceAll(",", "").trim());
     });
     //? Retrieves very rare trophies
-    psnp.getElement(
-        '#content > div.row > div.sidebar.col-xs-4 > div.box.no-top-border > div.xs-hide.lg-show > div > div:nth-child(5) > a > center > span.typo-top',
-        []).forEach((element) {
-      parsedData['veryRare'] =
-          int.parse(element['title'].replaceAll(",", "").trim());
+    ws
+        .getElementTitle(
+            '#content > div.row > div.sidebar.col-xs-4 > div.box.no-top-border > div.xs-hide.lg-show > div > div:nth-child(5) > a > center > span.typo-top')
+        .forEach((element) {
+      parsedData['veryRare'] = int.parse(element.replaceAll(",", "").trim());
     });
     //? Retrieves rare trophies
-    psnp.getElement(
-        '#content > div.row > div.sidebar.col-xs-4 > div.box.no-top-border > div.xs-hide.lg-show > div > div:nth-child(9) > a > center > span.typo-top',
-        []).forEach((element) {
-      parsedData['rare'] =
-          int.parse(element['title'].replaceAll(",", "").trim());
+    ws
+        .getElementTitle(
+            '#content > div.row > div.sidebar.col-xs-4 > div.box.no-top-border > div.xs-hide.lg-show > div > div:nth-child(9) > a > center > span.typo-top')
+        .forEach((element) {
+      parsedData['rare'] = int.parse(element.replaceAll(",", "").trim());
     });
     //? Retrieves uncommon trophies
-    psnp.getElement(
-        '#content > div.row > div.sidebar.col-xs-4 > div.box.no-top-border > div.xs-hide.lg-show > div > div:nth-child(13) > a > center > span.typo-top',
-        []).forEach((element) {
-      parsedData['uncommon'] =
-          int.parse(element['title'].replaceAll(",", "").trim());
+    ws
+        .getElementTitle(
+            '#content > div.row > div.sidebar.col-xs-4 > div.box.no-top-border > div.xs-hide.lg-show > div > div:nth-child(13) > a > center > span.typo-top')
+        .forEach((element) {
+      parsedData['uncommon'] = int.parse(element.replaceAll(",", "").trim());
     });
     //? Retrieves common trophies
-    psnp.getElement(
-        '#content > div.row > div.sidebar.col-xs-4 > div.box.no-top-border > div.xs-hide.lg-show > div > div:nth-child(17) > a > center > span.typo-top',
-        []).forEach((element) {
-      parsedData['common'] =
-          int.parse(element['title'].replaceAll(",", "").trim());
+    ws
+        .getElementTitle(
+            '#content > div.row > div.sidebar.col-xs-4 > div.box.no-top-border > div.xs-hide.lg-show > div > div:nth-child(17) > a > center > span.typo-top')
+        .forEach((element) {
+      parsedData['common'] = int.parse(element.replaceAll(",", "").trim());
     });
     //! Retrieves profile statistic data like games played, completion %, rankings, etc
     //? Retrieves total ganes
-    psnp.getElement(
-        '#banner > div.banner-overlay > div > div.stats.flex > span:nth-child(1)',
-        []).forEach((element) {
-      parsedData['games'] = int.parse(element['title']
-          .replaceAll("Games Played", "")
-          .replaceAll(",", "")
-          .trim());
+    ws
+        .getElementTitle(
+            '#banner > div.banner-overlay > div > div.stats.flex > span:nth-child(1)')
+        .forEach((element) {
+      parsedData['games'] = int.parse(
+          element.replaceAll("Games Played", "").replaceAll(",", "").trim());
     });
     //? Retrieves complete ganes
-    psnp.getElement(
-        '#banner > div.banner-overlay > div > div.stats.flex > span:nth-child(3)',
-        []).forEach((element) {
-      parsedData['complete'] = int.parse(element['title']
-          .replaceAll("Completed Games", "")
-          .replaceAll(",", "")
-          .trim());
+    ws
+        .getElementTitle(
+            '#banner > div.banner-overlay > div > div.stats.flex > span:nth-child(3)')
+        .forEach((element) {
+      parsedData['complete'] = int.parse(
+          element.replaceAll("Completed Games", "").replaceAll(",", "").trim());
       parsedData['incomplete'] = parsedData['games'] - parsedData['complete'];
       parsedData['completePercentage'] =
           (parsedData['complete'] / parsedData['games'] * 100)
@@ -208,30 +208,33 @@ Future<Map> psnpInfo(String user) async {
               .toStringAsFixed(3);
     });
     //? Retrieves completion
-    psnp.getElement(
-        '#banner > div.banner-overlay > div > div.stats.flex > span:nth-child(5)',
-        []).forEach((element) {
-      parsedData['completion'] =
-          element['title'].replaceAll("Completion", "").trim();
+    ws
+        .getElementTitle(
+            '#banner > div.banner-overlay > div > div.stats.flex > span:nth-child(5)')
+        .forEach((element) {
+      parsedData['completion'] = element.replaceAll("Completion", "").trim();
     });
     //? Retrieves unearned trophies
-    psnp.getElement(
-        '#banner > div.banner-overlay > div > div.stats.flex > span:nth-child(7)',
-        []).forEach((element) {
-      parsedData['unearned'] = int.parse(element['title']
+    ws
+        .getElementTitle(
+            '#banner > div.banner-overlay > div > div.stats.flex > span:nth-child(7)')
+        .forEach((element) {
+      parsedData['unearned'] = int.parse(element
           .replaceAll("Unearned Trophies", "")
           .replaceAll(",", "")
           .trim());
 
-      parsedData['unearnedPercentage'] =
-          (parsedData['unearned'] / parsedData['total'] * 100)
-              .toStringAsFixed(3);
-      parsedData['totalPercentage'] =
-          (100 - (parsedData['unearned'] / parsedData['total'] * 100))
-              .toStringAsFixed(3);
+      parsedData['unearnedPercentage'] = (parsedData['unearned'] /
+              (parsedData['total'] + parsedData['unearned']) *
+              100)
+          .toStringAsFixed(3);
+      parsedData['totalPercentage'] = ((parsedData['total']) /
+              (parsedData['total'] + parsedData['unearned']) *
+              100)
+          .toStringAsFixed(3);
     });
     //? Retrieves world rank and world rank increase by checking if the span class is "grow green" or "grow red"
-    psnp.getElement(
+    ws.getElement(
         '#banner > div.banner-overlay > div > div.stats.flex > span:nth-child(13)',
         ['class']).forEach((element) {
       parsedData['worldRank'] = int.parse(element['title']
@@ -247,7 +250,7 @@ Future<Map> psnpInfo(String user) async {
       }
     });
     //? Retrieves country rank and country rank increase by checking if the span class is "grow green" or "grow red"
-    psnp.getElement(
+    ws.getElement(
         '#banner > div.banner-overlay > div > div.stats.flex > span:nth-child(15)',
         ['class']).forEach((element) {
       parsedData['countryRank'] = int.parse(element['title']
@@ -262,19 +265,19 @@ Future<Map> psnpInfo(String user) async {
         parsedData['countryUp'] = "⬇️";
       }
     });
+    settings.put('psnpDump', parsedData);
   } catch (e) {
     print("error scanning PSN Profiles");
-    parsedData = {};
+    parsedData = null;
     settings.put('psnp', false);
   }
   // print(parsedData);
-  settings.put('psnpDump', parsedData);
   return parsedData;
 }
 
 //? This will make a request to PSN Trophy Leaders to retrieve a small clickable profile card
 Future<Map> psntlInfo(String user) async {
-  await psntl.loadWebPage('/user/view/$user');
+  await ws.loadFullURL('https://psntrophyleaders.com/user/view/$user');
   Map<String, dynamic> parsedData = {};
   //? To get trophy log by rarity, make a HTTP POST request to
   //! https://psntrophyleaders.com/user/get_rare_trophies
@@ -299,9 +302,9 @@ Future<Map> psntlInfo(String user) async {
   try {
     //! Retrieves basic profile information, like avatar, about me, PSN ID, level, etc
     //? Retrieves PSN ID
-    psntl.getElement('#id-handle', []).forEach((element) {
-      parsedData['psnID'] = element['title'].trim();
-      if (parsedData['psnID'] != user) {
+    ws.getElementTitle('#id-handle').forEach((element) {
+      parsedData['psnID'] = element.trim();
+      if (parsedData['psnID'] != user && !parsedData['psnID'].contains(' ')) {
         settings.put('psnID', parsedData['psnID']);
       }
     });
@@ -309,7 +312,7 @@ Future<Map> psntlInfo(String user) async {
       throw Error;
     }
     //? Retrieves PSN country
-    psntl.getElement(
+    ws.getElement(
         '#userPage > div.userRight > div.userHeader > table > tbody > tr > td.userInfo > h1 > span > img',
         ['src']).forEach((element) {
       parsedData['country'] = element['attributes']['src']
@@ -318,162 +321,169 @@ Future<Map> psntlInfo(String user) async {
           .trim();
     });
     //? Retrieves PSN avatar
-    psntl.getElement('#id-avatar > img.avatar-large', ['src']).forEach(
-        (element) {
-      parsedData['avatar'] = element['attributes']['src'];
+    ws
+        .getElementAttribute('#id-avatar > img.avatar-large', 'src')
+        .forEach((element) {
+      parsedData['avatar'] = element;
     });
     //? Retrieves how many tracked players share the same avatar
-    psntl.getElement('#avatarstat > span.white', []).forEach((element) {
-      parsedData['sameAvatar'] = int.parse(element['title'].trim());
+    ws.getElementTitle('#avatarstat > span.white').forEach((element) {
+      parsedData['sameAvatar'] = int.parse(element.trim());
     });
     //? Retrieves PSN Level
-    psntl.getElement('#leveltext > big', []).forEach((element) {
-      parsedData['level'] = int.parse(element['title'].replaceAll(",", ""));
+    ws.getElementTitle('#leveltext > big').forEach((element) {
+      parsedData['level'] = int.parse(element.replaceAll(",", ""));
     });
     //? Retrieves PSN Level progress
-    psntl.getElement(
-        '#toprightstats > td > div > div > div.prog > div > div.progressbar',
-        ['style']).forEach((element) {
-      parsedData['levelProgress'] = element['attributes']['style']
-          .replaceAll("width: ", "")
-          .replaceAll(";", "")
-          .trim();
+    ws
+        .getElementAttribute(
+            '#toprightstats > td > div > div > div.prog > div > div.progressbar',
+            'style')
+        .forEach((element) {
+      parsedData['levelProgress'] =
+          element.replaceAll("width: ", "").replaceAll(";", "").trim();
     });
     //! Retrieves trophy data
     //? Retrieves Total trophies
-    psntl.getElement('#toprightstats > td:nth-child(5) > big', []).forEach(
-        (element) {
-      parsedData['total'] =
-          int.parse(element['title'].replaceAll(",", "").trim());
+    ws
+        .getElementTitle('#toprightstats > td:nth-child(5) > big')
+        .forEach((element) {
+      parsedData['total'] = int.parse(element.replaceAll(",", "").trim());
     });
     //? Retrieves bronze trophies
-    psntl.getElement('#ranksummary > table > tbody > tr > td.bronze > big',
-        []).forEach((element) {
-      parsedData['bronze'] =
-          int.parse(element['title'].replaceAll(",", "").trim());
+    ws
+        .getElementTitle('#ranksummary > table > tbody > tr > td.bronze > big')
+        .forEach((element) {
+      parsedData['bronze'] = int.parse(element.replaceAll(",", "").trim());
     });
     //? Retrieves silver trophies
-    psntl.getElement('#ranksummary > table > tbody > tr > td.silver > big',
-        []).forEach((element) {
-      parsedData['silver'] =
-          int.parse(element['title'].replaceAll(",", "").trim());
+    ws
+        .getElementTitle('#ranksummary > table > tbody > tr > td.silver > big')
+        .forEach((element) {
+      parsedData['silver'] = int.parse(element.replaceAll(",", "").trim());
     });
     //? Retrieves gold trophies
-    psntl.getElement('#ranksummary > table > tbody > tr > td.gold > big',
-        []).forEach((element) {
-      parsedData['gold'] =
-          int.parse(element['title'].replaceAll(",", "").trim());
+    ws
+        .getElementTitle('#ranksummary > table > tbody > tr > td.gold > big')
+        .forEach((element) {
+      parsedData['gold'] = int.parse(element.replaceAll(",", "").trim());
     });
     //? Retrieves platinum trophies
-    psntl.getElement('#ranksummary > table > tbody > tr > td.platinum > big',
-        []).forEach((element) {
-      parsedData['platinum'] =
-          int.parse(element['title'].replaceAll(",", "").trim());
+    ws
+        .getElementTitle(
+            '#ranksummary > table > tbody > tr > td.platinum > big')
+        .forEach((element) {
+      parsedData['platinum'] = int.parse(element.replaceAll(",", "").trim());
     });
     //! Retrieves profile information data
     //? Retrieves total ganes
-    psntl.getElement('#toprightstats > td:nth-child(3) > big', []).forEach(
-        (element) {
-      parsedData['games'] =
-          int.parse(element['title'].replaceAll(",", "").trim());
+    ws
+        .getElementTitle('#toprightstats > td:nth-child(3) > big')
+        .forEach((element) {
+      parsedData['games'] = int.parse(element.replaceAll(",", "").trim());
     });
     //? Retrieves completion
-    psntl.getElement('#toprightstats > td:nth-child(9) > big > span',
-        ['title']).forEach((element) {
-      parsedData['completion'] = element['attributes']['title']
-          .replaceAll(" average completion", "")
-          .trim();
+    ws
+        .getElementAttribute(
+            '#toprightstats > td:nth-child(9) > big > span', 'title')
+        .forEach((element) {
+      parsedData['completion'] =
+          element.replaceAll(" average completion", "").trim();
     });
     //! Retrieves ranking data
     //? Retrieves Standard rank
-    psntl.getElement(
-        '#ranksummary > table > tbody > tr:nth-child(12) > td:nth-child(1)',
-        []).forEach((element) {
-      parsedData['standard'] =
-          int.parse(element['title'].replaceAll(",", "").trim());
+    ws
+        .getElementTitle(
+            '#ranksummary > table > tbody > tr:nth-child(12) > td:nth-child(1)')
+        .forEach((element) {
+      parsedData['standard'] = int.parse(element.replaceAll(",", "").trim());
     });
     //? Retrieves Standard rank status change
-    psntl.getElement(
-        '#ranksummary > table > tbody > tr:nth-child(12) > td:nth-child(3)',
-        []).forEach((element) {
-      if (element['title'].contains("+")) {
+    ws
+        .getElementTitle(
+            '#ranksummary > table > tbody > tr:nth-child(12) > td:nth-child(3)')
+        .forEach((element) {
+      if (element.contains("+")) {
         parsedData['standardChange'] = "⬆️";
-      } else if (element['title'].contains("-")) {
+      } else if (element.contains("-")) {
         parsedData['standardChange'] = "⬇️";
       } else {
         parsedData['standardChange'] = "🟨";
       }
     });
     //? Retrieves Adjusted rank
-    psntl.getElement(
-        '#ranksummary > table > tbody > tr:nth-child(13) > td:nth-child(1)',
-        []).forEach((element) {
-      parsedData['adjusted'] =
-          int.parse(element['title'].replaceAll(",", "").trim());
+    ws
+        .getElementTitle(
+            '#ranksummary > table > tbody > tr:nth-child(13) > td:nth-child(1)')
+        .forEach((element) {
+      parsedData['adjusted'] = int.parse(element.replaceAll(",", "").trim());
     });
     //? Retrieves Adjusted rank status change
-    psntl.getElement(
-        '#ranksummary > table > tbody > tr:nth-child(13) > td:nth-child(3)',
-        []).forEach((element) {
-      if (element['title'].contains("+")) {
+    ws
+        .getElementTitle(
+            '#ranksummary > table > tbody > tr:nth-child(13) > td:nth-child(3)')
+        .forEach((element) {
+      if (element.contains("+")) {
         parsedData['adjustedChange'] = "⬆️";
-      } else if (element['title'].contains("-")) {
+      } else if (element.contains("-")) {
         parsedData['adjustedChange'] = "⬇️";
       } else {
         parsedData['adjustedChange'] = "🟨";
       }
     });
     //? Retrieves Completist rank
-    psntl.getElement(
-        '#ranksummary > table > tbody > tr:nth-child(14) > td:nth-child(1)',
-        []).forEach((element) {
-      parsedData['completist'] =
-          int.parse(element['title'].replaceAll(",", "").trim());
+    ws
+        .getElementTitle(
+            '#ranksummary > table > tbody > tr:nth-child(14) > td:nth-child(1)')
+        .forEach((element) {
+      parsedData['completist'] = int.parse(element.replaceAll(",", "").trim());
     });
     //? Retrieves Completist rank status change
-    psntl.getElement(
-        '#ranksummary > table > tbody > tr:nth-child(14) > td:nth-child(3)',
-        []).forEach((element) {
-      if (element['title'].contains("+")) {
+    ws
+        .getElementTitle(
+            '#ranksummary > table > tbody > tr:nth-child(14) > td:nth-child(3)')
+        .forEach((element) {
+      if (element.contains("+")) {
         parsedData['completistChange'] = "⬆️";
-      } else if (element['title'].contains("-")) {
+      } else if (element.contains("-")) {
         parsedData['completistChange'] = "⬇️";
       } else {
         parsedData['completistChange'] = "🟨";
       }
     });
     //? Retrieves Rarity rank
-    psntl.getElement(
-        '#ranksummary > table > tbody > tr:nth-child(15) > td:nth-child(1)',
-        []).forEach((element) {
-      parsedData['rarity'] =
-          int.parse(element['title'].replaceAll(",", "").trim());
+    ws
+        .getElementTitle(
+            '#ranksummary > table > tbody > tr:nth-child(15) > td:nth-child(1)')
+        .forEach((element) {
+      parsedData['rarity'] = int.parse(element.replaceAll(",", "").trim());
     });
     //? Retrieves Rarity rank status change
-    psntl.getElement(
-        '#ranksummary > table > tbody > tr:nth-child(15) > td:nth-child(3)',
-        []).forEach((element) {
-      if (element['title'].contains("+")) {
+    ws
+        .getElementTitle(
+            '#ranksummary > table > tbody > tr:nth-child(15) > td:nth-child(3)')
+        .forEach((element) {
+      if (element.contains("+")) {
         parsedData['rarityChange'] = "⬆️";
-      } else if (element['title'].contains("-")) {
+      } else if (element.contains("-")) {
         parsedData['rarityChange'] = "⬇️";
       } else {
         parsedData['rarityChange'] = "🟨";
       }
     });
+    settings.put('psntlDump', parsedData);
   } catch (e) {
     print("error scanning PSN Trophy Leaders");
-    parsedData = {};
+    parsedData = null;
     settings.put('psntl', false);
   }
   // print(parsedData);
-  settings.put('psntlDump', parsedData);
   return parsedData;
 }
 
 //? This will make a request to Exophase to retrieve a small clickable profile card
 Future<Map> exophaseInfo(String user) async {
-  await exophase.loadWebPage('psn/user/$user/');
+  await ws.loadFullURL('https://www.exophase.com/psn/user/$user/');
   //! parsedData holds player data only
   Map<String, dynamic> parsedData = {};
   //! parsedGames holds player games only
@@ -483,11 +493,12 @@ Future<Map> exophaseInfo(String user) async {
     // data-game = #app > div > div.row.col-game-information.pb-3
     //! Retrieves basic profile information, like avatar, about me, PSN ID, level, etc
     //? Retrieves PSN ID
-    exophase.getElement(
-        '#sub-user-info > section > div.col.col-md-auto.column-username.me-lg-4.pb-3.pt-3 > h2',
-        []).forEach((element) {
-      parsedData['psnID'] = element['title'].trim();
-      if (parsedData['psnID'] != user) {
+    ws
+        .getElementTitle(
+            '#sub-user-info > section > div.col.col-md-auto.column-username.me-lg-4.pb-3.pt-3 > h2')
+        .forEach((element) {
+      parsedData['psnID'] = element.trim();
+      if (parsedData['psnID'] != user && !parsedData['psnID'].contains(' ')) {
         settings.put('psnID', parsedData['psnID']);
       }
     });
@@ -495,114 +506,122 @@ Future<Map> exophaseInfo(String user) async {
       throw Error;
     }
     //? Exophase's unique account ID
-    exophase.getElement(
-        '#app > div > section > div', ['data-playerid']).forEach((element) {
-      parsedData['exophaseID'] = element['attributes']['data-playerid'].trim();
+    ws
+        .getElementAttribute('#app > div > section > div', 'data-playerid')
+        .forEach((element) {
+      parsedData['exophaseID'] = element.trim();
     });
     //? Retrieves PSN country
-    exophase.getElement(
-        '#sub-user-info > section > div.col-auto > div > div.col.col-last.column-units > div > div:nth-child(1) > span > span.country-ranking.mb-1 > img',
-        ['src']).forEach((element) {
-      parsedData['country'] = element['attributes']['src']
+    ws
+        .getElementAttribute(
+            '#sub-user-info > section > div.col-auto > div > div.col.col-last.column-units > div > div:nth-child(1) > span > span.country-ranking.mb-1 > img',
+            'src')
+        .forEach((element) {
+      parsedData['country'] = element
           .replaceAll("https://www.exophase.com/assets/zeal/images/flags/", "")
           .replaceAll(".png", "")
           .trim();
     });
     //? Retrieves PSN avatar
-    exophase.getElement(
-        '#app > div > section > div > div.col-auto.profile-overflow-top.ps-md-3.pe-md-0.mx-auto.mt-3.mt-md-0 > div > img',
-        ['src']).forEach((element) {
-      parsedData['avatar'] = element['attributes']['src'];
+    ws
+        .getElementAttribute(
+            '#app > div > section > div > div.col-auto.profile-overflow-top.ps-md-3.pe-md-0.mx-auto.mt-3.mt-md-0 > div > img',
+            'src')
+        .forEach((element) {
+      parsedData['avatar'] = element;
     });
     //? Retrieves PSN Level
-    exophase.getElement(
-        '#sub-user-info > section > div.col-auto > div > div:nth-child(1) > span',
-        []).forEach((element) {
-      parsedData['level'] = int.parse(element['title'].replaceAll(",", ""));
+    ws
+        .getElementTitle(
+            '#sub-user-info > section > div.col-auto > div > div:nth-child(1) > span')
+        .forEach((element) {
+      parsedData['level'] = int.parse(element.replaceAll(",", ""));
     });
     //? Retrieves PSN Level progress
-    exophase.getElement(
-        '#sub-user-info > section > div.col-auto > div > div:nth-child(1) > div > div',
-        ['style']).forEach((element) {
-      parsedData['levelProgress'] = element['attributes']['style']
-          .replaceAll("width: ", "")
-          .replaceAll(";", "")
-          .trim();
+    ws
+        .getElementAttribute(
+            '#sub-user-info > section > div.col-auto > div > div:nth-child(1) > div > div',
+            'style')
+        .forEach((element) {
+      parsedData['levelProgress'] =
+          element.replaceAll("width: ", "").replaceAll(";", "").trim();
     });
     //? Retrieves completion
-    exophase.getElement(
-        '#sub-user-info > section > div.col-auto > div > div:nth-child(3) > span',
-        []).forEach((element) {
+    ws
+        .getElementTitle(
+            '#sub-user-info > section > div.col-auto > div > div:nth-child(3) > span')
+        .forEach((element) {
       parsedData['completion'] =
-          element['title'].replaceAll(" average completion", "").trim();
+          element.replaceAll(" average completion", "").trim();
     });
     //? Retrieves world rank
-    exophase.getElement(
-        '#sub-user-info > section > div.col-auto > div > div.col.col-last.column-units > div > div:nth-child(1) > span > span.global-ranking.tippy.mb-1',
-        []).forEach((element) {
-      parsedData['worldRank'] =
-          int.parse(element['title'].replaceAll(",", "").trim());
+    ws
+        .getElementTitle(
+            '#sub-user-info > section > div.col-auto > div > div.col.col-last.column-units > div > div:nth-child(1) > span > span.global-ranking.tippy.mb-1')
+        .forEach((element) {
+      parsedData['worldRank'] = int.parse(element.replaceAll(",", "").trim());
     });
     //? Retrieves country rank
-    exophase.getElement(
-        '#sub-user-info > section > div.col-auto > div > div.col.col-last.column-units > div > div:nth-child(1) > span > span.country-ranking.mb-1',
-        []).forEach((element) {
-      parsedData['countryRank'] =
-          int.parse(element['title'].replaceAll(",", "").trim());
+    ws
+        .getElementTitle(
+            '#sub-user-info > section > div.col-auto > div > div.col.col-last.column-units > div > div:nth-child(1) > span > span.country-ranking.mb-1')
+        .forEach((element) {
+      parsedData['countryRank'] = int.parse(element.replaceAll(",", "").trim());
     });
     //! Retrieves trophy data
     //? Retrieves Total trophies
-    exophase.getElement(
-        '#sub-user-info > section > div.col-auto > div > div.col.col-last.column-units > div > div.col > span.tippy.total-value',
-        []).forEach((element) {
-      parsedData['total'] = int.parse(element['title']
+    ws
+        .getElementTitle(
+            '#sub-user-info > section > div.col-auto > div > div.col.col-last.column-units > div > div.col > span.tippy.total-value')
+        .forEach((element) {
+      parsedData['total'] = int.parse(element
           .replaceAll(",", "")
           .replaceAll("Trophies (", "")
           .replaceAll(")", "")
           .trim());
     });
     //? Retrieves bronze trophies
-    exophase.getElement(
-        '#sub-user-info > section > div.col-auto > div > div.col.col-last.column-units > div > div:nth-child(3) > span:nth-child(1)',
-        []).forEach((element) {
-      parsedData['bronze'] =
-          int.parse(element['title'].replaceAll(",", "").trim());
+    ws
+        .getElementTitle(
+            '#sub-user-info > section > div.col-auto > div > div.col.col-last.column-units > div > div:nth-child(3) > span:nth-child(1)')
+        .forEach((element) {
+      parsedData['bronze'] = int.parse(element.replaceAll(",", "").trim());
     });
     //? Retrieves silver trophies
-    exophase.getElement(
-        '#sub-user-info > section > div.col-auto > div > div.col.col-last.column-units > div > div:nth-child(3) > span:nth-child(3)',
-        []).forEach((element) {
-      parsedData['silver'] =
-          int.parse(element['title'].replaceAll(",", "").trim());
+    ws
+        .getElementTitle(
+            '#sub-user-info > section > div.col-auto > div > div.col.col-last.column-units > div > div:nth-child(3) > span:nth-child(3)')
+        .forEach((element) {
+      parsedData['silver'] = int.parse(element.replaceAll(",", "").trim());
     });
     //? Retrieves gold trophies
-    exophase.getElement(
-        '#sub-user-info > section > div.col-auto > div > div.col.col-last.column-units > div > div:nth-child(5) > span:nth-child(1)',
-        []).forEach((element) {
-      parsedData['gold'] =
-          int.parse(element['title'].replaceAll(",", "").trim());
+    ws
+        .getElementTitle(
+            '#sub-user-info > section > div.col-auto > div > div.col.col-last.column-units > div > div:nth-child(5) > span:nth-child(1)')
+        .forEach((element) {
+      parsedData['gold'] = int.parse(element.replaceAll(",", "").trim());
     });
     //? Retrieves platinum trophies
-    exophase.getElement(
-        '#sub-user-info > section > div.col-auto > div > div.col.col-last.column-units > div > div:nth-child(5) > span:nth-child(3)',
-        []).forEach((element) {
-      parsedData['platinum'] =
-          int.parse(element['title'].replaceAll(",", "").trim());
+    ws
+        .getElementTitle(
+            '#sub-user-info > section > div.col-auto > div > div.col.col-last.column-units > div > div:nth-child(5) > span:nth-child(3)')
+        .forEach((element) {
+      parsedData['platinum'] = int.parse(element.replaceAll(",", "").trim());
     });
     //! Retrieves Profile overall statistics
     //? Retrieves total ganes
-    exophase.getElement(
-        '#sub-user-info > section > div.col-auto > div > div.col.col-last.column-units > div > div.col > span[data-tippy-content="Games owned"]',
-        []).forEach((element) {
-      parsedData['games'] =
-          int.parse(element['title'].replaceAll(",", "").trim());
+    ws
+        .getElementTitle(
+            '#sub-user-info > section > div.col-auto > div > div.col.col-last.column-units > div > div.col > span[data-tippy-content="Games owned"]')
+        .forEach((element) {
+      parsedData['games'] = int.parse(element.replaceAll(",", "").trim());
     });
     //? Retrieves complete games
-    exophase.getElement(
-        '#sub-user-info > section > div.col-auto > div > div.col.col-last.column-units > div > div.col > span[data-tippy-content="Completed games"]',
-        []).forEach((element) {
-      parsedData['complete'] =
-          int.parse(element['title'].replaceAll(",", "").trim());
+    ws
+        .getElementTitle(
+            '#sub-user-info > section > div.col-auto > div > div.col.col-last.column-units > div > div.col > span[data-tippy-content="Completed games"]')
+        .forEach((element) {
+      parsedData['complete'] = int.parse(element.replaceAll(",", "").trim());
       parsedData['incomplete'] = parsedData['games'] - parsedData['complete'];
       parsedData['completePercentage'] =
           (parsedData['complete'] / parsedData['games'] * 100)
@@ -612,18 +631,19 @@ Future<Map> exophaseInfo(String user) async {
               .toStringAsFixed(3);
     });
     //? Retrieves tracked gameplay time
-    exophase.getElement(
-        '#sub-user-info > section > div.col-auto > div > div.col.col-last.column-units > div > div.col > span.tippy.playtime',
-        []).forEach((element) {
+    ws
+        .getElementTitle(
+            '#sub-user-info > section > div.col-auto > div > div.col.col-last.column-units > div > div.col > span.tippy.playtime')
+        .forEach((element) {
       parsedData['hours'] = int.parse(
-          element['title'].replaceAll(",", "").replaceAll(" hours", "").trim());
+          element.replaceAll(",", "").replaceAll(" hours", "").trim());
     });
     //? Retrieves earned EXP
-    exophase.getElement(
-        '#sub-user-info > section > div.col-auto > div > div.col.col-last.column-units > div > div.col > span[data-tippy-content="Earned EXP"]',
-        []).forEach((element) {
-      parsedData['exp'] =
-          int.parse(element['title'].replaceAll(",", "").trim());
+    ws
+        .getElementTitle(
+            '#sub-user-info > section > div.col-auto > div > div.col.col-last.column-units > div > div.col > span[data-tippy-content="Earned EXP"]')
+        .forEach((element) {
+      parsedData['exp'] = int.parse(element.replaceAll(",", "").trim());
     });
     //! Games data
     //? ngames is defined to check how many games this should scan for
@@ -633,116 +653,127 @@ Future<Map> exophaseInfo(String user) async {
     for (var i = 1; i < ngames; i++) {
       parsedGames[i] = {};
       //? Retrieves game image
-      exophase.getElement(
-          '#app > div > div.row.user-container > div.col-12.col-xl-9 > ul > li:nth-child(${(i * 2) - 1}) > div > div > div.box.image > img',
-          ['src']).forEach((element) {
-        parsedGames[i]['gameImage'] = element['attributes']['src'].trim();
+      ws
+          .getElementAttribute(
+              '#app > div > div.row.user-container > div.col-12.col-xl-9 > ul > li:nth-child(${(i * 2) - 1}) > div > div > div.box.image > img',
+              'src')
+          .forEach((element) {
+        parsedGames[i]['gameImage'] = element.trim();
       });
       //? Retrieves game name and link
-      exophase.getElement(
+      ws.getElement(
           '#app > div > div.row.user-container > div.col-12.col-xl-9 > ul > li:nth-child(${(i * 2) - 1}) > div.row.gx-0.align-items-center > div.col.col-game.game-info.pe-3 > div > h3 > a',
           ['href']).forEach((element) {
         parsedGames[i]['gameLink'] = element['attributes']['href'].trim();
         parsedGames[i]['gameName'] = element['title'].trim();
       });
       //? Retrieves game platforms
-      exophase.getElement(
-          '#app > div > div.row.user-container > div.col-12.col-xl-9 > ul > li:nth-child(${(i * 2) - 1}) > div.row.gx-0.align-items-center > div.col.col-game.game-info.pe-3 > div > div',
-          []).forEach((element) {
-        if (element['title'].toLowerCase().contains("ps3")) {
+      ws
+          .getElementTitle(
+              '#app > div > div.row.user-container > div.col-12.col-xl-9 > ul > li:nth-child(${(i * 2) - 1}) > div.row.gx-0.align-items-center > div.col.col-game.game-info.pe-3 > div > div')
+          .forEach((element) {
+        if (element.toLowerCase().contains("ps3")) {
           parsedGames[i]['gamePS3'] = true;
         }
-        if (element['title'].toLowerCase().contains("ps4")) {
+        if (element.toLowerCase().contains("ps4")) {
           parsedGames[i]['gamePS4'] = true;
         }
-        if (element['title'].toLowerCase().contains("ps5")) {
+        if (element.toLowerCase().contains("ps5")) {
           parsedGames[i]['gamePS5'] = true;
         }
-        if (element['title'].toLowerCase().contains("vita")) {
+        if (element.toLowerCase().contains("vita")) {
           parsedGames[i]['gameVita'] = true;
         }
       });
       //? Retrieves game playtime
-      exophase.getElement(
-          '#app > div > div.row.user-container > div.col-12.col-xl-9 > ul > li:nth-child(${(i * 2) - 1}) > div.row.gx-0.align-items-center > div.col.col-game.game-info.pe-3 > div > span.hours',
-          []).forEach((element) {
-        parsedGames[i]['gameTime'] = element['title'].trim();
+      ws
+          .getElementTitle(
+              '#app > div > div.row.user-container > div.col-12.col-xl-9 > ul > li:nth-child(${(i * 2) - 1}) > div.row.gx-0.align-items-center > div.col.col-game.game-info.pe-3 > div > span.hours')
+          .forEach((element) {
+        parsedGames[i]['gameTime'] = element.trim();
       });
-      //? Retrieves game image
-      exophase.getElement(
-          '#app > div > div.row.user-container > div.col-12.col-xl-9 > ul > li:nth-child(${(i * 2) - 1})',
-          ['data-gameid']).forEach((element) {
-        parsedGames[i]['gameID'] = element['attributes']['data-gameid'].trim();
+      //? Retrieves game ID
+      ws
+          .getElementAttribute(
+              '#app > div > div.row.user-container > div.col-12.col-xl-9 > ul > li:nth-child(${(i * 2) - 1})',
+              'data-gameid')
+          .forEach((element) {
+        parsedGames[i]['gameID'] = element.trim();
       });
       //? Retrieves game trophy ratio (trophies earned / trophy total)
-      exophase.getElement(
-          '#app > div > div.row.user-container > div.col-12.col-xl-9 > ul > li:nth-child(${(i * 2) - 1}) > div.row.gx-0.align-items-center > div.col-12.col-md.px-3.pb-4.pe-md-0.pb-md-0.game-progress > div.row.gx-0.progress-units-top.pb-2 > div:first-child',
-          []).forEach((element) {
-        parsedGames[i]['gameRatio'] = element['title'].trim();
+      ws
+          .getElementTitle(
+              '#app > div > div.row.user-container > div.col-12.col-xl-9 > ul > li:nth-child(${(i * 2) - 1}) > div.row.gx-0.align-items-center > div.col-12.col-md.px-3.pb-4.pe-md-0.pb-md-0.game-progress > div.row.gx-0.progress-units-top.pb-2 > div:first-child')
+          .forEach((element) {
+        parsedGames[i]['gameRatio'] = element.trim();
       });
       //? Retrieves game EXP
-      exophase.getElement(
-          '#app > div > div.row.user-container > div.col-12.col-xl-9 > ul > li:nth-child(${(i * 2) - 1}) > div.row.gx-0.align-items-center > div.col-12.col-md.px-3.pb-4.pe-md-0.pb-md-0.game-progress > div.row.gx-0.progress-units-top.pb-2 > div:nth-child(3)',
-          []).forEach((element) {
+      ws
+          .getElementTitle(
+              '#app > div > div.row.user-container > div.col-12.col-xl-9 > ul > li:nth-child(${(i * 2) - 1}) > div.row.gx-0.align-items-center > div.col-12.col-md.px-3.pb-4.pe-md-0.pb-md-0.game-progress > div.row.gx-0.progress-units-top.pb-2 > div:nth-child(3)')
+          .forEach((element) {
         parsedGames[i]['gameEXP'] =
-            int.parse(element['title'].replaceAll(",", "").trim());
+            int.parse(element.replaceAll(",", "").trim());
       });
       //? Retrieves game bronze trophies
-      exophase.getElement(
-          '#app > div > div.row.user-container > div.col-12.col-xl-9 > ul > li:nth-child(${(i * 2) - 1}) > div.row.gx-0.align-items-center > div.col-12.col-md.px-3.pb-4.pe-md-0.pb-md-0.game-progress > div.holders > div > span.bronze',
-          []).forEach((element) {
-        parsedGames[i]['gameBronze'] = int.parse(element['title'].trim());
+      ws
+          .getElementTitle(
+              '#app > div > div.row.user-container > div.col-12.col-xl-9 > ul > li:nth-child(${(i * 2) - 1}) > div.row.gx-0.align-items-center > div.col-12.col-md.px-3.pb-4.pe-md-0.pb-md-0.game-progress > div.holders > div > span.bronze')
+          .forEach((element) {
+        parsedGames[i]['gameBronze'] = int.parse(element.trim());
       });
       //? Retrieves game silver trophies
-      exophase.getElement(
-          '#app > div > div.row.user-container > div.col-12.col-xl-9 > ul > li:nth-child(${(i * 2) - 1}) > div.row.gx-0.align-items-center > div.col-12.col-md.px-3.pb-4.pe-md-0.pb-md-0.game-progress > div.holders > div > span.silver',
-          []).forEach((element) {
-        parsedGames[i]['gameSilver'] = int.parse(element['title'].trim());
+      ws
+          .getElementTitle(
+              '#app > div > div.row.user-container > div.col-12.col-xl-9 > ul > li:nth-child(${(i * 2) - 1}) > div.row.gx-0.align-items-center > div.col-12.col-md.px-3.pb-4.pe-md-0.pb-md-0.game-progress > div.holders > div > span.silver')
+          .forEach((element) {
+        parsedGames[i]['gameSilver'] = int.parse(element.trim());
       });
       //? Retrieves game gold trophies
-      exophase.getElement(
-          '#app > div > div.row.user-container > div.col-12.col-xl-9 > ul > li:nth-child(${(i * 2) - 1}) > div.row.gx-0.align-items-center > div.col-12.col-md.px-3.pb-4.pe-md-0.pb-md-0.game-progress > div.holders > div > span.gold',
-          []).forEach((element) {
-        parsedGames[i]['gameGold'] = int.parse(element['title'].trim());
+      ws
+          .getElementTitle(
+              '#app > div > div.row.user-container > div.col-12.col-xl-9 > ul > li:nth-child(${(i * 2) - 1}) > div.row.gx-0.align-items-center > div.col-12.col-md.px-3.pb-4.pe-md-0.pb-md-0.game-progress > div.holders > div > span.gold')
+          .forEach((element) {
+        parsedGames[i]['gameGold'] = int.parse(element.trim());
       });
       //? Retrieves game platinum trophies
-      exophase.getElement(
+      ws.getElement(
           '#app > div > div.row.user-container > div.col-12.col-xl-9 > ul > li:nth-child(${(i * 2) - 1}) > div.row.gx-0.align-items-center > div.col-12.col-md.px-3.pb-4.pe-md-0.pb-md-0.game-progress > div.holders > div > span.platinum',
           []).forEach((element) {
         parsedGames[i]['gamePlatinum'] = 1;
       });
       //? Retrieves game percentage progress
-      exophase.getElement(
-          '#app > div > div.row.user-container > div.col-12.col-xl-9 > ul > li:nth-child(${(i * 2) - 1}) > div.row.gx-0.align-items-center > div.col-12.col-md.px-3.pb-4.pe-md-0.pb-md-0.game-progress > div.progress > div',
-          ['style']).forEach((element) {
-        parsedGames[i]['gamePercentage'] = int.parse(element['attributes']
-                ['style']
-            .replaceAll("%;", "")
-            .replaceAll("width: ", "")
-            .trim());
+      ws
+          .getElementAttribute(
+              '#app > div > div.row.user-container > div.col-12.col-xl-9 > ul > li:nth-child(${(i * 2) - 1}) > div.row.gx-0.align-items-center > div.col-12.col-md.px-3.pb-4.pe-md-0.pb-md-0.game-progress > div.progress > div',
+              'style')
+          .forEach((element) {
+        parsedGames[i]['gamePercentage'] = int.parse(
+            element.replaceAll("%;", "").replaceAll("width: ", "").trim());
       });
       //? Retrieves game last played date
-      exophase.getElement(
-          '#app > div > div.row.user-container > div.col-12.col-xl-9 > ul > li:nth-child(${(i * 2) - 1}) > div.row.gx-0.align-items-center > div.col-12.col-md.col-lastplayed.text-center.text-md-end.mb-2.mb-md-0 > div.lastplayed',
-          []).forEach((element) {
-        parsedGames[i]['gameLastPlayed'] = element['title'].trim();
+      ws
+          .getElementTitle(
+              '#app > div > div.row.user-container > div.col-12.col-xl-9 > ul > li:nth-child(${(i * 2) - 1}) > div.row.gx-0.align-items-center > div.col-12.col-md.col-lastplayed.text-center.text-md-end.mb-2.mb-md-0 > div.lastplayed')
+          .forEach((element) {
+        parsedGames[i]['gameLastPlayed'] = element.trim();
       });
     }
+    settings.put('exophaseDump', parsedData);
+    // print(parsedGames);
+    settings.put('exophaseGames', parsedGames);
   } catch (e) {
     print("error scanning Exophase");
-    parsedData = {};
+    parsedData = null;
     settings.put('exophase', false);
   }
-  print(parsedData);
-  settings.put('exophaseDump', parsedData);
-  // print(parsedGames);
-  settings.put('exophaseGames', parsedGames);
+  // print(parsedData);
   return parsedData;
 }
 
 //? This will make a request to True Trophies to retrieve a small clickable profile card
 Future<Map> trueTrophiesInfo(String user) async {
-  await tt.loadWebPage('gamer/$user/');
+  await ws.loadFullURL('https://www.truetrophies.com/gamer/$user/');
   Map<String, dynamic> parsedData = {};
   try {
     //? True Trophies games list:
@@ -760,11 +791,12 @@ Future<Map> trueTrophiesInfo(String user) async {
 
     //! Retrieves basic profile information, like avatar, about me, PSN ID, level, etc
     //? Retrieves PSN ID
-    tt.getElement(
-        '#frm > div.page.tt.limit > div.main.middle > main > div.panel-header.t.gamer > span > h1 > a',
-        []).forEach((element) {
-      parsedData['psnID'] = element['title'].trim();
-      if (parsedData['psnID'] != user) {
+    ws
+        .getElementTitle(
+            '#frm > div.page.tt.limit > div.main.middle > main > div.panel-header.t.gamer > span > h1 > a')
+        .forEach((element) {
+      parsedData['psnID'] = element.trim();
+      if (parsedData['psnID'] != user && !parsedData['psnID'].contains(' ')) {
         settings.put('psnID', parsedData['psnID']);
       }
     });
@@ -773,21 +805,23 @@ Future<Map> trueTrophiesInfo(String user) async {
       throw Error;
     }
     //? Retrieves PSN country
-    tt.getElement(
-        '#frm > div.page.tt.limit > div.main.middle > main > div.panel-header.t.gamer > span > a > img',
-        ['src']).forEach((element) {
-      parsedData['country'] =
-          "https://www.truetrophies.com/" + element['attributes']['src'].trim();
+    ws
+        .getElementAttribute(
+            '#frm > div.page.tt.limit > div.main.middle > main > div.panel-header.t.gamer > span > a > img',
+            'src')
+        .forEach((element) {
+      parsedData['country'] = "https://www.truetrophies.com/" + element.trim();
     });
     //? Retrieves PSN avatar
-    tt.getElement(
-        '#frm > div.page.tt.limit > div.main.middle > main > div.panel-header.t.gamer > img',
-        ['src']).forEach((element) {
-      parsedData['avatar'] =
-          "https://www.truetrophies.com/" + element['attributes']['src'];
+    ws
+        .getElementAttribute(
+            '#frm > div.page.tt.limit > div.main.middle > main > div.panel-header.t.gamer > img',
+            'src')
+        .forEach((element) {
+      parsedData['avatar'] = "https://www.truetrophies.com/" + element;
     });
     //? Retrieves PSN Level and TrueTrophy level
-    tt.getElement(
+    ws.getElement(
         '#frm > div.page.tt.limit > div.main.middle > main > div.panel-header.t.gamer > div.scores > span:nth-child(2)',
         ['title']).forEach((element) {
       if (element['attributes']['title'].contains("TrueLevel:")) {
@@ -800,60 +834,60 @@ Future<Map> trueTrophiesInfo(String user) async {
     });
     //! Retrieves trophy data
     //? Retrieves Total trophies
-    tt.getElement(
-        '#frm > div.page.tt.limit > div.main.middle > main > div.panel-header.t.gamer > div.scores > a',
-        []).forEach((element) {
-      parsedData['total'] =
-          int.parse(element['title'].replaceAll(",", "").trim());
+    ws
+        .getElementTitle(
+            '#frm > div.page.tt.limit > div.main.middle > main > div.panel-header.t.gamer > div.scores > a')
+        .forEach((element) {
+      parsedData['total'] = int.parse(element.replaceAll(",", "").trim());
     });
     //? Retrieves bronze trophies
-    tt.getElement(
-        '#frm > div.page.tt.limit > div.main.middle > main > div.panel-header.t.gamer > div.stats > a:nth-child(3)',
-        ['title']).forEach((element) {
-      parsedData['bronze'] = int.parse(element['attributes']['title']
-          .split(" ")[0]
-          .replaceAll(",", "")
-          .trim());
+    ws
+        .getElementAttribute(
+            '#frm > div.page.tt.limit > div.main.middle > main > div.panel-header.t.gamer > div.stats > a:nth-child(3)',
+            'title')
+        .forEach((element) {
+      parsedData['bronze'] =
+          int.parse(element.split(" ")[0].replaceAll(",", "").trim());
     });
     //? Retrieves silver trophies
-    tt.getElement(
-        '#frm > div.page.tt.limit > div.main.middle > main > div.panel-header.t.gamer > div.stats > a:nth-child(2)',
-        ['title']).forEach((element) {
-      parsedData['silver'] = int.parse(element['attributes']['title']
-          .split(" ")[0]
-          .replaceAll(",", "")
-          .trim());
+    ws
+        .getElementAttribute(
+            '#frm > div.page.tt.limit > div.main.middle > main > div.panel-header.t.gamer > div.stats > a:nth-child(2)',
+            'title')
+        .forEach((element) {
+      parsedData['silver'] =
+          int.parse(element.split(" ")[0].replaceAll(",", "").trim());
     });
     //? Retrieves gold trophies
-    tt.getElement(
-        '#frm > div.page.tt.limit > div.main.middle > main > div.panel-header.t.gamer > div.stats > a:nth-child(1)',
-        ['title']).forEach((element) {
-      parsedData['gold'] = int.parse(element['attributes']['title']
-          .split(" ")[0]
-          .replaceAll(",", "")
-          .trim());
+    ws
+        .getElementAttribute(
+            '#frm > div.page.tt.limit > div.main.middle > main > div.panel-header.t.gamer > div.stats > a:nth-child(1)',
+            'title')
+        .forEach((element) {
+      parsedData['gold'] =
+          int.parse(element.split(" ")[0].replaceAll(",", "").trim());
     });
     //? Retrieves platinum trophies
-    tt.getElement(
-        '#frm > div.page.tt.limit > div.main.middle > main > div.panel-header.t.gamer > div.stats > a:first-child',
-        ['title']).forEach((element) {
-      parsedData['platinum'] = int.parse(element['attributes']['title']
-          .split(" ")[0]
-          .replaceAll(",", "")
-          .trim());
+    ws
+        .getElementAttribute(
+            '#frm > div.page.tt.limit > div.main.middle > main > div.panel-header.t.gamer > div.stats > a:first-child',
+            'title')
+        .forEach((element) {
+      parsedData['platinum'] =
+          int.parse(element.split(" ")[0].replaceAll(",", "").trim());
     });
     //! Retrieves Profile overall statistics
     //? Retrieves total ganes
-    tt.getElement(
-        '#frm > div.page.tt.limit > div.main.middle > main > div.panel-header.t.gamer > div.stats > a:nth-child(4)',
-        ['title']).forEach((element) {
-      parsedData['games'] = int.parse(element['attributes']['title']
-          .split(" ")[0]
-          .replaceAll(",", "")
-          .trim());
+    ws
+        .getElementAttribute(
+            '#frm > div.page.tt.limit > div.main.middle > main > div.panel-header.t.gamer > div.stats > a:nth-child(4)',
+            'title')
+        .forEach((element) {
+      parsedData['games'] =
+          int.parse(element.split(" ")[0].replaceAll(",", "").trim());
     });
     //? Retrieves complete ganes
-    tt.getElement(
+    ws.getElement(
         '#frm > div.page.tt.limit > div.main.middle > main > div.panel-header.t.gamer > div.badges > div > div > a',
         ['title']).forEach((element) {
       if (element['attributes']['title'] != null &&
@@ -870,7 +904,7 @@ Future<Map> trueTrophiesInfo(String user) async {
       }
     });
     //? Retrieves TrueTrophy Ratio
-    tt.getElement(
+    ws.getElement(
         '#frm > div.page.tt.limit > div.main.middle > main > div.panel-header.t.gamer > div.badges > div > div > a',
         ['title']).forEach((element) {
       if (element['attributes']['title'] != null &&
@@ -880,7 +914,7 @@ Future<Map> trueTrophiesInfo(String user) async {
       }
     });
     //? Retrieves completion and how many trophies to increase it
-    tt.getElement(
+    ws.getElement(
         '#frm > div.page.tt.limit > div.main.middle > main > div.panel-header.t.gamer > div.badges > div > div > a',
         ['title']).forEach((element) {
       if (element['attributes']['title'] != null &&
@@ -891,36 +925,61 @@ Future<Map> trueTrophiesInfo(String user) async {
             .split(" - ")[1]
             .split("more")[0]
             .trim());
+        parsedData['nextCompletion'] =
+            element['attributes']['title'].split("reach ")[1].trim();
       }
     });
     //? Retrieves TrueScore
-    tt.getElement(
-        '#frm > div.page.tt.limit > div.main.middle > main > div.panel-header.t.gamer > div.scores > span:first-child',
-        []).forEach((element) {
-      parsedData['trueScore'] =
-          int.parse(element['title'].replaceAll(",", "").trim());
+    ws
+        .getElementTitle(
+            '#frm > div.page.tt.limit > div.main.middle > main > div.panel-header.t.gamer > div.scores > span:first-child')
+        .forEach((element) {
+      parsedData['trueScore'] = int.parse(element.replaceAll(",", "").trim());
     });
+    settings.put('trueTrophiesDump', parsedData);
   } catch (e) {
     print("error scanning True Trophies");
-    parsedData = {};
+    parsedData = null;
     settings.put('trueTrophies', false);
   }
   // print(parsedData);
-  settings.put('trueTrophiesDump', parsedData);
   return parsedData;
 }
 
 //? This will make a request to PSN 100% to retrieve a small clickable profile card
 Future<Map> psn100Info(String user) async {
-  await psn100.loadWebPage('player/$user');
+  // try {
+  //   WebScraper pageContent = WebScraper();
+  //   print("Created a WebScraper Object");
+  //   await pageContent.loadFullURL("https://psn100.net/");
+  //   print("Loaded webpage from URL");
+  //   String page = pageContent.getPageContent();
+  //   print("Stringified page's body");
+  //   // print(page);
+  //   WebScraper pagev2 = WebScraper();
+  //   pagev2.loadFromString(page);
+  //   print("Loaded page from string");
+  //   pagev2
+  //       .getElementTitle(
+  //           "body > main > div > div > div > div > div > table > tbody > tr > td > a")
+  //       .forEach((element) {
+  //     print("[" + element.trim() + "]");
+  //   });
+  // } catch (e) {
+  //   print("error");
+  // }
+
+  await ws.loadFullURL('https://psn100.net/player/$user');
   Map<String, dynamic> parsedData = {};
   try {
     //! Retrieves basic profile information, like avatar, about me, PSN ID, level, etc
     //? Retrieves PSN ID
-    psn100.getElement('body > main > div > div:nth-child(1) > div.col-8 > h1',
-        []).forEach((element) {
-      parsedData['psnID'] = element['title'].trim();
-      if (parsedData['psnID'] != user) {
+    ws
+        .getElementTitle(
+            'body > main > div > div:nth-child(1) > div.col-8 > h1')
+        .forEach((element) {
+      parsedData['psnID'] = element.trim();
+      if (parsedData['psnID'] != user && !parsedData['psnID'].contains(' ')) {
         settings.put('psnID', parsedData['psnID']);
       }
     });
@@ -928,88 +987,91 @@ Future<Map> psn100Info(String user) async {
       throw Error;
     }
     //? Retrieves PSN country
-    psn100.getElement(
-        'body > main > div > div:nth-child(1) > div.col-2.text-right > img',
-        ['src']).forEach((element) {
-      parsedData['country'] = element['attributes']['src']
-          .replaceAll("/img/country/", "")
-          .replaceAll(".svg", "")
-          .trim();
+    ws
+        .getElementAttribute(
+            'body > main > div > div:nth-child(1) > div.col-2.text-right > img',
+            'src')
+        .forEach((element) {
+      parsedData['country'] =
+          element.replaceAll("/img/country/", "").replaceAll(".svg", "").trim();
     });
     //? Retrieves PSN avatar
-    psn100.getElement(
-        'body > main > div > div:nth-child(1) > div:nth-child(1) > div > img:nth-child(1)',
-        ['src']).forEach((element) {
-      parsedData['avatar'] =
-          'https://psn100.net/' + element['attributes']['src'];
+    ws
+        .getElementAttribute(
+            'body > main > div > div:nth-child(1) > div:nth-child(1) > div > img:nth-child(1)',
+            'src')
+        .forEach((element) {
+      parsedData['avatar'] = 'https://psn100.net/' + element;
     });
     //? Retrieves PSN Level progress first and then the level itself
     //? This is done because there is no individual DIV for the level, so you gotta
     //? fetch both and then remove the progress text from the level
-    psn100.getElement(
-        'body > main > div.container > div:nth-child(3) > div:first-child > div',
-        []).forEach((element) {
-      parsedData['levelProgress'] = element['title'].trim();
+    ws
+        .getElementTitle(
+            'body > main > div.container > div:nth-child(3) > div:first-child > div')
+        .forEach((element) {
+      parsedData['levelProgress'] = element.trim();
     });
     //? Retrieves PSN Level
-    psn100.getElement(
-        'body > main > div.container > div:nth-child(3) > div:first-child',
-        []).forEach((element) {
-      parsedData['level'] = int.parse(element['title']
+    ws
+        .getElementTitle(
+            'body > main > div.container > div:nth-child(3) > div:first-child')
+        .forEach((element) {
+      parsedData['level'] = int.parse(element
           .replaceAll(parsedData['levelProgress'], "")
           .replaceAll(",", ""));
     });
     //! Retrieves trophy data
     //? Retrieves Total trophies
-    psn100.getElement(
-        'body > main > div.container > div:nth-child(3) > div:nth-child(11)',
-        []).forEach((element) {
+    ws
+        .getElementTitle(
+            'body > main > div.container > div:nth-child(3) > div:nth-child(11)')
+        .forEach((element) {
       // print(element);
-      parsedData['total'] =
-          int.parse(element['title'].replaceAll(",", "").trim());
+      parsedData['total'] = int.parse(element.replaceAll(",", "").trim());
     });
     //? Retrieves bronze trophies
-    psn100.getElement(
-        'body > main > div.container > div:nth-child(3) > div:nth-child(3)',
-        []).forEach((element) {
-      parsedData['bronze'] =
-          int.parse(element['title'].replaceAll(",", "").trim());
+    ws
+        .getElementTitle(
+            'body > main > div.container > div:nth-child(3) > div:nth-child(3)')
+        .forEach((element) {
+      parsedData['bronze'] = int.parse(element.replaceAll(",", "").trim());
     });
     //? Retrieves silver trophies
-    psn100.getElement(
-        'body > main > div.container > div:nth-child(3) > div:nth-child(5)',
-        []).forEach((element) {
-      parsedData['silver'] =
-          int.parse(element['title'].replaceAll(",", "").trim());
+    ws
+        .getElementTitle(
+            'body > main > div.container > div:nth-child(3) > div:nth-child(5)')
+        .forEach((element) {
+      parsedData['silver'] = int.parse(element.replaceAll(",", "").trim());
     });
     //? Retrieves gold trophies
-    psn100.getElement(
-        'body > main > div.container > div:nth-child(3) > div:nth-child(7)',
-        []).forEach((element) {
-      parsedData['gold'] =
-          int.parse(element['title'].replaceAll(",", "").trim());
+    ws
+        .getElementTitle(
+            'body > main > div.container > div:nth-child(3) > div:nth-child(7)')
+        .forEach((element) {
+      parsedData['gold'] = int.parse(element.replaceAll(",", "").trim());
     });
     //? Retrieves platinum trophies
-    psn100.getElement(
-        'body > main > div.container > div:nth-child(3) > div:nth-child(9)',
-        []).forEach((element) {
-      parsedData['platinum'] =
-          int.parse(element['title'].replaceAll(",", "").trim());
+    ws
+        .getElementTitle(
+            'body > main > div.container > div:nth-child(3) > div:nth-child(9)')
+        .forEach((element) {
+      parsedData['platinum'] = int.parse(element.replaceAll(",", "").trim());
     });
     //! Retrieves Profile overall statistics
     //? Retrieves total ganes
-    psn100.getElement(
-        'body > main > div > div:nth-child(5) > div:first-child > h5',
-        []).forEach((element) {
-      parsedData['games'] =
-          int.parse(element['title'].replaceAll(",", "").trim());
+    ws
+        .getElementTitle(
+            'body > main > div > div:nth-child(5) > div:first-child > h5')
+        .forEach((element) {
+      parsedData['games'] = int.parse(element.replaceAll(",", "").trim());
     });
     //? Retrieves complete ganes
-    psn100.getElement(
-        'body > main > div > div:nth-child(5) > div:nth-child(3) > h5',
-        []).forEach((element) {
-      parsedData['complete'] =
-          int.parse(element['title'].replaceAll(",", "").trim());
+    ws
+        .getElementTitle(
+            'body > main > div > div:nth-child(5) > div:nth-child(3) > h5')
+        .forEach((element) {
+      parsedData['complete'] = int.parse(element.replaceAll(",", "").trim());
       parsedData['incomplete'] = parsedData['games'] - parsedData['complete'];
       parsedData['completePercentage'] =
           (parsedData['complete'] / parsedData['games'] * 100)
@@ -1019,54 +1081,65 @@ Future<Map> psn100Info(String user) async {
               .toStringAsFixed(3);
     });
     //? Retrieves completion
-    psn100.getElement(
-        'body > main > div > div:nth-child(5) > div:nth-child(5) > h5',
-        []).forEach((element) {
+    ws
+        .getElementTitle(
+            'body > main > div > div:nth-child(5) > div:nth-child(5) > h5')
+        .forEach((element) {
       parsedData['completion'] =
-          element['title'].replaceAll(" average completion", "").trim();
+          element.replaceAll(" average completion", "").trim();
     });
     //? Retrieves unearned trophies
-    psn100.getElement(
-        'body > main > div > div:nth-child(5) > div:nth-child(7) > h5',
-        []).forEach((element) {
-      parsedData['unearned'] =
-          int.parse(element['title'].replaceAll(",", "").trim());
+    ws
+        .getElementTitle(
+            'body > main > div > div:nth-child(5) > div:nth-child(7) > h5')
+        .forEach((element) {
+      parsedData['unearned'] = int.parse(element.replaceAll(",", "").trim());
+
+      parsedData['unearnedPercentage'] = (parsedData['unearned'] /
+              (parsedData['total'] + parsedData['unearned']) *
+              100)
+          .toStringAsFixed(3);
+      parsedData['totalPercentage'] = ((parsedData['total']) /
+              (parsedData['total'] + parsedData['unearned']) *
+              100)
+          .toStringAsFixed(3);
     });
     //? Retrieves world rank by trophy points
-    psn100.getElement(
-        'body > main > div > div:nth-child(5) > div:nth-child(9) > h5 > a:first-child',
-        []).forEach((element) {
-      parsedData['worldRank'] =
-          int.parse(element['title'].replaceAll(",", "").trim());
+    ws
+        .getElementTitle(
+            'body > main > div > div:nth-child(5) > div:nth-child(9) > h5 > a:first-child')
+        .forEach((element) {
+      parsedData['worldRank'] = int.parse(element.replaceAll(",", "").trim());
     });
     //? Retrieves world rank by rarity
-    psn100.getElement(
-        'body > main > div > div:nth-child(5) > div:nth-child(9) > h5 > a:nth-child(3)',
-        []).forEach((element) {
-      parsedData['worldRarity'] =
-          int.parse(element['title'].replaceAll(",", "").trim());
+    ws
+        .getElementTitle(
+            'body > main > div > div:nth-child(5) > div:nth-child(9) > h5 > a:nth-child(3)')
+        .forEach((element) {
+      parsedData['worldRarity'] = int.parse(element.replaceAll(",", "").trim());
     });
     //? Retrieves country rank by points
-    psn100.getElement(
-        'body > main > div > div:nth-child(5) > div:nth-child(11) > h5 > a:first-child',
-        []).forEach((element) {
-      parsedData['countryRank'] =
-          int.parse(element['title'].replaceAll(",", "").trim());
+    ws
+        .getElementTitle(
+            'body > main > div > div:nth-child(5) > div:nth-child(11) > h5 > a:first-child')
+        .forEach((element) {
+      parsedData['countryRank'] = int.parse(element.replaceAll(",", "").trim());
     });
     //? Retrieves country rank by rarity
-    psn100.getElement(
-        'body > main > div > div:nth-child(5) > div:nth-child(11) > h5 > a:nth-child(3)',
-        []).forEach((element) {
+    ws
+        .getElementTitle(
+            'body > main > div > div:nth-child(5) > div:nth-child(11) > h5 > a:nth-child(3)')
+        .forEach((element) {
       parsedData['countryRarity'] =
-          int.parse(element['title'].replaceAll(",", "").trim());
+          int.parse(element.replaceAll(",", "").trim());
     });
+    settings.put('psn100Dump', parsedData);
   } catch (e) {
     print("error scanning PSN 100%");
-    parsedData = {};
+    parsedData = null;
     settings.put('psn100', false);
   }
   // print(parsedData);
-  settings.put('psn100Dump', parsedData);
   return parsedData;
 }
 
@@ -1081,6 +1154,8 @@ Map<String, Map<String, String>> regionSelect() {
       "inputID": "Please, provide your PSN ID:",
       "IDhere": "PSN ID goes here...",
       "settings": "Settings",
+      'errorPSN':
+          'No cards to display!\nThis happens because either you disabled all cards or provided a PSN ID that no website is tracking. You can fix either of those issues on the settings menu.',
       "supportedWebsites": "Avaiable websites:",
       "games": "Games\nTracked:",
       "complete": "Games\nCompleted:",
@@ -1166,7 +1241,7 @@ Map<String, Map<String, String>> regionSelect() {
       "list": "Enable list view",
     },
     //? Since this is just the version number, this doesn't get translated regardless of chosen language.
-    "version": {"version": "v0.9.16"}
+    "version": {"version": "v0.12.26"}
   };
   //? This changes language to Brazilian Portuguese
   if (settings.get("language") == "br") {
@@ -1175,6 +1250,8 @@ Map<String, Map<String, String>> regionSelect() {
       "inputID": "Por favor, informe sua ID PSN:",
       "IDhere": "ID da PSN vai aqui...",
       "settings": "Configurações",
+      'errorPSN':
+          'Nenhum cartão para mostrar!\nIsso acontece porque ou você desativou todos os cartões ou a ID usada não é registrada em nenhum dos sites suportados. Você pode resolver qualquer uma dessas situações nas configurações.',
       "supportedWebsites": "Sites disponíveis:",
       "games": "Jogos\nregistrados:",
       "complete": "Jogos\nConcluídos:",
@@ -1293,25 +1370,33 @@ TextStyle textSelection(String theme) {
     return TextStyle(
         color: themeSelector["secondary"][settings.get("theme")],
         fontSize: Platform.isWindows ? 20 : 16,
-        fontWeight: FontWeight.bold);
+        fontWeight: FontWeight.bold,
+        decoration: TextDecoration.none,
+        fontFamily: 'RobotoMono');
   } else if (theme == "textDark") {
     //? Option for dark thin text
     return TextStyle(
-      color: themeSelector["primary"][settings.get("theme")],
-      fontSize: Platform.isWindows ? 16 : 12,
-    );
+        color: themeSelector["primary"][settings.get("theme")],
+        fontSize: Platform.isWindows ? 16 : 12,
+        fontWeight: FontWeight.normal,
+        decoration: TextDecoration.none,
+        fontFamily: 'RobotoMono');
   } else if (theme == "textDarkBold") {
 //? Option for dark bold text
     return TextStyle(
         color: themeSelector["primary"][settings.get("theme")],
         fontSize: Platform.isWindows ? 20 : 16,
-        fontWeight: FontWeight.bold);
+        fontWeight: FontWeight.bold,
+        decoration: TextDecoration.none,
+        fontFamily: 'RobotoMono');
   } else {
     //? Option for light thin text
     return TextStyle(
-      color: themeSelector["secondary"][settings.get("theme")],
-      fontSize: Platform.isWindows ? 16 : 12,
-    );
+        color: themeSelector["secondary"][settings.get("theme")],
+        fontSize: Platform.isWindows ? 16 : 12,
+        fontWeight: FontWeight.normal,
+        decoration: TextDecoration.none,
+        fontFamily: 'RobotoMono');
   }
 }
 
@@ -1680,6 +1765,30 @@ Row levelType(int plat, int gold, int silver, int bronze) {
   } else {
     return oldPsnLevel(plat, gold, silver, bronze);
   }
+}
+
+//? This function takes your earned trophies and returns a List of how much
+//? each trophy type is giving you of your points total. It can also be used to
+//? calculate points distribution when totals are below 100%, like an incomplete trophy list.
+trophyPointsDistribution(
+    int plat, int gold, int silver, int bronze, int total) {
+  int p = plat * (settings.get('levelType') == "new" ? 20 : 12);
+  int g = gold * 6;
+  int s = silver * 2;
+  int b = bronze;
+  int sum = p + g + s + b;
+  if (total == 0) {
+    total = 1;
+    sum = 1;
+  }
+  double pValue = (100 * p / sum * 100 * total / 100).ceil() / 100;
+  double gValue = (100 * g / sum * 100 * total / 100).floor() / 100;
+  double sValue = (100 * s / sum * 100 * total / 100).floor() / 100;
+  double bValue = (100 * b / sum * 100 * total / 100).floor() / 100;
+  List<double> numbers = [pValue, gValue, sValue, bValue];
+  // print(numbers);
+  // print(numbers.reduce((value, element) => value + element));
+  return numbers;
 }
 
 //? This function will return a loading selector, you just need to provide the theme
@@ -2138,7 +2247,7 @@ class _MyHomePageState extends State<MyHomePage> {
                               }),
                         ),
                         Tooltip(
-                          message: 'PSN Trophy Leaders (🐌)',
+                          message: 'PSN Trophy Leaders',
                           child: InkWell(
                               child: Container(
                                 decoration: BoxDecoration(
@@ -2146,7 +2255,7 @@ class _MyHomePageState extends State<MyHomePage> {
                                   //? If it's false or null (never set), we will paint red.
                                   border: Border.all(
                                       color: settings.get('psntl') != false
-                                          ? Colors.orange
+                                          ? Colors.green
                                           : Colors.red,
                                       width: 5),
                                   borderRadius:
@@ -2614,18 +2723,24 @@ class _MyHomePageState extends State<MyHomePage> {
                         ],
                       ),
                       onTap: () {
+                        settings.delete('psnpDump');
+                        settings.delete('psntlDump');
+                        settings.delete('exophaseDump');
+                        settings.delete('exophaseGames');
+                        settings.delete('trueTrophiesDump');
+                        settings.delete('psn100Dump');
+                        settings.put('psnp', true);
+                        settings.put('psntl', true);
+                        settings.put('exophase', true);
+                        settings.put('trueTrophies', true);
+                        settings.put('psn100', true);
                         setState(() {
                           settings.delete("psnID");
-                          settings.delete('psnpDump');
                           psnpDump = null;
-                          settings.delete('psntlDump');
                           psntlDump = null;
-                          settings.delete('exophaseDump');
-                          settings.delete('exophaseGames');
                           exophaseDump = null;
-                          settings.delete('trueTrophiesDump');
+                          // exophaseGames = null;
                           trueTrophiesDump = null;
-                          settings.delete('psn100Dump');
                           psn100Dump = null;
                         });
                       },
@@ -2670,7 +2785,7 @@ class _MyHomePageState extends State<MyHomePage> {
                                 hintText: regionalText['home']['IDhere']),
                             textAlign: TextAlign.center,
                             autocorrect: false,
-                            // autofocus: true,
+                            autofocus: Platform.isWindows ? true : false,
                             onChanged: (text) {
                               debounce.run(() {
                                 //! Perform search here later to validate the ID provided
@@ -2726,7 +2841,7 @@ class _MyHomePageState extends State<MyHomePage> {
                               width: 10,
                             ),
                             Tooltip(
-                              message: 'PSN Trophy Leaders (🐌)',
+                              message: 'PSN Trophy Leaders',
                               child: Container(
                                 height: 50,
                                 width: Platform.isWindows ? 200 : 150,
@@ -2906,8 +3021,9 @@ class _MyHomePageState extends State<MyHomePage> {
                         // //! PSN Profiles card display
                         if (settings.get("psnp") != false)
                           Container(
-                            margin: EdgeInsets.all(15),
-                            padding: EdgeInsets.all(15),
+                            margin: EdgeInsets.all(Platform.isWindows ? 15 : 5),
+                            padding:
+                                EdgeInsets.all(Platform.isWindows ? 15 : 10),
                             width: MediaQuery.of(context).size.width,
                             //! Height undefined until all items are added to avoid overflow error.
                             // height: 220,
@@ -3241,7 +3357,8 @@ class _MyHomePageState extends State<MyHomePage> {
                                       )
                                     ],
                                   );
-                                } //? Display error screen if fails to fetch information
+                                }
+                                //? Display error screen if fails to fetch information
                                 else if (snapshot.data == null) {
                                   return Center(
                                     child: Row(
@@ -3274,8 +3391,9 @@ class _MyHomePageState extends State<MyHomePage> {
                         // ! PSN Trophy Leaders card display
                         if (settings.get("psntl") != false)
                           Container(
-                            margin: EdgeInsets.all(15),
-                            padding: EdgeInsets.all(15),
+                            margin: EdgeInsets.all(Platform.isWindows ? 15 : 5),
+                            padding:
+                                EdgeInsets.all(Platform.isWindows ? 15 : 10),
                             width: MediaQuery.of(context).size.width,
                             //! Height undefined until all items are added to avoid overflow error.
                             // height: 220,
@@ -3364,8 +3482,7 @@ class _MyHomePageState extends State<MyHomePage> {
                                           ),
                                           InkWell(
                                             child: Tooltip(
-                                              message:
-                                                  'PSN Trophy Leaders (🐌)',
+                                              message: 'PSN Trophy Leaders',
                                               child: Image.network(
                                                 "https://psntl.com/favicon.ico",
                                                 scale: 0.7,
@@ -3518,7 +3635,7 @@ class _MyHomePageState extends State<MyHomePage> {
                                                 ? 10.0
                                                 : 5.0),
                                         Text(
-                                          'PSN Trophy Leaders (🐌)',
+                                          'PSN Trophy Leaders',
                                           style: textSelection("textLightBold"),
                                         )
                                       ],
@@ -3535,8 +3652,9 @@ class _MyHomePageState extends State<MyHomePage> {
                         //! Exophase card display
                         if (settings.get("exophase") != false)
                           Container(
-                            margin: EdgeInsets.all(15),
-                            padding: EdgeInsets.all(15),
+                            margin: EdgeInsets.all(Platform.isWindows ? 15 : 5),
+                            padding:
+                                EdgeInsets.all(Platform.isWindows ? 15 : 10),
                             width: MediaQuery.of(context).size.width,
                             //! Height undefined until all items are added to avoid overflow error.
                             // height: 220,
@@ -3835,8 +3953,9 @@ class _MyHomePageState extends State<MyHomePage> {
                         //! True Trophies card display
                         if (settings.get("trueTrophies") != false)
                           Container(
-                            margin: EdgeInsets.all(15),
-                            padding: EdgeInsets.all(15),
+                            margin: EdgeInsets.all(Platform.isWindows ? 15 : 5),
+                            padding:
+                                EdgeInsets.all(Platform.isWindows ? 15 : 10),
                             width: MediaQuery.of(context).size.width,
                             //! Height undefined until all items are added to avoid overflow error.
                             // height: 220,
@@ -4084,7 +4203,7 @@ class _MyHomePageState extends State<MyHomePage> {
                                                       ? 10.0
                                                       : 5.0),
                                               child: Text(
-                                                "${regionalText["home"]["completion"]}\n${snapshot.data['completion'].toString()}%\n(+${snapshot.data['completionIncrease']} ➡️ ${snapshot.data['completion'].ceil().toString()}%)",
+                                                "${regionalText["home"]["completion"]}\n${snapshot.data['completion'].toString()}%\n(+${snapshot.data['completionIncrease']} ➡️ ${snapshot.data['nextCompletion'] ?? snapshot.data['completion'].ceil().toString() + "%"})",
                                                 style: textSelection(""),
                                                 textAlign: TextAlign.center,
                                               ),
@@ -4127,8 +4246,9 @@ class _MyHomePageState extends State<MyHomePage> {
                         //! PSN 100% card display
                         if (settings.get("psn100") != false)
                           Container(
-                            margin: EdgeInsets.all(15),
-                            padding: EdgeInsets.all(15),
+                            margin: EdgeInsets.all(Platform.isWindows ? 15 : 5),
+                            padding:
+                                EdgeInsets.all(Platform.isWindows ? 15 : 10),
                             width: MediaQuery.of(context).size.width,
                             //! Height undefined until all items are added to avoid overflow error.
                             // height: 220,
@@ -4250,7 +4370,7 @@ class _MyHomePageState extends State<MyHomePage> {
                                                   Platform.isWindows ? 20 : 5),
                                           trophyType('total',
                                               quantity:
-                                                  "${snapshot.data['total'].toString()}"),
+                                                  "${snapshot.data['total'].toString()} (${snapshot.data['totalPercentage']}%)"),
                                         ],
                                       ),
                                       Divider(
@@ -4408,6 +4528,68 @@ class _MyHomePageState extends State<MyHomePage> {
                               },
                             ),
                           ),
+                        if (settings.get("psnp") == false &&
+                            settings.get("psntl") == false &&
+                            settings.get("exophase") == false &&
+                            settings.get("trueTrophies") == false &&
+                            settings.get("psn100") == false)
+                          Container(
+                            width: MediaQuery.of(context).size.width,
+                            margin: EdgeInsets.all(Platform.isWindows ? 15 : 5),
+                            padding:
+                                EdgeInsets.all(Platform.isWindows ? 15 : 10),
+                            child: Center(
+                              child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(Icons.error,
+                                        size: 70,
+                                        color: themeSelector['secondary']
+                                            [settings.get('theme')]),
+                                    SizedBox(width: 10),
+                                    Container(
+                                      width: MediaQuery.of(context).size.width -
+                                          150,
+                                      child: Column(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Text(
+                                            regionalText["home"]["errorPSN"],
+                                            style: textSelection(""),
+                                            softWrap: true,
+                                            textAlign: TextAlign.center,
+                                          ),
+                                          SizedBox(height: 10),
+                                          Builder(
+                                            builder: (context) => InkWell(
+                                              child: ClipRRect(
+                                                borderRadius: BorderRadius.all(
+                                                    Radius.circular(7)),
+                                                child: Container(
+                                                  color: themeSelector[
+                                                          'secondary']
+                                                      [settings.get('theme')],
+                                                  padding: EdgeInsets.all(5),
+                                                  child: Text(
+                                                      regionalText["home"]
+                                                          ["settings"],
+                                                      style: textSelection(
+                                                          'textDark')),
+                                                ),
+                                              ),
+                                              onTap: () {
+                                                Scaffold.of(context)
+                                                    .openEndDrawer();
+                                              },
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    )
+                                  ]),
+                            ),
+                            decoration: boxDeco(),
+                          )
                       ],
                     ),
                   ),
@@ -4421,6 +4603,7 @@ class _MyHomePageState extends State<MyHomePage> {
                       mainAxisAlignment: MainAxisAlignment.spaceAround,
                       mainAxisSize: MainAxisSize.max,
                       children: [
+                        //? Translation button
                         InkWell(
                           highlightColor: Colors.transparent,
                           splashColor: Colors.transparent,
@@ -4446,7 +4629,7 @@ class _MyHomePageState extends State<MyHomePage> {
                                         [settings.get("theme")],
                                     borderRadius:
                                         BorderRadius.all(Radius.circular(25))),
-                                width: MediaQuery.of(context).size.width * 0.5,
+                                width: MediaQuery.of(context).size.width * 0.8,
                                 child: Column(
                                     mainAxisSize: MainAxisSize.min,
                                     children: [
@@ -4485,15 +4668,7 @@ class _MyHomePageState extends State<MyHomePage> {
                                             Text(
                                               regionalText["bottomButtons"]
                                                   ["translationText"],
-                                              style: TextStyle(
-                                                  decoration:
-                                                      TextDecoration.none,
-                                                  color: themeSelector[
-                                                          "primary"]
-                                                      [settings.get("theme")],
-                                                  fontSize: 16,
-                                                  fontWeight:
-                                                      FontWeight.normal),
+                                              style: textSelection("textDark"),
                                               textAlign: TextAlign.center,
                                             ),
                                             SizedBox(
@@ -4528,6 +4703,7 @@ class _MyHomePageState extends State<MyHomePage> {
                             ),
                           ),
                         ),
+                        //? Discord button
                         InkWell(
                           highlightColor: Colors.transparent,
                           splashColor: Colors.transparent,
@@ -4548,6 +4724,7 @@ class _MyHomePageState extends State<MyHomePage> {
                             }
                           },
                         ),
+                        //? Version button
                         InkWell(
                           highlightColor: Colors.transparent,
                           splashColor: Colors.transparent,
@@ -4571,20 +4748,17 @@ class _MyHomePageState extends State<MyHomePage> {
                                 //? to be used on the FutureBuilder() below
                                 Future<Map<String, dynamic>>
                                     yuraUpdate() async {
-                                  WebScraper github =
-                                      WebScraper("https://github.com/");
                                   Map<String, dynamic> update = {};
-                                  if (await github
-                                      .loadWebPage("TheYuriG/Yura/releases")) {
+                                  if (await ws.loadFullURL(
+                                      "https://github.com/TheYuriG/Yura/releases")) {
                                     try {
-                                      github.getElement(
-                                          'body > div.application-main > div > main > div.container-xl.clearfix.new-discussion-timeline.px-3.px-md-4.px-lg-5 > div > div.position-relative.border-top.clearfix > div:nth-child(1) > div > div.col-12.col-md-9.col-lg-10.px-md-3.py-md-4.release-main-section.commit.open.float-left > div.release-header > div > div > a',
-                                          []).forEach((element) {
-                                        if (element['title'].contains('v')) {
+                                      ws
+                                          .getElementTitle(
+                                              'body > div.application-main > div > main > div.container-xl.clearfix.new-discussion-timeline.px-3.px-md-4.px-lg-5 > div > div.position-relative.border-top.clearfix > div:nth-child(1) > div > div.col-12.col-md-9.col-lg-10.px-md-3.py-md-4.release-main-section.commit.open.float-left > div.release-header > div > div > a')
+                                          .forEach((element) {
+                                        if (element.contains('v')) {
                                           update['lastVersion'] =
-                                              element['title']
-                                                  .split(' ')[1]
-                                                  .trim();
+                                              element.split(' ')[1].trim();
                                         }
                                       });
                                       //? Gets the 'datetime' attribute, converts it to UNIX
@@ -4592,41 +4766,47 @@ class _MyHomePageState extends State<MyHomePage> {
                                       //? I have not yet found a way to translate this to locale
                                       //! No easy way to do dd/mm/yyyy for the right countries and mm/dd/yyyy for the rest
                                       //! This was working before and now it isn't. I don't know why
-                                      github.getElement(
-                                          'div:nth-child(1) > div > div > div.release-header > p > relative-time',
-                                          ['datetime']).forEach((element) {
+                                      ws
+                                          .getElementAttribute(
+                                              'div:nth-child(1) > div > div > div.release-header > p > relative-time',
+                                              'datetime')
+                                          .forEach((element) {
                                         Intl.systemLocale = Platform.localeName;
-                                        // print(DateFormat.yMd().format(
-                                        //     DateTime.parse(element['attributes']
-                                        //         ['datetime'])));
-                                        update['when'] = element['title'];
-                                        // DateFormat.yMMMd()
-                                        //     .add_Hm()
-                                        //     .format(DateTime.parse(
-                                        //         element['attributes']['datetime']
-                                        //             .split()));
+                                        update['when'] = DateFormat.yMMMd()
+                                            .format(DateTime.parse(element));
                                       });
-                                      github.getElement(
-                                          'body > div.application-main > div > main > div.container-xl.clearfix.new-discussion-timeline.px-3.px-md-4.px-lg-5 > div > div.position-relative.border-top.clearfix > div:nth-child(1) > div > div.col-12.col-md-9.col-lg-10.px-md-3.py-md-4.release-main-section.commit.open.float-left > details > div > div > div.d-flex.flex-justify-between.flex-items-center.py-1.py-md-2.Box-body.px-2 > a',
-                                          ['href']).forEach((element) {
-                                        if (element['attributes']['href']
-                                            .trim()
-                                            .contains('.rar')) {
-                                          update['updateLink'] =
+                                      ws
+                                          .getElementAttribute(
+                                              'body > div.application-main > div > main > div.container-xl.clearfix.new-discussion-timeline.px-3.px-md-4.px-lg-5 > div > div.position-relative.border-top.clearfix > div:nth-child(1) > div > div.col-12.col-md-9.col-lg-10.px-md-3.py-md-4.release-main-section.commit.open.float-left > details > div > div > div.d-flex.flex-justify-between.flex-items-center.py-1.py-md-2.Box-body.px-2 > a',
+                                              'href')
+                                          .forEach((element) {
+                                        if (element.contains('.rar')) {
+                                          update['updateLinkDesktop'] =
                                               "https://github.com" +
-                                                  element['attributes']['href']
-                                                      .trim();
+                                                  element.trim();
                                         }
                                       });
-                                      github.getElement(
-                                          'body > div.application-main > div > main > div.container-xl.clearfix.new-discussion-timeline.px-3.px-md-4.px-lg-5 > div > div.position-relative.border-top.clearfix > div:nth-child(1) > div > div.col-12.col-md-9.col-lg-10.px-md-3.py-md-4.release-main-section.commit.open.float-left > div.markdown-body > ul > li',
-                                          []).forEach((element) {
+                                      ws
+                                          .getElementAttribute(
+                                              'body > div.application-main > div > main > div.container-xl.clearfix.new-discussion-timeline.px-3.px-md-4.px-lg-5 > div > div.position-relative.border-top.clearfix > div:nth-child(1) > div > div.col-12.col-md-9.col-lg-10.px-md-3.py-md-4.release-main-section.commit.open.float-left > details > div > div > div.d-flex.flex-justify-between.flex-items-center.py-1.py-md-2.Box-body.px-2 > a',
+                                              'href')
+                                          .forEach((element) {
+                                        if (element.contains('.apk')) {
+                                          update['updateLinkAndroid'] =
+                                              "https://github.com" +
+                                                  element.trim();
+                                        }
+                                      });
+                                      ws
+                                          .getElementTitle(
+                                              'body > div.application-main > div > main > div.container-xl.clearfix.new-discussion-timeline.px-3.px-md-4.px-lg-5 > div > div.position-relative.border-top.clearfix > div:nth-child(1) > div > div.col-12.col-md-9.col-lg-10.px-md-3.py-md-4.release-main-section.commit.open.float-left > div.markdown-body > ul > li')
+                                          .forEach((element) {
                                         if (update['updateNotes'] == null) {
                                           update['updateNotes'] =
-                                              "\n⦿ " + element['title'].trim();
+                                              "\n⦿ " + element.trim();
                                         } else {
-                                          update['updateNotes'] += ("\n\n⦿ " +
-                                              element['title'].trim());
+                                          update['updateNotes'] +=
+                                              ("\n\n⦿ " + element.trim());
                                         }
                                       });
                                       if (update['lastVersion'] == null) {
@@ -4729,20 +4909,8 @@ class _MyHomePageState extends State<MyHomePage> {
                                                                   //? This will fetch information from the website. If it works, display the latest version.
                                                                   //? If it doesn't, display a cross mark. While it's loading, should have a "..." text.
                                                                   '${regionalText["bottomButtons"]["latestversion"]} ${snapshot.data['lastVersion']} (${snapshot.data['when']})',
-                                                                  style: TextStyle(
-                                                                      decoration:
-                                                                          TextDecoration
-                                                                              .none,
-                                                                      color: themeSelector[
-                                                                              "primary"]
-                                                                          [
-                                                                          settings.get(
-                                                                              "theme")],
-                                                                      fontSize:
-                                                                          16,
-                                                                      fontWeight:
-                                                                          FontWeight
-                                                                              .normal),
+                                                                  style: textSelection(
+                                                                      "textDark"),
                                                                   textAlign:
                                                                       TextAlign
                                                                           .center,
@@ -4764,20 +4932,8 @@ class _MyHomePageState extends State<MyHomePage> {
                                                                 Text(
                                                                   snapshot.data[
                                                                       'updateNotes'],
-                                                                  style: TextStyle(
-                                                                      decoration:
-                                                                          TextDecoration
-                                                                              .none,
-                                                                      color: themeSelector[
-                                                                              "primary"]
-                                                                          [
-                                                                          settings.get(
-                                                                              "theme")],
-                                                                      fontSize:
-                                                                          16,
-                                                                      fontWeight:
-                                                                          FontWeight
-                                                                              .normal),
+                                                                  style: textSelection(
+                                                                      "textDark"),
                                                                 ),
                                                               if (snapshot.connectionState ==
                                                                       ConnectionState
@@ -4793,53 +4949,83 @@ class _MyHomePageState extends State<MyHomePage> {
                                                                           "version"])
                                                                 SizedBox(
                                                                     height: 20),
-                                                              if (Platform
-                                                                      .isWindows &&
-                                                                  snapshot.connectionState ==
+                                                              if (snapshot.connectionState ==
                                                                       ConnectionState
                                                                           .done &&
                                                                   snapshot.data[
                                                                           'updateNotes'] !=
-                                                                      "error" &&
-                                                                  snapshot.data[
-                                                                          'lastVersion'] !=
-                                                                      regionalText[
-                                                                              "version"]
-                                                                          [
-                                                                          "version"])
-                                                                MaterialButton(
-                                                                  shape:
-                                                                      RoundedRectangleBorder(
-                                                                    borderRadius:
-                                                                        BorderRadius
-                                                                            .circular(7),
-                                                                  ),
-                                                                  child: Text(
-                                                                    regionalText[
-                                                                            "bottomButtons"]
-                                                                        [
-                                                                        "update"],
-                                                                    style:
-                                                                        textSelection(
+                                                                      "error")
+                                                                Row(
+                                                                  mainAxisSize:
+                                                                      MainAxisSize
+                                                                          .min,
+                                                                  children: [
+                                                                    MaterialButton(
+                                                                      shape:
+                                                                          RoundedRectangleBorder(
+                                                                        borderRadius:
+                                                                            BorderRadius.circular(7),
+                                                                      ),
+                                                                      child:
+                                                                          Text(
+                                                                        "Trello",
+                                                                        style: textSelection(
                                                                             ""),
-                                                                  ),
-                                                                  color: themeSelector[
-                                                                          "primary"]
-                                                                      [
-                                                                      settings.get(
-                                                                          "theme")],
-                                                                  onPressed:
-                                                                      () async {
-                                                                    final String
-                                                                        updateLink =
-                                                                        snapshot
-                                                                            .data['updateLink'];
-                                                                    if (await canLaunch(
-                                                                        updateLink)) {
-                                                                      launch(
-                                                                          updateLink);
-                                                                    }
-                                                                  },
+                                                                      ),
+                                                                      color: themeSelector[
+                                                                              "primary"]
+                                                                          [
+                                                                          settings
+                                                                              .get("theme")],
+                                                                      onPressed:
+                                                                          () async {
+                                                                        final String
+                                                                            updateLink =
+                                                                            Platform.isWindows
+                                                                                ? snapshot.data['updateLinkDesktop']
+                                                                                : snapshot.data['updateLinkAndroid'];
+                                                                        if (await canLaunch(
+                                                                            updateLink)) {
+                                                                          launch(
+                                                                              updateLink);
+                                                                        }
+                                                                      },
+                                                                    ),
+                                                                    if (snapshot.data[
+                                                                            'lastVersion'] !=
+                                                                        regionalText["version"]
+                                                                            [
+                                                                            "version"])
+                                                                      Padding(
+                                                                        padding:
+                                                                            const EdgeInsets.only(left: 5),
+                                                                        child:
+                                                                            MaterialButton(
+                                                                          shape:
+                                                                              RoundedRectangleBorder(
+                                                                            borderRadius:
+                                                                                BorderRadius.circular(7),
+                                                                          ),
+                                                                          child:
+                                                                              Text(
+                                                                            regionalText["bottomButtons"]["update"],
+                                                                            style:
+                                                                                textSelection(""),
+                                                                          ),
+                                                                          color:
+                                                                              themeSelector["primary"][settings.get("theme")],
+                                                                          onPressed:
+                                                                              () async {
+                                                                            final String updateLink = Platform.isWindows
+                                                                                ? snapshot.data['updateLinkDesktop']
+                                                                                : snapshot.data['updateLinkAndroid'];
+                                                                            if (await canLaunch(updateLink)) {
+                                                                              launch(updateLink);
+                                                                            }
+                                                                          },
+                                                                        ),
+                                                                      ),
+                                                                  ],
                                                                 ),
                                                             ],
                                                           ),
@@ -4854,9 +5040,9 @@ class _MyHomePageState extends State<MyHomePage> {
                                 });
                               }),
                         ),
+                        //? Privacy button
                         InkWell(
-                          highlightColor: Colors.transparent,
-                          splashColor: Colors.transparent,
+                          enableFeedback: false,
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
@@ -4896,18 +5082,22 @@ class _MyHomePageState extends State<MyHomePage> {
                                             themeSelector["primary"]
                                                 [settings.get("theme")],
                                         actions: [
-                                          IconButton(
-                                              splashColor: Colors.transparent,
-                                              hoverColor: Colors.transparent,
-                                              icon: Icon(
-                                                Icons.close,
-                                                color:
-                                                    themeSelector["secondary"]
-                                                        [settings.get("theme")],
-                                              ),
-                                              onPressed: () {
-                                                Navigator.pop(context);
-                                              })
+                                          Padding(
+                                            padding: const EdgeInsets.only(
+                                                right: 10),
+                                            child: InkWell(
+                                                enableFeedback: false,
+                                                splashColor: Colors.transparent,
+                                                child: Icon(
+                                                  Icons.close,
+                                                  color: themeSelector[
+                                                          "secondary"]
+                                                      [settings.get("theme")],
+                                                ),
+                                                onTap: () {
+                                                  Navigator.pop(context);
+                                                }),
+                                          )
                                         ],
                                       ),
                                       Padding(
@@ -4915,19 +5105,10 @@ class _MyHomePageState extends State<MyHomePage> {
                                         child: Column(
                                           children: [
                                             Text(
-                                              regionalText["bottomButtons"]
-                                                  ["privacyText"],
-                                              style: TextStyle(
-                                                  decoration:
-                                                      TextDecoration.none,
-                                                  color: themeSelector[
-                                                          "primary"]
-                                                      [settings.get("theme")],
-                                                  fontSize: 16,
-                                                  fontWeight:
-                                                      FontWeight.normal),
-                                              textAlign: TextAlign.center,
-                                            ),
+                                                regionalText["bottomButtons"]
+                                                    ["privacyText"],
+                                                style:
+                                                    textSelection("textDark")),
                                           ],
                                         ),
                                       )
@@ -4944,21 +5125,26 @@ class _MyHomePageState extends State<MyHomePage> {
             ),
           ),
         ),
-        floatingActionButton:
-            settings.get("psnID") == null || isUpdating == true
-                ? null
-                : FloatingActionButton(
-                    onPressed: () {
-                      updateProfiles();
-                    },
-                    tooltip: regionalText["home"]["refresh"],
-                    child: Icon(
-                      Icons.refresh,
-                      color: themeSelector["secondary"][settings.get("theme")],
-                    ),
-                    backgroundColor: themeSelector["primary"]
-                        [settings.get("theme")],
-                  ),
+        floatingActionButton: settings.get("psnID") == null ||
+                isUpdating == true ||
+                (settings.get('psnp') != true &&
+                    settings.get('psntl') != true &&
+                    settings.get('exophase') != true &&
+                    settings.get('trueTrophies') != true &&
+                    settings.get('psn100') != true)
+            ? null
+            : FloatingActionButton(
+                onPressed: () {
+                  updateProfiles();
+                },
+                tooltip: regionalText["home"]["refresh"],
+                child: Icon(
+                  Icons.refresh,
+                  color: themeSelector["secondary"][settings.get("theme")],
+                ),
+                backgroundColor: themeSelector["primary"]
+                    [settings.get("theme")],
+              ),
       ),
     );
   }

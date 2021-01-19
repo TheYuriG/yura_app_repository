@@ -1,4 +1,6 @@
 import 'dart:io' show Platform;
+import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
+import 'multicolorcircle.dart';
 import 'main.dart';
 import 'package:flutter/material.dart';
 
@@ -74,10 +76,237 @@ class _ExophaseProfileState extends State<ExophaseProfile> {
         } else {
           Container gameDisplay;
           if (exophaseSettings['gamerCard'] == "block") {
+            gameDisplay = Container(
+                //? Defines how wide each block will be. For mobile users, expect 2 blocks per line.
+                //? Desktop users can have as many blocks per line as wide their monitors are.
+                //? Desktop blocks will measure 290 (+ 2x5 margin = 300) each.
+                width: Platform.isWindows
+                    ? 240
+                    : (MediaQuery.of(context).size.width - 20) / 2,
+                decoration: BoxDecoration(
+                    color: themeSelector["primary"][settings.get("theme")]
+                        .withOpacity(0.85),
+                    borderRadius: BorderRadius.all(Radius.circular(10)),
+                    border: Border.all(
+                        color: exophaseGames[i]['gamePercentage'] < 30
+                            ? Colors.red
+                            : exophaseGames[i]['gamePercentage'] == 100
+                                ? Colors.green
+                                : Colors.yellow,
+                        width: Platform.isWindows ? 4 : 2.5),
+                    boxShadow: [BoxShadow(color: Colors.black, blurRadius: 5)]),
+                margin: EdgeInsets.symmetric(
+                    vertical: Platform.isWindows ? 5 : 2,
+                    horizontal: Platform.isWindows ? 5 : 2),
+                padding: EdgeInsets.only(
+                    top: 2,
+                    bottom: exophaseGames[i]['gamePercentage'] > 0 ? 10 : 0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    //? Game name
+                    Padding(
+                      padding: EdgeInsets.all(Platform.isWindows ? 5 : 2),
+                      child: Text(exophaseGames[i]['gameName'],
+                          style: textSelection("textLightBold"),
+                          textAlign: TextAlign.center),
+                    ),
+                    //? Spacing to separate the text/platforms/points from the image
+                    //? Game image
+                    Image.network(
+                      exophaseGames[i]['gameImage'],
+                      scale: 0.4,
+                    ),
+                    //? Spacing to separate the text/platforms/points from the image
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (exophaseGames[i]['gameVita'] == true)
+                          Image.asset(
+                            img['psv'],
+                            width: 40,
+                          ),
+                        if (exophaseGames[i]['gamePS3'] == true)
+                          Image.asset(
+                            img['ps3'],
+                            width: 40,
+                          ),
+                        if (exophaseGames[i]['gamePS4'] == true)
+                          Image.asset(
+                            img['ps4'],
+                            width: 40,
+                          ),
+                        if (exophaseGames[i]['gamePS5'] == true)
+                          Image.asset(
+                            img['ps5'],
+                            width: 40,
+                          ),
+                      ],
+                    ),
+                    //? Last played tracked date
+                    Text(exophaseGames[i]['gameLastPlayed'],
+                        style: textSelection("")),
+                    //? Row with Exophase EXP, trophy earned ratio and tracked gameplay time
+                    SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: Padding(
+                        padding: EdgeInsets.all(Platform.isWindows ? 5 : 2),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            //? Exophase EXP system
+                            Tooltip(
+                              message: "EXP",
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  //? Exophase's favicon used as EXP icon since the EXP icon is
+                                  //? way too transparent to be used consistently
+                                  Image.network(
+                                      "https://www.exophase.com/assets/zeal/_icons/favicon.ico",
+                                      scale: Platform.isWindows ? 8 : 10),
+                                  SizedBox(width: Platform.isWindows ? 5 : 3),
+                                  //? EXP earned from this game
+                                  Text(
+                                    exophaseGames[i]['gameEXP'].toString(),
+                                    style: textSelection(""),
+                                  )
+                                ],
+                              ),
+                            ),
+                            SizedBox(width: Platform.isWindows ? 5 : 3),
+                            //? Game trophy earned ratio
+                            Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                trophyType("total"),
+                                SizedBox(width: Platform.isWindows ? 5 : 2),
+                                Text(exophaseGames[i]['gameRatio'],
+                                    style: textSelection("")),
+                              ],
+                            ),
+                            if (exophaseGames[i]['gameTime'] != null)
+                              SizedBox(height: Platform.isWindows ? 3 : 2),
+                            if (exophaseGames[i]['gameTime'] != null)
+                              //? Exophase game played time tracker
+                              Row(
+                                children: [
+                                  Icon(
+                                    Icons.hourglass_bottom,
+                                    color: themeSelector["secondary"]
+                                        [settings.get("theme")],
+                                    size: Platform.isWindows ? 30 : 14,
+                                  ),
+                                  Text(
+                                    exophaseGames[i]['gameTime'],
+                                    style: textSelection(""),
+                                  )
+                                ],
+                              ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    if (exophaseGames[i]['gamePercentage'] > 0)
+                      Divider(
+                          color: themeSelector['secondary']
+                              [settings.get('theme')],
+                          thickness: 2,
+                          indent: 5,
+                          endIndent: 5,
+                          height: 5),
+                    if (exophaseGames[i]['gamePercentage'] > 0)
+                      SizedBox(height: 7),
+                    //? Row with the trophy distribution and the multicolored circle
+                    if (exophaseGames[i]['gamePercentage'] > 0)
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          //? This contains bronze, silver, gold, platinum
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.max,
+                            crossAxisAlignment: CrossAxisAlignment.end,
+                            children: [
+                              //? Second column displays platinum and silver trophies, if available
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                mainAxisAlignment: MainAxisAlignment.end,
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  if (exophaseGames[i]['gamePlatinum'] != null)
+                                    trophyType("platinum",
+                                        quantity: exophaseGames[i]
+                                            ['gamePlatinum']),
+                                  SizedBox(height: 5),
+                                  if (exophaseGames[i]['gameSilver'] != null)
+                                    trophyType("silver",
+                                        quantity: exophaseGames[i]
+                                            ['gameSilver'])
+                                ],
+                              ),
+                              //? This sized box has height to make the Columns before and after
+                              //? align their trophy icons at the bottom
+                              SizedBox(
+                                  width: Platform.isWindows ? 5 : 3,
+                                  height: 65),
+                              //? Third column displays gold and bronze trophies, if available
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                mainAxisAlignment: MainAxisAlignment.end,
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  if (exophaseGames[i]['gameGold'] != null)
+                                    trophyType("gold",
+                                        quantity: exophaseGames[i]['gameGold']),
+                                  SizedBox(height: 5),
+                                  if (exophaseGames[i]['gameBronze'] != null)
+                                    trophyType("bronze",
+                                        quantity: exophaseGames[i]
+                                            ['gameBronze'])
+                                ],
+                              ),
+                            ],
+                          ),
+
+                          SizedBox(width: 10),
+                          //? This is the created MultiColorCircle class
+                          MultiColorCircle(
+                            //? This needs to have an unique key otherwise the filtering function
+                            //? will glitch the rebuild and not display the correct percentage at the correct location.
+                            key: UniqueKey(),
+                            diameter: Platform.isWindows ? 55 : 40,
+                            width: Platform.isWindows ? 10 : 7,
+                            colors: [
+                              Colors.blue,
+                              Colors.yellow,
+                              Colors.grey,
+                              Colors.brown
+                            ],
+                            unfilled: Colors.grey.withOpacity(0.5),
+                            //? This takes an array of doubles that is returned by the function below.
+                            percentages: trophyPointsDistribution(
+                                exophaseGames[i]['gamePlatinum'] ?? 0,
+                                exophaseGames[i]['gameGold'] ?? 0,
+                                exophaseGames[i]['gameSilver'] ?? 0,
+                                exophaseGames[i]['gameBronze'] ?? 0,
+                                exophaseGames[i]['gamePercentage']),
+                            centerText: Text(
+                              exophaseGames[i]['gamePercentage'].toString() +
+                                  "%",
+                              style: textSelection(""),
+                            ),
+                          ),
+                        ],
+                      ),
+                  ],
+                ));
           } else if (exophaseSettings['gamerCard'] == "list") {
             gameDisplay = Container(
-              height:
-                  (MediaQuery.of(context).size.height / 10).floor().toDouble(),
+              height: Platform.isWindows
+                  ? 95
+                  : 58, //exophaseGames[i]['gamePS5'] == true ? 150 : 95 //! Already prepared the code for the other websites with larger images.
               decoration: BoxDecoration(
                   color: themeSelector["primary"][settings.get("theme")]
                       .withOpacity(0.85),
@@ -182,7 +411,6 @@ class _ExophaseProfileState extends State<ExophaseProfile> {
                               ],
                             ),
                           ),
-
                           //? Game last played date
                           SingleChildScrollView(
                             scrollDirection: Axis.horizontal,
@@ -315,14 +543,78 @@ class _ExophaseProfileState extends State<ExophaseProfile> {
                                   "%",
                               child: Row(
                                 children: [
-                                  Container(
-                                    height: Platform.isWindows ? 10 : 5,
-                                    width: (Platform.isWindows ? 2 : 1.2) *
-                                        (exophaseGames[i]['gamePercentage'])
-                                            .toDouble(),
-                                    color: themeSelector["secondary"]
-                                        [settings.get("theme")],
-                                  ),
+                                  //? Platinum points distribution
+                                  if (exophaseGames[i]['gamePlatinum'] != null)
+                                    Container(
+                                      color: Colors.blue,
+                                      height: Platform.isWindows ? 10 : 5,
+                                      width: (Platform.isWindows ? 2 : 1.2) *
+                                          trophyPointsDistribution(
+                                              exophaseGames[i]
+                                                      ['gamePlatinum'] ??
+                                                  0,
+                                              exophaseGames[i]['gameGold'] ?? 0,
+                                              exophaseGames[i]['gameSilver'] ??
+                                                  0,
+                                              exophaseGames[i]['gameBronze'] ??
+                                                  0,
+                                              exophaseGames[i]
+                                                  ['gamePercentage'])[0],
+                                    ),
+                                  //? Gold points distribution
+                                  if (exophaseGames[i]['gameGold'] != null)
+                                    Container(
+                                      color: Colors.yellow,
+                                      height: Platform.isWindows ? 10 : 5,
+                                      width: (Platform.isWindows ? 2 : 1.2) *
+                                          trophyPointsDistribution(
+                                              exophaseGames[i]
+                                                      ['gamePlatinum'] ??
+                                                  0,
+                                              exophaseGames[i]['gameGold'] ?? 0,
+                                              exophaseGames[i]['gameSilver'] ??
+                                                  0,
+                                              exophaseGames[i]['gameBronze'] ??
+                                                  0,
+                                              exophaseGames[i]
+                                                  ['gamePercentage'])[1],
+                                    ),
+                                  //? Silver points distribution
+                                  if (exophaseGames[i]['gameSilver'] != null)
+                                    Container(
+                                      color: Colors.grey,
+                                      height: Platform.isWindows ? 10 : 5,
+                                      width: (Platform.isWindows ? 2 : 1.2) *
+                                          trophyPointsDistribution(
+                                              exophaseGames[i]
+                                                      ['gamePlatinum'] ??
+                                                  0,
+                                              exophaseGames[i]['gameGold'] ?? 0,
+                                              exophaseGames[i]['gameSilver'] ??
+                                                  0,
+                                              exophaseGames[i]['gameBronze'] ??
+                                                  0,
+                                              exophaseGames[i]
+                                                  ['gamePercentage'])[2],
+                                    ),
+                                  //? Bronze points distribution
+                                  if (exophaseGames[i]['gameBronze'] != null)
+                                    Container(
+                                      color: Colors.brown,
+                                      height: Platform.isWindows ? 10 : 5,
+                                      width: (Platform.isWindows ? 2 : 1.2) *
+                                          trophyPointsDistribution(
+                                              exophaseGames[i]
+                                                      ['gamePlatinum'] ??
+                                                  0,
+                                              exophaseGames[i]['gameGold'] ?? 0,
+                                              exophaseGames[i]['gameSilver'] ??
+                                                  0,
+                                              exophaseGames[i]['gameBronze'] ??
+                                                  0,
+                                              exophaseGames[i]
+                                                  ['gamePercentage'])[3],
+                                    ),
                                   Container(
                                     height: Platform.isWindows ? 10 : 5,
                                     width: (Platform.isWindows ? 2 : 1.2) *
@@ -344,9 +636,8 @@ class _ExophaseProfileState extends State<ExophaseProfile> {
               ),
             );
           } else {
+            //? Grid display
             gameDisplay = Container(
-              padding: EdgeInsets.only(bottom: 3),
-              // width: 150,
               decoration: BoxDecoration(
                   color: themeSelector["primary"][settings.get("theme")]
                       .withOpacity(0.85),
@@ -361,18 +652,17 @@ class _ExophaseProfileState extends State<ExophaseProfile> {
                   boxShadow: [BoxShadow(color: Colors.black, blurRadius: 5)]),
               margin: EdgeInsets.all(Platform.isWindows ? 5.0 : 3.0),
               child: Tooltip(
-                message: exophaseGames[i]['gameName'] +
-                    " (${exophaseGames[i]['gamePercentage'].toString()}%)",
+                message: exophaseGames[i]['gameName'],
                 child: Column(
-                  mainAxisSize: MainAxisSize.max,
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  mainAxisSize: MainAxisSize.min,
+                  // mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     ClipRRect(
                       borderRadius:
                           BorderRadius.vertical(top: Radius.circular(7)),
                       child: Image.network(
-                        exophaseGames[i]['gameImage'], scale: 0.5,
-                        // width: 150,
+                        exophaseGames[i]['gameImage'],
+                        scale: 0.8,
                       ),
                     ),
                     Row(
@@ -381,35 +671,93 @@ class _ExophaseProfileState extends State<ExophaseProfile> {
                         if (exophaseGames[i]['gameVita'] == true)
                           Image.asset(
                             img['psv'],
-                            width: 40,
+                            width: 35,
                           ),
                         if (exophaseGames[i]['gamePS3'] == true)
                           Image.asset(
                             img['ps3'],
-                            width: 40,
+                            width: 35,
                           ),
                         if (exophaseGames[i]['gamePS4'] == true)
                           Image.asset(
                             img['ps4'],
-                            width: 40,
+                            width: 35,
                           ),
                         if (exophaseGames[i]['gamePS5'] == true)
                           Image.asset(
                             img['ps5'],
-                            width: 40,
+                            width: 35,
                           )
                       ],
                     ),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        trophyType("total"),
-                        SizedBox(width: Platform.isWindows ? 5 : 2),
-                        Text(exophaseGames[i]['gameRatio'],
-                            style: textSelection("")),
-                      ],
+                    SizedBox(height: Platform.isWindows ? 5 : 2),
+                    ClipRRect(
+                      borderRadius: BorderRadius.all(Radius.circular(5)),
+                      child: Tooltip(
+                        message:
+                            exophaseGames[i]['gamePercentage'].toString() + "%",
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            //? Platinum points distribution
+                            if (exophaseGames[i]['gamePlatinum'] != null)
+                              Container(
+                                color: Colors.blue,
+                                height: Platform.isWindows ? 10 : 7,
+                                width: trophyPointsDistribution(
+                                    exophaseGames[i]['gamePlatinum'] ?? 0,
+                                    exophaseGames[i]['gameGold'] ?? 0,
+                                    exophaseGames[i]['gameSilver'] ?? 0,
+                                    exophaseGames[i]['gameBronze'] ?? 0,
+                                    exophaseGames[i]['gamePercentage'])[0],
+                              ),
+                            //? Gold points distribution
+                            if (exophaseGames[i]['gameGold'] != null)
+                              Container(
+                                color: Colors.yellow,
+                                height: Platform.isWindows ? 10 : 7,
+                                width: trophyPointsDistribution(
+                                    exophaseGames[i]['gamePlatinum'] ?? 0,
+                                    exophaseGames[i]['gameGold'] ?? 0,
+                                    exophaseGames[i]['gameSilver'] ?? 0,
+                                    exophaseGames[i]['gameBronze'] ?? 0,
+                                    exophaseGames[i]['gamePercentage'])[1],
+                              ),
+                            //? Silver points distribution
+                            if (exophaseGames[i]['gameSilver'] != null)
+                              Container(
+                                color: Colors.grey,
+                                height: Platform.isWindows ? 10 : 7,
+                                width: trophyPointsDistribution(
+                                    exophaseGames[i]['gamePlatinum'] ?? 0,
+                                    exophaseGames[i]['gameGold'] ?? 0,
+                                    exophaseGames[i]['gameSilver'] ?? 0,
+                                    exophaseGames[i]['gameBronze'] ?? 0,
+                                    exophaseGames[i]['gamePercentage'])[2],
+                              ),
+                            //? Bronze points distribution
+                            if (exophaseGames[i]['gameBronze'] != null)
+                              Container(
+                                color: Colors.brown,
+                                height: Platform.isWindows ? 10 : 7,
+                                width: trophyPointsDistribution(
+                                    exophaseGames[i]['gamePlatinum'] ?? 0,
+                                    exophaseGames[i]['gameGold'] ?? 0,
+                                    exophaseGames[i]['gameSilver'] ?? 0,
+                                    exophaseGames[i]['gameBronze'] ?? 0,
+                                    exophaseGames[i]['gamePercentage'])[3],
+                              ),
+                            Container(
+                              height: Platform.isWindows ? 10 : 7,
+                              width: (100 - exophaseGames[i]['gamePercentage'])
+                                  .toDouble(),
+                              color: Colors.grey.withOpacity(0.7),
+                            ),
+                          ],
+                        ),
+                      ),
                     ),
+                    SizedBox(height: 2),
                   ],
                 ),
               ),
@@ -609,14 +957,11 @@ class _ExophaseProfileState extends State<ExophaseProfile> {
                 if (exophaseGamesList.length > 0 &&
                     exophaseSettings['gamerCard'] == "grid")
                   Expanded(
-                    child: GridView.builder(
-                      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                          mainAxisSpacing: 0,
-                          crossAxisSpacing: 0,
-                          crossAxisCount: Platform.isWindows
-                              ? (MediaQuery.of(context).size.width / 150)
-                                  .floor()
-                              : 3),
+                    child: StaggeredGridView.countBuilder(
+                      crossAxisCount: Platform.isWindows
+                          ? (MediaQuery.of(context).size.width / 150).floor()
+                          : 3,
+                      staggeredTileBuilder: (index) => StaggeredTile.fit(1),
                       itemCount: exophaseGamesList.length,
                       itemBuilder: (context, index) => exophaseGamesList[index],
                     ),
@@ -630,6 +975,18 @@ class _ExophaseProfileState extends State<ExophaseProfile> {
                       itemBuilder: (context, index) => exophaseGamesList[index],
                     ),
                   ),
+                if (exophaseGamesList.length > 0 &&
+                    exophaseSettings['gamerCard'] == "block")
+                  Expanded(
+                    child: StaggeredGridView.countBuilder(
+                      crossAxisCount: Platform.isWindows
+                          ? (MediaQuery.of(context).size.width / 250).floor()
+                          : 2,
+                      staggeredTileBuilder: (index) => StaggeredTile.fit(1),
+                      itemCount: exophaseGamesList.length,
+                      itemBuilder: (context, index) => exophaseGamesList[index],
+                    ),
+                  ),
                 //? This expanded shows an image if there is no trophy data to display
                 if (exophaseGamesList.length == 0)
                   Expanded(
@@ -639,9 +996,11 @@ class _ExophaseProfileState extends State<ExophaseProfile> {
                     ),
                   ),
                 //? This Wrap contains the bottom bar buttons to change settings and display options.
-                Padding(
-                  padding:
-                      EdgeInsets.only(bottom: Platform.isWindows ? 5.0 : 2),
+                Container(
+                  width: MediaQuery.of(context).size.width,
+                  padding: EdgeInsets.symmetric(
+                      vertical: Platform.isWindows ? 5 : 3),
+                  color: themeSelector["secondary"][settings.get("theme")],
                   child: Wrap(
                     crossAxisAlignment: WrapCrossAlignment.center,
                     alignment: WrapAlignment.center,
@@ -1085,26 +1444,27 @@ class _ExophaseProfileState extends State<ExophaseProfile> {
                                       }),
                             ),
                           //? Option to use view trophy lists as a block
-                          // if (exophaseSettings['gamerCard'] != "block")
-                          //   Tooltip(
-                          //     message: regionalText['exophase']['block'],
-                          //     child: InkWell(
-                          //         child: Icon(
-                          //           Icons.view_compact,
-                          //           color: themeSelector["primary"]
-                          //               [settings.get("theme")],
-                          //           size: Platform.isWindows ? 30 : 15,
-                          //         ),
-                          //         hoverColor: Colors.transparent,
-                          //         splashColor: Colors.transparent,
-                          //         onTap: () => {
-                          //               setState(() {
-                          //                 exophaseSettings['gamerCard'] = "block";
-                          //               }),
-                          //               settings.put(
-                          //                   'exophaseSettings', exophaseSettings)
-                          //             }),
-                          // ),
+                          if (exophaseSettings['gamerCard'] != "block")
+                            Tooltip(
+                              message: regionalText['exophase']['block'],
+                              child: InkWell(
+                                  child: Icon(
+                                    Icons.view_compact,
+                                    color: themeSelector["primary"]
+                                        [settings.get("theme")],
+                                    size: Platform.isWindows ? 30 : 15,
+                                  ),
+                                  hoverColor: Colors.transparent,
+                                  splashColor: Colors.transparent,
+                                  onTap: () => {
+                                        setState(() {
+                                          exophaseSettings['gamerCard'] =
+                                              "block";
+                                        }),
+                                        settings.put('exophaseSettings',
+                                            exophaseSettings)
+                                      }),
+                            ),
                           //? Option to use view trophy lists as a grid
                           if (exophaseSettings['gamerCard'] != "grid")
                             Tooltip(

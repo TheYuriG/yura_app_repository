@@ -34,7 +34,9 @@ void main() async {
       box.put("exophase", true);
       box.put("psn100", true);
       //? Picks the loading widget to be used
-      box.put('loading', "pouringHourglass");
+      box.put('loading', "fadingCircle");
+      //? Picks the font to be used
+      box.put('font', "Oxygen");
     }
   });
 
@@ -1187,8 +1189,9 @@ Map<String, Map<String, String>> regionSelect() {
       "newLevel": "Use post-PS5 leveling system",
       "languagePicker": "Change Yura's language:",
       "websitePicker": "Choose which sites to enable/disable:",
-      "loadingPicker": "Choose what loading icon do you want to use:",
+      "loadingPicker": "Change Yura's loading icon:",
       "themePicker": "Change Yura's theme:",
+      "fontPicker": "Change Yura's font:",
       'refresh': "Refresh trophy data",
       "pink": "Wednesday",
       "orange": "Nature's Will",
@@ -1241,7 +1244,7 @@ Map<String, Map<String, String>> regionSelect() {
       "list": "Enable list view",
     },
     //? Since this is just the version number, this doesn't get translated regardless of chosen language.
-    "version": {"version": "v0.12.26"}
+    "version": {"version": "v0.13.32"}
   };
   //? This changes language to Brazilian Portuguese
   if (settings.get("language") == "br") {
@@ -1283,8 +1286,9 @@ Map<String, Map<String, String>> regionSelect() {
       "newLevel": "Use cálculo pós-PS5",
       "languagePicker": "Mude o idioma de Yura:",
       "websitePicker": "Escolha quais sites ativar/desativar:",
-      "loadingPicker": "Escolha qual ícone de carregamento deseja usar:",
+      "loadingPicker": "Mude o ícone de carregamento de Yura:",
       "themePicker": "Mude o tema de Yura:",
+      "fontPicker": "Mude a fonte de Yura:",
       'refresh': "Atualizar informação de troféus",
       "pink": "Quarta-Feira",
       "orange": "Desejo da Natureza",
@@ -1364,7 +1368,10 @@ final Map<String, Map<String, Color>> themeSelector = {
 
 //? This will return what is the textStyle to be used.
 //? It had to become a function because it was not properly updating on language change.
-TextStyle textSelection(String theme) {
+TextStyle textSelection({String theme, String family}) {
+  if (family == null) {
+    family = settings.get('font') ?? 'Oxygen';
+  }
   if (theme == "textLightBold") {
     //? Option for light bold text
     return TextStyle(
@@ -1372,7 +1379,9 @@ TextStyle textSelection(String theme) {
         fontSize: Platform.isWindows ? 20 : 16,
         fontWeight: FontWeight.bold,
         decoration: TextDecoration.none,
-        fontFamily: 'RobotoMono');
+        fontFamily: family);
+    // LobsterTwo ok, Arvo ok, Archivo ok, LibreBaskerville ok, Oxygen ok
+    // Amita bad, BigShouldersStencilText ???, Elsie bad, Gaegu ???, Goldman ok, Kalam bad, LifeSavers bad, TurretRoad ok
   } else if (theme == "textDark") {
     //? Option for dark thin text
     return TextStyle(
@@ -1380,7 +1389,7 @@ TextStyle textSelection(String theme) {
         fontSize: Platform.isWindows ? 16 : 12,
         fontWeight: FontWeight.normal,
         decoration: TextDecoration.none,
-        fontFamily: 'RobotoMono');
+        fontFamily: family);
   } else if (theme == "textDarkBold") {
 //? Option for dark bold text
     return TextStyle(
@@ -1388,7 +1397,7 @@ TextStyle textSelection(String theme) {
         fontSize: Platform.isWindows ? 20 : 16,
         fontWeight: FontWeight.bold,
         decoration: TextDecoration.none,
-        fontFamily: 'RobotoMono');
+        fontFamily: family);
   } else {
     //? Option for light thin text
     return TextStyle(
@@ -1396,7 +1405,7 @@ TextStyle textSelection(String theme) {
         fontSize: Platform.isWindows ? 16 : 12,
         fontWeight: FontWeight.normal,
         decoration: TextDecoration.none,
-        fontFamily: 'RobotoMono');
+        fontFamily: family);
   }
 }
 
@@ -1515,7 +1524,7 @@ Tooltip trophyType(String type,
         if (quantity != -1) SizedBox(width: Platform.isWindows ? 5 : 3),
         if (quantity != -1)
           Text(quantity != double.nan ? quantity.toString() : quantity,
-              style: style ?? textSelection("")),
+              style: style ?? textSelection()),
       ],
     ),
   );
@@ -1643,7 +1652,7 @@ Row levelType(int plat, int gold, int silver, int bronze) {
       return Row(children: [
         Image.asset(img['platinumlevel'], scale: Platform.isWindows ? 3 : 4),
         SizedBox(width: Platform.isWindows ? 5 : 3),
-        Text("2000 (100%)", style: textSelection(""))
+        Text("2000 (100%)", style: textSelection())
       ]);
     }
 
@@ -1691,7 +1700,7 @@ Row levelType(int plat, int gold, int silver, int bronze) {
     return Row(children: [
       Image.asset(levelTier(tier), scale: Platform.isWindows ? 3 : 4),
       SizedBox(width: Platform.isWindows ? 5 : 3),
-      Text("$currentLevel ($progressPercentage%)", style: textSelection(""))
+      Text("$currentLevel ($progressPercentage%)", style: textSelection())
     ]);
   }
 
@@ -1700,32 +1709,32 @@ Row levelType(int plat, int gold, int silver, int bronze) {
     if (totalExp == 0) {
       return Row(children: [
         Image.asset(img['oldLevel'], scale: Platform.isWindows ? 1 : 1.3),
-        Text("1", style: textSelection(""))
+        Text("1", style: textSelection())
       ]);
     } else if (totalExp < 200) {
       return Row(children: [
         Image.asset(img['oldLevel'], scale: Platform.isWindows ? 1 : 1.3),
-        Text("2", style: textSelection(""))
+        Text("2", style: textSelection())
       ]);
     } else if (totalExp < 600) {
       return Row(children: [
         Image.asset(img['oldLevel'], scale: Platform.isWindows ? 1 : 1.3),
-        Text("3", style: textSelection(""))
+        Text("3", style: textSelection())
       ]);
     } else if (totalExp < 1200) {
       return Row(children: [
         Image.asset(img['oldLevel'], scale: Platform.isWindows ? 1 : 1.3),
-        Text("4", style: textSelection(""))
+        Text("4", style: textSelection())
       ]);
     } else if (totalExp < 2400) {
       return Row(children: [
         Image.asset(img['oldLevel'], scale: Platform.isWindows ? 1 : 1.3),
-        Text("5", style: textSelection(""))
+        Text("5", style: textSelection())
       ]);
     } else if (totalExp < 4000) {
       return Row(children: [
         Image.asset(img['oldLevel'], scale: Platform.isWindows ? 1 : 1.3),
-        Text("6", style: textSelection(""))
+        Text("6", style: textSelection())
       ]);
     } else if (totalExp < 16000) {
       int extraEXP = totalExp - 4000;
@@ -1735,7 +1744,7 @@ Row levelType(int plat, int gold, int silver, int bronze) {
       int currentLevel = (extraEXP / gap).floor() + 6;
       return Row(children: [
         Image.asset(img['oldLevel'], scale: Platform.isWindows ? 1 : 1.3),
-        Text("$currentLevel ($progressPercentage%)", style: textSelection(""))
+        Text("$currentLevel ($progressPercentage%)", style: textSelection())
       ]);
     } else if (totalExp < 128000) {
       int extraEXP = totalExp - 16000;
@@ -1745,7 +1754,7 @@ Row levelType(int plat, int gold, int silver, int bronze) {
       int currentLevel = (extraEXP / gap).floor() + 12;
       return Row(children: [
         Image.asset(img['oldLevel'], scale: Platform.isWindows ? 1 : 1.3),
-        Text("$currentLevel ($progressPercentage%)", style: textSelection(""))
+        Text("$currentLevel ($progressPercentage%)", style: textSelection())
       ]);
     } else {
       int extraEXP = totalExp - 128000;
@@ -1755,7 +1764,7 @@ Row levelType(int plat, int gold, int silver, int bronze) {
       int currentLevel = (extraEXP / gap).floor() + 26;
       return Row(children: [
         Image.asset(img['oldLevel'], scale: Platform.isWindows ? 1 : 1.3),
-        Text("$currentLevel ($progressPercentage%)", style: textSelection(""))
+        Text("$currentLevel ($progressPercentage%)", style: textSelection())
       ]);
     }
   }
@@ -1966,7 +1975,7 @@ class _MyHomePageState extends State<MyHomePage> {
           centerTitle: true,
           title: Text(
             regionalText["home"]["appBar"],
-            style: textSelection(""),
+            style: textSelection(),
           ),
           backgroundColor: themeSelector["primary"][settings.get("theme")],
           //? This instantiate the settings box.
@@ -2003,7 +2012,7 @@ class _MyHomePageState extends State<MyHomePage> {
                             BorderRadius.vertical(top: Radius.circular(25))),
                     title: Text(
                       regionalText["home"]["settings"],
-                      style: textSelection(""),
+                      style: textSelection(),
                     ),
                     centerTitle: true,
                     automaticallyImplyLeading: false,
@@ -2030,7 +2039,7 @@ class _MyHomePageState extends State<MyHomePage> {
                     child: Center(
                       child: Text(
                         regionalText["settings"]["trophyPicker"],
-                        style: textSelection("textDark"),
+                        style: textSelection(theme: "textDark"),
                         textAlign: TextAlign.center,
                       ),
                     ),
@@ -2098,7 +2107,7 @@ class _MyHomePageState extends State<MyHomePage> {
                     child: Center(
                       child: Text(
                         regionalText["settings"]["levelPicker"],
-                        style: textSelection("textDark"),
+                        style: textSelection(theme: "textDark"),
                         textAlign: TextAlign.center,
                       ),
                     ),
@@ -2146,7 +2155,7 @@ class _MyHomePageState extends State<MyHomePage> {
                     child: Center(
                       child: Text(
                         regionalText["settings"]["languagePicker"],
-                        style: textSelection("textDark"),
+                        style: textSelection(theme: "textDark"),
                         textAlign: TextAlign.center,
                       ),
                     ),
@@ -2206,7 +2215,7 @@ class _MyHomePageState extends State<MyHomePage> {
                     child: Center(
                       child: Text(
                         regionalText["settings"]["websitePicker"],
-                        style: textSelection("textDark"),
+                        style: textSelection(theme: "textDark"),
                         textAlign: TextAlign.center,
                       ),
                     ),
@@ -2218,7 +2227,7 @@ class _MyHomePageState extends State<MyHomePage> {
                       spacing: 5,
                       children: [
                         Tooltip(
-                          message: 'PSNProfiles',
+                          message: 'PSN Profiles',
                           child: InkWell(
                               child: Container(
                                 decoration: BoxDecoration(
@@ -2375,7 +2384,7 @@ class _MyHomePageState extends State<MyHomePage> {
                     child: Center(
                       child: Text(
                         regionalText["settings"]["loadingPicker"],
-                        style: textSelection("textDark"),
+                        style: textSelection(theme: "textDark"),
                         textAlign: TextAlign.center,
                       ),
                     ),
@@ -2386,133 +2395,81 @@ class _MyHomePageState extends State<MyHomePage> {
                     child: Wrap(
                       spacing: 5,
                       children: [
-                        InkWell(
-                            child: Container(
-                                padding: EdgeInsets.all(0),
-                                width: 60,
-                                height: 60,
-                                decoration: BoxDecoration(
-                                  //? To paint the border, we check the value of the settings for this website is true.
-                                  //? If it's false or null (never set), we will paint red.
-                                  border: Border.all(
-                                      color: settings.get('loading') ==
-                                              "fadingCircle"
-                                          ? Colors.green
-                                          : Colors.red,
-                                      width: 5),
-                                  borderRadius:
-                                      BorderRadius.all(Radius.circular(5)),
-                                ),
-                                child: loadingSelector("fadingCircle", "dark")),
-                            onTap: () {
-                              setState(() {
-                                if (settings.get('loading') != "fadingCircle") {
-                                  settings.put('loading', "fadingCircle");
-                                }
-                              });
-                            }),
-                        InkWell(
-                            child: Container(
-                                padding: EdgeInsets.all(0),
-                                width: 60,
-                                height: 60,
-                                decoration: BoxDecoration(
-                                  //? To paint the border, we check the value of the settings for this website is true.
-                                  //? If it's false or null (never set), we will paint red.
-                                  border: Border.all(
-                                      color: settings.get('loading') ==
-                                              "fadingFour"
-                                          ? Colors.green
-                                          : Colors.red,
-                                      width: 5),
-                                  borderRadius:
-                                      BorderRadius.all(Radius.circular(5)),
-                                ),
-                                child: loadingSelector("fadingFour", "dark")),
-                            onTap: () {
-                              setState(() {
-                                if (settings.get('loading') != "fadingFour") {
-                                  settings.put('loading', "fadingFour");
-                                }
-                              });
-                            }),
-                        InkWell(
-                            child: Container(
-                                padding: EdgeInsets.all(0),
-                                width: 60,
-                                height: 60,
-                                decoration: BoxDecoration(
-                                  //? To paint the border, we check the value of the settings for this website is true.
-                                  //? If it's false or null (never set), we will paint red.
-                                  border: Border.all(
-                                      color: settings.get('loading') ==
-                                              "fadingGrid"
-                                          ? Colors.green
-                                          : Colors.red,
-                                      width: 5),
-                                  borderRadius:
-                                      BorderRadius.all(Radius.circular(5)),
-                                ),
-                                child: loadingSelector("fadingGrid", "dark")),
-                            onTap: () {
-                              setState(() {
-                                if (settings.get('loading') != "fadingGrid") {
-                                  settings.put('loading', "fadingGrid");
-                                }
-                              });
-                            }),
-                        InkWell(
-                            child: Container(
-                                padding: EdgeInsets.all(0),
-                                width: 60,
-                                height: 60,
-                                decoration: BoxDecoration(
-                                  //? To paint the border, we check the value of the settings for this website is true.
-                                  //? If it's false or null (never set), we will paint red.
-                                  border: Border.all(
-                                      color:
-                                          settings.get('loading') == "cubeGrid"
-                                              ? Colors.green
-                                              : Colors.red,
-                                      width: 5),
-                                  borderRadius:
-                                      BorderRadius.all(Radius.circular(5)),
-                                ),
-                                child: loadingSelector("cubeGrid", "dark")),
-                            onTap: () {
-                              setState(() {
-                                if (settings.get('loading') != "cubeGrid") {
-                                  settings.put('loading', "cubeGrid");
-                                }
-                              });
-                            }),
-                        InkWell(
-                            child: Container(
-                                padding: EdgeInsets.all(0),
-                                width: 60,
-                                height: 60,
-                                decoration: BoxDecoration(
-                                  //? To paint the border, we check the value of the settings for this website is true.
-                                  //? If it's false or null (never set), we will paint red.
-                                  border: Border.all(
-                                      color: settings.get('loading') ==
-                                              "pouringHourglass"
-                                          ? Colors.green
-                                          : Colors.red,
-                                      width: 5),
-                                  borderRadius:
-                                      BorderRadius.all(Radius.circular(5)),
-                                ),
-                                child: loadingSelector(
-                                    "pouringHourglass", "dark")),
-                            onTap: () {
-                              setState(() {
-                                if (settings.get('loading') !=
-                                    "pouringHourglass") {
-                                  settings.put('loading', "pouringHourglass");
-                                }
-                              });
-                            }),
+                        if ((settings.get('loading') ?? "fadingCircle") !=
+                            "fadingCircle")
+                          InkWell(
+                              child: Container(
+                                  padding: EdgeInsets.all(0),
+                                  width: 60,
+                                  height: 60,
+                                  child:
+                                      loadingSelector("fadingCircle", "dark")),
+                              onTap: () {
+                                setState(() {
+                                  if (settings.get('loading') !=
+                                      "fadingCircle") {
+                                    settings.put('loading', "fadingCircle");
+                                  }
+                                });
+                              }),
+                        if (settings.get('loading') != "fadingFour")
+                          InkWell(
+                              child: Container(
+                                  padding: EdgeInsets.all(0),
+                                  width: 60,
+                                  height: 60,
+                                  child: loadingSelector("fadingFour", "dark")),
+                              onTap: () {
+                                setState(() {
+                                  if (settings.get('loading') != "fadingFour") {
+                                    settings.put('loading', "fadingFour");
+                                  }
+                                });
+                              }),
+                        if (settings.get('loading') != "fadingGrid")
+                          InkWell(
+                              child: Container(
+                                  padding: EdgeInsets.all(0),
+                                  width: 60,
+                                  height: 60,
+                                  child: loadingSelector("fadingGrid", "dark")),
+                              onTap: () {
+                                setState(() {
+                                  if (settings.get('loading') != "fadingGrid") {
+                                    settings.put('loading', "fadingGrid");
+                                  }
+                                });
+                              }),
+                        if (settings.get('loading') != "cubeGrid")
+                          InkWell(
+                              child: Container(
+                                  padding: EdgeInsets.all(0),
+                                  width: 60,
+                                  height: 60,
+                                  child: loadingSelector("cubeGrid", "dark")),
+                              onTap: () {
+                                setState(() {
+                                  if (settings.get('loading') != "cubeGrid") {
+                                    settings.put('loading', "cubeGrid");
+                                  }
+                                });
+                              }),
+                        if (settings.get('loading') != "pouringHourglass")
+                          InkWell(
+                              child: Container(
+                                  padding: EdgeInsets.all(0),
+                                  width: 60,
+                                  height: 60,
+                                  child: loadingSelector(
+                                      "pouringHourglass", "dark")),
+                              onTap: () {
+                                setState(() {
+                                  if (settings.get('loading') !=
+                                      "pouringHourglass") {
+                                    settings.put('loading', "pouringHourglass");
+                                  }
+                                });
+                              }),
                       ],
                     ),
                   ),
@@ -2523,7 +2480,7 @@ class _MyHomePageState extends State<MyHomePage> {
                     child: Center(
                       child: Text(
                         regionalText["settings"]["themePicker"],
-                        style: textSelection("textDark"),
+                        style: textSelection(theme: "textDark"),
                         textAlign: TextAlign.center,
                       ),
                     ),
@@ -2535,7 +2492,7 @@ class _MyHomePageState extends State<MyHomePage> {
                       spacing: 10,
                       runSpacing: 10,
                       children: [
-                        if (settings.get('theme') != "pink")
+                        if ((settings.get('theme') ?? "pink") != "pink")
                           Tooltip(
                             message: regionalText["settings"]["pink"],
                             child: InkWell(
@@ -2693,13 +2650,129 @@ class _MyHomePageState extends State<MyHomePage> {
                       ],
                     ),
                   ),
+                  //? O usuário não verá a opção de trocar para o mesmo tema que estiver ativo
+                  Padding(
+                    padding: EdgeInsets.all(Platform.isWindows ? 10.0 : 5.0),
+                    child: Center(
+                      child: Text(
+                        regionalText["settings"]["fontPicker"],
+                        style: textSelection(theme: "textDark"),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                  ),
+                  Padding(
+                    padding: EdgeInsets.symmetric(
+                        horizontal: Platform.isWindows ? 10.0 : 5.0),
+                    child: Wrap(
+                      spacing: 10,
+                      runSpacing: 10,
+                      children: [
+                        if ((settings.get('font') ?? "Oxygen") != "Oxygen")
+                          Tooltip(
+                            message: "Oxygen",
+                            child: InkWell(
+                                child: Text("AaBb",
+                                    style: textSelection(
+                                        theme: "textDark", family: "Oxygen")),
+                                onTap: () => {
+                                      setState(() {
+                                        settings.put('font', 'Oxygen');
+                                      }),
+                                    }),
+                          ),
+                        if (settings.get('font') != "Archivo")
+                          Tooltip(
+                            message: "Archivo",
+                            child: InkWell(
+                                child: Text("AaBb",
+                                    style: textSelection(
+                                        theme: "textDark", family: "Archivo")),
+                                onTap: () => {
+                                      setState(() {
+                                        settings.put('font', 'Archivo');
+                                      }),
+                                    }),
+                          ),
+                        if (settings.get('font') != "Arvo")
+                          Tooltip(
+                            message: "Arvo",
+                            child: InkWell(
+                                child: Text("AaBb",
+                                    style: textSelection(
+                                        theme: "textDark", family: "Arvo")),
+                                onTap: () => {
+                                      setState(() {
+                                        settings.put('font', 'Arvo');
+                                      }),
+                                    }),
+                          ),
+                        if (settings.get('font') != "Goldman")
+                          Tooltip(
+                            message: "Goldman",
+                            child: InkWell(
+                                child: Text("AaBb",
+                                    style: textSelection(
+                                        theme: "textDark", family: "Goldman")),
+                                onTap: () => {
+                                      setState(() {
+                                        settings.put('font', 'Goldman');
+                                      }),
+                                    }),
+                          ),
+                        if (settings.get('font') != "LibreBaskerville")
+                          Tooltip(
+                            message: "LibreBaskerville",
+                            child: InkWell(
+                                child: Text("AaBb",
+                                    style: textSelection(
+                                        theme: "textDark",
+                                        family: "LibreBaskerville")),
+                                onTap: () => {
+                                      setState(() {
+                                        settings.put(
+                                            'font', 'LibreBaskerville');
+                                      }),
+                                    }),
+                          ),
+                        if (settings.get('font') != "LobsterTwo")
+                          Tooltip(
+                            message: "LobsterTwo",
+                            child: InkWell(
+                                child: Text("AaBb",
+                                    style: textSelection(
+                                        theme: "textDark",
+                                        family: "LobsterTwo")),
+                                onTap: () => {
+                                      setState(() {
+                                        settings.put('font', 'LobsterTwo');
+                                      }),
+                                    }),
+                          ),
+                        if (settings.get('font') != "TurretRoad")
+                          Tooltip(
+                            message: "TurretRoad",
+                            child: InkWell(
+                                child: Text("AaBb",
+                                    style: textSelection(
+                                        theme: "textDark",
+                                        family: "TurretRoad")),
+                                onTap: () => {
+                                      setState(() {
+                                        settings.put('font', 'TurretRoad');
+                                      }),
+                                    }),
+                          ),
+                      ],
+                    ),
+                  ),
                   if (settings.get("psnID") != null)
                     Padding(
                       padding: EdgeInsets.all(Platform.isWindows ? 10.0 : 5.0),
                       child: Center(
                         child: Text(
                           regionalText["settings"]["removePSN"],
-                          style: textSelection("textDark"),
+                          style: textSelection(theme: "textDark"),
                         ),
                       ),
                     ),
@@ -2718,7 +2791,7 @@ class _MyHomePageState extends State<MyHomePage> {
                           SizedBox(width: Platform.isWindows ? 10.0 : 5.0),
                           Text(
                             settings.get('psnID'),
-                            style: textSelection("textDark"),
+                            style: textSelection(theme: "textDark"),
                           )
                         ],
                       ),
@@ -2773,244 +2846,252 @@ class _MyHomePageState extends State<MyHomePage> {
                 SizedBox(),
                 //? This is the stuff that shows up when you haven't set a PSN ID.
                 if (settings.get("psnID") == null)
-                  Column(
-                    children: [
-                      //? If user doesn't have a set PSN ID, display the fields for them to input one.
-                      Text(regionalText['home']['inputID'],
-                          style: textSelection("textDarkBold")),
-                      Container(
-                        width: MediaQuery.of(context).size.width * 0.5,
-                        child: TextFormField(
-                            decoration: InputDecoration(
-                                hintText: regionalText['home']['IDhere']),
-                            textAlign: TextAlign.center,
-                            autocorrect: false,
-                            autofocus: Platform.isWindows ? true : false,
-                            onChanged: (text) {
-                              debounce.run(() {
-                                //! Perform search here later to validate the ID provided
-                                setState(() {
-                                  settings.put('psnID', text);
-                                  updateProfiles();
-                                });
-                              });
-                            }),
-                      ),
-                      SizedBox(
-                        height: 30,
-                      ),
-                      Text(
-                        regionalText['home']['supportedWebsites'],
-                        style: textSelection("textDarkBold"),
-                      ),
-                      //? Spaces for PSNProfiles and PSN Trophy Leaders
-                      Padding(
-                        padding: const EdgeInsets.all(5.0),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
+                  Expanded(
+                    child: Center(
+                      child: SingleChildScrollView(
+                        child: Column(
                           children: [
-                            Tooltip(
-                              message: "PSN Profiles",
-                              child: Container(
-                                height: 50,
-                                width: Platform.isWindows ? 200 : 150,
-                                decoration: boxDeco(),
-                                child: Row(
-                                  mainAxisAlignment:
-                                      MainAxisAlignment.spaceEvenly,
-                                  children: [
-                                    Padding(
-                                      padding: const EdgeInsets.all(5.0),
-                                      child: Image.network(
-                                        "https://psnprofiles.com/favicon.ico",
-                                        scale: 2,
+                            //? If user doesn't have a set PSN ID, display the fields for them to input one.
+                            Text(regionalText['home']['inputID'],
+                                style: textSelection(theme: "textDarkBold")),
+                            Container(
+                              width: MediaQuery.of(context).size.width * 0.5,
+                              child: TextFormField(
+                                  decoration: InputDecoration(
+                                      hintText: regionalText['home']['IDhere'],
+                                      hintStyle:
+                                          textSelection(theme: "textDark")),
+                                  textAlign: TextAlign.center,
+                                  autocorrect: false,
+                                  autofocus: Platform.isWindows ? true : false,
+                                  onChanged: (text) {
+                                    debounce.run(() {
+                                      //! Perform search here later to validate the ID provided
+                                      setState(() {
+                                        settings.put('psnID', text);
+                                        updateProfiles();
+                                      });
+                                    });
+                                  }),
+                            ),
+                            SizedBox(height: 30),
+                            Text(
+                              regionalText['home']['supportedWebsites'],
+                              style: textSelection(theme: "textDarkBold"),
+                            ),
+                            //? Spaces for PSN Profiles and PSN Trophy Leaders
+                            Padding(
+                              padding: const EdgeInsets.all(5.0),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Tooltip(
+                                    message: "PSN Profiles",
+                                    child: Container(
+                                      height: 50,
+                                      width: Platform.isWindows ? 200 : 150,
+                                      decoration: boxDeco(),
+                                      child: Row(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.spaceEvenly,
+                                        children: [
+                                          Padding(
+                                            padding: const EdgeInsets.all(5.0),
+                                            child: Image.network(
+                                              "https://psnprofiles.com/favicon.ico",
+                                              scale: 2,
+                                            ),
+                                          ),
+                                          Padding(
+                                            padding: const EdgeInsets.all(5.0),
+                                            child: Text(
+                                              "PSN Profiles",
+                                              style: textSelection(),
+                                            ),
+                                          )
+                                        ],
                                       ),
                                     ),
-                                    Padding(
-                                      padding: const EdgeInsets.all(5.0),
-                                      child: Text(
-                                        "PSNProfiles",
-                                        style: textSelection(""),
-                                      ),
-                                    )
-                                  ],
-                                ),
-                              ),
-                            ),
-                            SizedBox(
-                              width: 10,
-                            ),
-                            Tooltip(
-                              message: 'PSN Trophy Leaders',
-                              child: Container(
-                                height: 50,
-                                width: Platform.isWindows ? 200 : 150,
-                                decoration: boxDeco(),
-                                child: SingleChildScrollView(
-                                  scrollDirection: Axis.horizontal,
-                                  child: Row(
-                                    mainAxisAlignment:
-                                        MainAxisAlignment.spaceEvenly,
-                                    children: [
-                                      Padding(
-                                        padding: const EdgeInsets.all(5.0),
-                                        child: Image.network(
-                                          "https://psntl.com/favicon.ico",
-                                          scale: 0.5,
-                                        ),
-                                      ),
-                                      Padding(
-                                        padding: const EdgeInsets.all(5.0),
-                                        child: Text(
-                                          'PSN Trophy Leaders',
-                                          style: textSelection(""),
-                                        ),
-                                      )
-                                    ],
                                   ),
-                                ),
+                                  SizedBox(
+                                    width: 10,
+                                  ),
+                                  Tooltip(
+                                    message: 'PSN Trophy Leaders',
+                                    child: Container(
+                                      height: 50,
+                                      width: Platform.isWindows ? 200 : 150,
+                                      decoration: boxDeco(),
+                                      child: SingleChildScrollView(
+                                        scrollDirection: Axis.horizontal,
+                                        child: Row(
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.spaceEvenly,
+                                          children: [
+                                            Padding(
+                                              padding:
+                                                  const EdgeInsets.all(5.0),
+                                              child: Image.network(
+                                                "https://psntl.com/favicon.ico",
+                                                scale: 0.5,
+                                              ),
+                                            ),
+                                            Padding(
+                                              padding:
+                                                  const EdgeInsets.all(5.0),
+                                              child: Text(
+                                                'PSN Trophy Leaders',
+                                                style: textSelection(),
+                                              ),
+                                            )
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            //? Spaces for True Trophies and Exophase
+                            Padding(
+                              padding: const EdgeInsets.all(5.0),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Tooltip(
+                                    message: "True Trophies",
+                                    child: Container(
+                                      height: 50,
+                                      width: Platform.isWindows ? 200 : 150,
+                                      decoration: boxDeco(),
+                                      child: Row(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.spaceEvenly,
+                                        children: [
+                                          Padding(
+                                            padding: const EdgeInsets.all(5.0),
+                                            child: Image.network(
+                                              "https://truetrophies.com/favicon.ico",
+                                              scale: 0.5,
+                                            ),
+                                          ),
+                                          Padding(
+                                            padding: const EdgeInsets.all(5.0),
+                                            child: Text(
+                                              "True Trophies",
+                                              style: textSelection(),
+                                            ),
+                                          )
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                  SizedBox(
+                                    width: 10,
+                                  ),
+                                  Tooltip(
+                                    message: "Exophase",
+                                    child: Container(
+                                      height: 50,
+                                      width: Platform.isWindows ? 200 : 150,
+                                      decoration: boxDeco(),
+                                      child: Row(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.spaceEvenly,
+                                        children: [
+                                          Padding(
+                                            padding: const EdgeInsets.all(5.0),
+                                            child: Image.network(
+                                              "https://www.exophase.com/assets/zeal/_icons/favicon.ico",
+                                              scale: 0.5,
+                                            ),
+                                          ),
+                                          Padding(
+                                            padding: const EdgeInsets.all(5.0),
+                                            child: Text(
+                                              "Exophase",
+                                              style: textSelection(),
+                                            ),
+                                          )
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            //? Spaces for PSN100 and something, probably PsNine
+                            Padding(
+                              padding: const EdgeInsets.all(5.0),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Tooltip(
+                                    message: "PSN 100%",
+                                    child: Container(
+                                      height: 50,
+                                      width: Platform.isWindows ? 200 : 150,
+                                      decoration: boxDeco(),
+                                      child: Row(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.spaceEvenly,
+                                        children: [
+                                          Padding(
+                                            padding: const EdgeInsets.all(5.0),
+                                            child: Image.asset(
+                                              img['psn100'],
+                                              scale: 0.5,
+                                            ),
+                                          ),
+                                          Padding(
+                                            padding: const EdgeInsets.all(5.0),
+                                            child: Text(
+                                              "PSN 100%",
+                                              style: textSelection(),
+                                            ),
+                                          )
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                  // SizedBox(
+                                  //   width: 10,
+                                  // ),
+                                  // Tooltip(
+                                  //   message: "Exophase",
+                                  //   child: Container(
+                                  //     height: 50,
+                                  //     width: 220,
+                                  //     decoration: boxDeco(),
+                                  //     child: Row(
+                                  //       mainAxisAlignment:
+                                  //           MainAxisAlignment.spaceEvenly,
+                                  //       children: [
+                                  //         Padding(
+                                  //           padding: const EdgeInsets.all(5.0),
+                                  //           child: Image.network(
+                                  //             "https://www.exophase.com/assets/zeal/_icons/favicon.ico",
+                                  //             scale: 0.5,
+                                  //           ),
+                                  //         ),
+                                  //         Padding(
+                                  //           padding: const EdgeInsets.all(5.0),
+                                  //           child: Text(
+                                  //             "Exophase",
+                                  //             style: textSelection(),
+                                  //           ),
+                                  //         )
+                                  //       ],
+                                  //     ),
+                                  //   ),
+                                  // ),
+                                ],
                               ),
                             ),
                           ],
                         ),
                       ),
-                      //? Spaces for True Trophies and Exophase
-                      Padding(
-                        padding: const EdgeInsets.all(5.0),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Tooltip(
-                              message: "True Trophies",
-                              child: Container(
-                                height: 50,
-                                width: Platform.isWindows ? 200 : 150,
-                                decoration: boxDeco(),
-                                child: Row(
-                                  mainAxisAlignment:
-                                      MainAxisAlignment.spaceEvenly,
-                                  children: [
-                                    Padding(
-                                      padding: const EdgeInsets.all(5.0),
-                                      child: Image.network(
-                                        "https://truetrophies.com/favicon.ico",
-                                        scale: 0.5,
-                                      ),
-                                    ),
-                                    Padding(
-                                      padding: const EdgeInsets.all(5.0),
-                                      child: Text(
-                                        "True Trophies",
-                                        style: textSelection(""),
-                                      ),
-                                    )
-                                  ],
-                                ),
-                              ),
-                            ),
-                            SizedBox(
-                              width: 10,
-                            ),
-                            Tooltip(
-                              message: "Exophase",
-                              child: Container(
-                                height: 50,
-                                width: Platform.isWindows ? 200 : 150,
-                                decoration: boxDeco(),
-                                child: Row(
-                                  mainAxisAlignment:
-                                      MainAxisAlignment.spaceEvenly,
-                                  children: [
-                                    Padding(
-                                      padding: const EdgeInsets.all(5.0),
-                                      child: Image.network(
-                                        "https://www.exophase.com/assets/zeal/_icons/favicon.ico",
-                                        scale: 0.5,
-                                      ),
-                                    ),
-                                    Padding(
-                                      padding: const EdgeInsets.all(5.0),
-                                      child: Text(
-                                        "Exophase",
-                                        style: textSelection(""),
-                                      ),
-                                    )
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      //? Spaces for PSN100 and something, probably PsNine
-                      Padding(
-                        padding: const EdgeInsets.all(5.0),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Tooltip(
-                              message: "PSN 100%",
-                              child: Container(
-                                height: 50,
-                                width: Platform.isWindows ? 200 : 150,
-                                decoration: boxDeco(),
-                                child: Row(
-                                  mainAxisAlignment:
-                                      MainAxisAlignment.spaceEvenly,
-                                  children: [
-                                    Padding(
-                                      padding: const EdgeInsets.all(5.0),
-                                      child: Image.asset(
-                                        img['psn100'],
-                                        scale: 0.5,
-                                      ),
-                                    ),
-                                    Padding(
-                                      padding: const EdgeInsets.all(5.0),
-                                      child: Text(
-                                        "PSN 100%",
-                                        style: textSelection(""),
-                                      ),
-                                    )
-                                  ],
-                                ),
-                              ),
-                            ),
-                            // SizedBox(
-                            //   width: 10,
-                            // ),
-                            // Tooltip(
-                            //   message: "Exophase",
-                            //   child: Container(
-                            //     height: 50,
-                            //     width: 220,
-                            //     decoration: boxDeco(),
-                            //     child: Row(
-                            //       mainAxisAlignment:
-                            //           MainAxisAlignment.spaceEvenly,
-                            //       children: [
-                            //         Padding(
-                            //           padding: const EdgeInsets.all(5.0),
-                            //           child: Image.network(
-                            //             "https://www.exophase.com/assets/zeal/_icons/favicon.ico",
-                            //             scale: 0.5,
-                            //           ),
-                            //         ),
-                            //         Padding(
-                            //           padding: const EdgeInsets.all(5.0),
-                            //           child: Text(
-                            //             "Exophase",
-                            //             style: textSelection(""),
-                            //           ),
-                            //         )
-                            //       ],
-                            //     ),
-                            //   ),
-                            // ),
-                          ],
-                        ),
-                      ),
-                    ],
+                    ),
                   ),
                 //? Cards are displayed when you set a PSN ID with success.
                 //! Needs error handling for bad IDs.
@@ -3073,7 +3154,8 @@ class _MyHomePageState extends State<MyHomePage> {
                                                       child: Text(
                                                         snapshot.data["psnID"],
                                                         style: textSelection(
-                                                            "textLightBold"),
+                                                            theme:
+                                                                "textLightBold"),
                                                       ),
                                                     ),
                                                     SizedBox(width: 5),
@@ -3172,7 +3254,7 @@ class _MyHomePageState extends State<MyHomePage> {
                                                   Text(
                                                     snapshot.data['ultraRare']
                                                         .toString(),
-                                                    style: textSelection(""),
+                                                    style: textSelection(),
                                                   ),
                                                 ],
                                               ),
@@ -3192,7 +3274,7 @@ class _MyHomePageState extends State<MyHomePage> {
                                                   Text(
                                                     snapshot.data['veryRare']
                                                         .toString(),
-                                                    style: textSelection(""),
+                                                    style: textSelection(),
                                                   )
                                                 ],
                                               ),
@@ -3212,7 +3294,7 @@ class _MyHomePageState extends State<MyHomePage> {
                                                   Text(
                                                     snapshot.data['rare']
                                                         .toString(),
-                                                    style: textSelection(""),
+                                                    style: textSelection(),
                                                   )
                                                 ],
                                               ),
@@ -3232,7 +3314,7 @@ class _MyHomePageState extends State<MyHomePage> {
                                                   Text(
                                                     snapshot.data['uncommon']
                                                         .toString(),
-                                                    style: textSelection(""),
+                                                    style: textSelection(),
                                                   )
                                                 ],
                                               ),
@@ -3252,7 +3334,7 @@ class _MyHomePageState extends State<MyHomePage> {
                                                   Text(
                                                     snapshot.data['common']
                                                         .toString(),
-                                                    style: textSelection(""),
+                                                    style: textSelection(),
                                                   )
                                                 ],
                                               ),
@@ -3281,7 +3363,7 @@ class _MyHomePageState extends State<MyHomePage> {
                                                       : 5.0),
                                               child: Text(
                                                 "${regionalText["home"]["games"]}\n${snapshot.data['games'].toString()}",
-                                                style: textSelection(""),
+                                                style: textSelection(),
                                                 textAlign: TextAlign.center,
                                               ),
                                             ),
@@ -3292,7 +3374,7 @@ class _MyHomePageState extends State<MyHomePage> {
                                                       : 5.0),
                                               child: Text(
                                                 "${regionalText["home"]["complete"]}\n${snapshot.data['complete'].toString()} (${snapshot.data['completePercentage']}%)",
-                                                style: textSelection(""),
+                                                style: textSelection(),
                                                 textAlign: TextAlign.center,
                                               ),
                                             ),
@@ -3304,7 +3386,7 @@ class _MyHomePageState extends State<MyHomePage> {
                                                           : 5.0),
                                               child: Text(
                                                 "${regionalText["home"]["incomplete"]}\n${snapshot.data['incomplete'].toString()} (${snapshot.data['incompletePercentage']}%)",
-                                                style: textSelection(""),
+                                                style: textSelection(),
                                                 textAlign: TextAlign.center,
                                               ),
                                             ),
@@ -3315,7 +3397,7 @@ class _MyHomePageState extends State<MyHomePage> {
                                                       : 5.0),
                                               child: Text(
                                                 "${regionalText["home"]["completion"]}\n${snapshot.data['completion']}",
-                                                style: textSelection(""),
+                                                style: textSelection(),
                                                 textAlign: TextAlign.center,
                                               ),
                                             ),
@@ -3326,7 +3408,7 @@ class _MyHomePageState extends State<MyHomePage> {
                                                       : 5.0),
                                               child: Text(
                                                 "${regionalText["home"]["unearned"]}\n${snapshot.data['unearned'].toString()} (${snapshot.data['unearnedPercentage']}%)",
-                                                style: textSelection(""),
+                                                style: textSelection(),
                                                 textAlign: TextAlign.center,
                                               ),
                                             ),
@@ -3337,7 +3419,7 @@ class _MyHomePageState extends State<MyHomePage> {
                                                       : 5.0),
                                               child: Text(
                                                 "${regionalText["home"]["countryRank"]}\n${snapshot.data['countryRank'] != null ? snapshot.data['countryRank'].toString() + " " : "❌"}${snapshot.data['countryUp'] ?? ""}",
-                                                style: textSelection(""),
+                                                style: textSelection(),
                                                 textAlign: TextAlign.center,
                                               ),
                                             ),
@@ -3348,7 +3430,7 @@ class _MyHomePageState extends State<MyHomePage> {
                                                       : 5.0),
                                               child: Text(
                                                 "${regionalText["home"]["worldRank"]}\n${snapshot.data['worldRank'] != null ? snapshot.data['worldRank'].toString() + " " : "❌"}${snapshot.data['worldUp'] ?? ""}",
-                                                style: textSelection(""),
+                                                style: textSelection(),
                                                 textAlign: TextAlign.center,
                                               ),
                                             ),
@@ -3375,8 +3457,9 @@ class _MyHomePageState extends State<MyHomePage> {
                                                 ? 10.0
                                                 : 5.0),
                                         Text(
-                                          "PSNProfiles",
-                                          style: textSelection("textLightBold"),
+                                          "PSN Profiles",
+                                          style: textSelection(
+                                              theme: "textLightBold"),
                                         )
                                       ],
                                     ),
@@ -3438,7 +3521,7 @@ class _MyHomePageState extends State<MyHomePage> {
                                                           .data["sameAvatar"]
                                                           .toString(),
                                                   style: textSelection(
-                                                      "textLightBold"),
+                                                      theme: "textLightBold"),
                                                 ),
                                               )
                                             ],
@@ -3459,7 +3542,8 @@ class _MyHomePageState extends State<MyHomePage> {
                                                     Text(
                                                       snapshot.data["psnID"],
                                                       style: textSelection(
-                                                          "textLightBold"),
+                                                          theme:
+                                                              "textLightBold"),
                                                     ),
                                                     SizedBox(width: 5),
                                                     //? Country flag
@@ -3554,7 +3638,7 @@ class _MyHomePageState extends State<MyHomePage> {
                                                       : 5.0),
                                               child: Text(
                                                 "${regionalText["home"]["games"]}\n${snapshot.data['games'].toString()}",
-                                                style: textSelection(""),
+                                                style: textSelection(),
                                                 textAlign: TextAlign.center,
                                               ),
                                             ),
@@ -3565,7 +3649,7 @@ class _MyHomePageState extends State<MyHomePage> {
                                                       : 5.0),
                                               child: Text(
                                                 "${regionalText["home"]["completion"]}\n${snapshot.data['completion']}",
-                                                style: textSelection(""),
+                                                style: textSelection(),
                                                 textAlign: TextAlign.center,
                                               ),
                                             ),
@@ -3576,7 +3660,7 @@ class _MyHomePageState extends State<MyHomePage> {
                                                       : 5.0),
                                               child: Text(
                                                 "${regionalText["home"]["standard"]}\n${snapshot.data['standard'].toString()} ${snapshot.data['standardChange']}",
-                                                style: textSelection(""),
+                                                style: textSelection(),
                                                 textAlign: TextAlign.center,
                                               ),
                                             ),
@@ -3587,7 +3671,7 @@ class _MyHomePageState extends State<MyHomePage> {
                                                       : 5.0),
                                               child: Text(
                                                 "${regionalText["home"]["adjusted"]}\n${snapshot.data['adjusted'].toString()} ${snapshot.data['adjustedChange']}",
-                                                style: textSelection(""),
+                                                style: textSelection(),
                                                 textAlign: TextAlign.center,
                                               ),
                                             ),
@@ -3598,7 +3682,7 @@ class _MyHomePageState extends State<MyHomePage> {
                                                       : 5.0),
                                               child: Text(
                                                 "${regionalText["home"]["completist"]}\n${snapshot.data['completist'].toString()} ${snapshot.data['completistChange']}",
-                                                style: textSelection(""),
+                                                style: textSelection(),
                                                 textAlign: TextAlign.center,
                                               ),
                                             ),
@@ -3609,7 +3693,7 @@ class _MyHomePageState extends State<MyHomePage> {
                                                       : 5.0),
                                               child: Text(
                                                 "${regionalText["home"]["rarity"]}\n${snapshot.data['rarity'].toString()} ${snapshot.data['rarityChange']}",
-                                                style: textSelection(""),
+                                                style: textSelection(),
                                                 textAlign: TextAlign.center,
                                               ),
                                             ),
@@ -3636,7 +3720,8 @@ class _MyHomePageState extends State<MyHomePage> {
                                                 : 5.0),
                                         Text(
                                           'PSN Trophy Leaders',
-                                          style: textSelection("textLightBold"),
+                                          style: textSelection(
+                                              theme: "textLightBold"),
                                         )
                                       ],
                                     ),
@@ -3713,7 +3798,8 @@ class _MyHomePageState extends State<MyHomePage> {
                                                       Text(
                                                         snapshot.data["psnID"],
                                                         style: textSelection(
-                                                            "textLightBold"),
+                                                            theme:
+                                                                "textLightBold"),
                                                       ),
                                                       SizedBox(width: 5),
                                                       //? Country flag
@@ -3812,7 +3898,7 @@ class _MyHomePageState extends State<MyHomePage> {
                                                             : 5.0),
                                                 child: Text(
                                                   "${regionalText["home"]["games"]}\n${snapshot.data['games'].toString()}",
-                                                  style: textSelection(""),
+                                                  style: textSelection(),
                                                   textAlign: TextAlign.center,
                                                 ),
                                               ),
@@ -3825,7 +3911,7 @@ class _MyHomePageState extends State<MyHomePage> {
                                                             : 5.0),
                                                 child: Text(
                                                   "${regionalText["home"]["complete"]}\n${snapshot.data['complete'].toString()} (${snapshot.data['completePercentage']}%)",
-                                                  style: textSelection(""),
+                                                  style: textSelection(),
                                                   textAlign: TextAlign.center,
                                                 ),
                                               ),
@@ -3838,7 +3924,7 @@ class _MyHomePageState extends State<MyHomePage> {
                                                             : 5.0),
                                                 child: Text(
                                                   "${regionalText["home"]["incomplete"]}\n${snapshot.data['incomplete'].toString()} (${snapshot.data['incompletePercentage']}%)",
-                                                  style: textSelection(""),
+                                                  style: textSelection(),
                                                   textAlign: TextAlign.center,
                                                 ),
                                               ),
@@ -3851,7 +3937,7 @@ class _MyHomePageState extends State<MyHomePage> {
                                                             : 5.0),
                                                 child: Text(
                                                   "${regionalText["home"]["completion"]}\n${snapshot.data['completion']}",
-                                                  style: textSelection(""),
+                                                  style: textSelection(),
                                                   textAlign: TextAlign.center,
                                                 ),
                                               ),
@@ -3869,7 +3955,7 @@ class _MyHomePageState extends State<MyHomePage> {
                                                                 : 5.0),
                                                     child: Text(
                                                       "${regionalText["home"]["hours"]}\n${snapshot.data['hours']}",
-                                                      style: textSelection(""),
+                                                      style: textSelection(),
                                                       textAlign:
                                                           TextAlign.center,
                                                     ),
@@ -3884,7 +3970,7 @@ class _MyHomePageState extends State<MyHomePage> {
                                                             : 5.0),
                                                 child: Text(
                                                   "${regionalText["home"]["exp"]}\n${snapshot.data['exp']}",
-                                                  style: textSelection(""),
+                                                  style: textSelection(),
                                                   textAlign: TextAlign.center,
                                                 ),
                                               ),
@@ -3897,7 +3983,7 @@ class _MyHomePageState extends State<MyHomePage> {
                                                             : 5.0),
                                                 child: Text(
                                                   "${regionalText["home"]["countryRank"]}\n${snapshot.data['countryRank'] != null ? snapshot.data['countryRank'].toString() + " " : "❌"}${snapshot.data['countryUp'] ?? ""}",
-                                                  style: textSelection(""),
+                                                  style: textSelection(),
                                                   textAlign: TextAlign.center,
                                                 ),
                                               ),
@@ -3910,7 +3996,7 @@ class _MyHomePageState extends State<MyHomePage> {
                                                             : 5.0),
                                                 child: Text(
                                                   "${regionalText["home"]["worldRank"]}\n${snapshot.data['worldRank'] != null ? snapshot.data['worldRank'].toString() + " " : "❌"}${snapshot.data['worldUp'] ?? ""}",
-                                                  style: textSelection(""),
+                                                  style: textSelection(),
                                                   textAlign: TextAlign.center,
                                                 ),
                                               ),
@@ -3938,7 +4024,8 @@ class _MyHomePageState extends State<MyHomePage> {
                                                 : 5.0),
                                         Text(
                                           "Exophase",
-                                          style: textSelection("textLightBold"),
+                                          style: textSelection(
+                                              theme: "textLightBold"),
                                         )
                                       ],
                                     ),
@@ -4007,7 +4094,8 @@ class _MyHomePageState extends State<MyHomePage> {
                                                     Text(
                                                       snapshot.data["psnID"],
                                                       style: textSelection(
-                                                          "textLightBold"),
+                                                          theme:
+                                                              "textLightBold"),
                                                     ),
                                                     if (snapshot
                                                             .data['country'] !=
@@ -4105,7 +4193,7 @@ class _MyHomePageState extends State<MyHomePage> {
                                               Text(
                                                   snapshot.data['trueScore']
                                                       .toString(),
-                                                  style: textSelection(""))
+                                                  style: textSelection())
                                             ]),
                                           ),
                                           SizedBox(
@@ -4124,7 +4212,7 @@ class _MyHomePageState extends State<MyHomePage> {
                                                   snapshot
                                                       .data['trueTrophyLevel']
                                                       .toString(),
-                                                  style: textSelection(""))
+                                                  style: textSelection())
                                             ]),
                                           ),
                                           SizedBox(
@@ -4142,7 +4230,7 @@ class _MyHomePageState extends State<MyHomePage> {
                                               Text(
                                                   snapshot.data['ratio']
                                                       .toString(),
-                                                  style: textSelection(""))
+                                                  style: textSelection())
                                             ]),
                                           ),
                                         ],
@@ -4168,7 +4256,7 @@ class _MyHomePageState extends State<MyHomePage> {
                                                       : 5.0),
                                               child: Text(
                                                 "${regionalText["home"]["games"]}\n${snapshot.data['games'].toString()}",
-                                                style: textSelection(""),
+                                                style: textSelection(),
                                                 textAlign: TextAlign.center,
                                               ),
                                             ),
@@ -4180,7 +4268,7 @@ class _MyHomePageState extends State<MyHomePage> {
                                                       : 5.0),
                                               child: Text(
                                                 "${regionalText["home"]["complete"]}\n${snapshot.data['complete'].toString()} (${snapshot.data['completePercentage']}%)",
-                                                style: textSelection(""),
+                                                style: textSelection(),
                                                 textAlign: TextAlign.center,
                                               ),
                                             ),
@@ -4192,7 +4280,7 @@ class _MyHomePageState extends State<MyHomePage> {
                                                       : 5.0),
                                               child: Text(
                                                 "${regionalText["home"]["incomplete"]}\n${snapshot.data['incomplete'].toString()} (${snapshot.data['incompletePercentage']}%)",
-                                                style: textSelection(""),
+                                                style: textSelection(),
                                                 textAlign: TextAlign.center,
                                               ),
                                             ),
@@ -4204,7 +4292,7 @@ class _MyHomePageState extends State<MyHomePage> {
                                                       : 5.0),
                                               child: Text(
                                                 "${regionalText["home"]["completion"]}\n${snapshot.data['completion'].toString()}%\n(+${snapshot.data['completionIncrease']} ➡️ ${snapshot.data['nextCompletion'] ?? snapshot.data['completion'].ceil().toString() + "%"})",
-                                                style: textSelection(""),
+                                                style: textSelection(),
                                                 textAlign: TextAlign.center,
                                               ),
                                             ),
@@ -4231,7 +4319,8 @@ class _MyHomePageState extends State<MyHomePage> {
                                                 : 5.0),
                                         Text(
                                           "True Trophies",
-                                          style: textSelection("textLightBold"),
+                                          style: textSelection(
+                                              theme: "textLightBold"),
                                         )
                                       ],
                                     ),
@@ -4300,7 +4389,8 @@ class _MyHomePageState extends State<MyHomePage> {
                                                     Text(
                                                       snapshot.data["psnID"],
                                                       style: textSelection(
-                                                          "textLightBold"),
+                                                          theme:
+                                                              "textLightBold"),
                                                     ),
                                                     SizedBox(width: 5),
                                                     //? Country flag
@@ -4340,38 +4430,46 @@ class _MyHomePageState extends State<MyHomePage> {
                                         ],
                                       ),
                                       //? This row contains the trophy icons and the quantity the user has acquired of them
-                                      Row(
-                                        mainAxisSize: MainAxisSize.min,
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.spaceBetween,
-                                        children: [
-                                          trophyType('platinum',
-                                              quantity:
-                                                  snapshot.data['platinum']),
-                                          SizedBox(
-                                              width:
-                                                  Platform.isWindows ? 20 : 5),
-                                          trophyType('gold',
-                                              quantity: snapshot.data['gold']),
-                                          SizedBox(
-                                              width:
-                                                  Platform.isWindows ? 20 : 5),
-                                          trophyType('silver',
-                                              quantity:
-                                                  snapshot.data['silver']),
-                                          SizedBox(
-                                              width:
-                                                  Platform.isWindows ? 20 : 5),
-                                          trophyType('bronze',
-                                              quantity:
-                                                  snapshot.data['bronze']),
-                                          SizedBox(
-                                              width:
-                                                  Platform.isWindows ? 20 : 5),
-                                          trophyType('total',
-                                              quantity:
-                                                  "${snapshot.data['total'].toString()} (${snapshot.data['totalPercentage']}%)"),
-                                        ],
+                                      SingleChildScrollView(
+                                        scrollDirection: Axis.horizontal,
+                                        child: Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.spaceBetween,
+                                          children: [
+                                            trophyType('platinum',
+                                                quantity:
+                                                    snapshot.data['platinum']),
+                                            SizedBox(
+                                                width: Platform.isWindows
+                                                    ? 20
+                                                    : 5),
+                                            trophyType('gold',
+                                                quantity:
+                                                    snapshot.data['gold']),
+                                            SizedBox(
+                                                width: Platform.isWindows
+                                                    ? 20
+                                                    : 5),
+                                            trophyType('silver',
+                                                quantity:
+                                                    snapshot.data['silver']),
+                                            SizedBox(
+                                                width: Platform.isWindows
+                                                    ? 20
+                                                    : 5),
+                                            trophyType('bronze',
+                                                quantity:
+                                                    snapshot.data['bronze']),
+                                            SizedBox(
+                                                width: Platform.isWindows
+                                                    ? 20
+                                                    : 5),
+                                            trophyType('total',
+                                                quantity:
+                                                    "${snapshot.data['total'].toString()} (${snapshot.data['totalPercentage']}%)"),
+                                          ],
+                                        ),
                                       ),
                                       Divider(
                                           color: themeSelector['secondary']
@@ -4393,7 +4491,7 @@ class _MyHomePageState extends State<MyHomePage> {
                                                       : 5.0),
                                               child: Text(
                                                 "${regionalText["home"]["games"]}\n${snapshot.data['games'].toString()}",
-                                                style: textSelection(""),
+                                                style: textSelection(),
                                                 textAlign: TextAlign.center,
                                               ),
                                             ),
@@ -4405,7 +4503,7 @@ class _MyHomePageState extends State<MyHomePage> {
                                                       : 5.0),
                                               child: Text(
                                                 "${regionalText["home"]["complete"]}\n${snapshot.data['complete'].toString()} (${snapshot.data['completePercentage']}%)",
-                                                style: textSelection(""),
+                                                style: textSelection(),
                                                 textAlign: TextAlign.center,
                                               ),
                                             ),
@@ -4417,7 +4515,7 @@ class _MyHomePageState extends State<MyHomePage> {
                                                       : 5.0),
                                               child: Text(
                                                 "${regionalText["home"]["incomplete"]}\n${snapshot.data['incomplete'].toString()} (${snapshot.data['incompletePercentage']}%)",
-                                                style: textSelection(""),
+                                                style: textSelection(),
                                                 textAlign: TextAlign.center,
                                               ),
                                             ),
@@ -4429,7 +4527,7 @@ class _MyHomePageState extends State<MyHomePage> {
                                                       : 5.0),
                                               child: Text(
                                                 "${regionalText["home"]["completion"]}\n${snapshot.data['completion']}",
-                                                style: textSelection(""),
+                                                style: textSelection(),
                                                 textAlign: TextAlign.center,
                                               ),
                                             ),
@@ -4441,7 +4539,7 @@ class _MyHomePageState extends State<MyHomePage> {
                                                       : 5.0),
                                               child: Text(
                                                 "${regionalText["home"]["unearned"]}\n${snapshot.data['unearned']}",
-                                                style: textSelection(""),
+                                                style: textSelection(),
                                                 textAlign: TextAlign.center,
                                               ),
                                             ),
@@ -4453,7 +4551,7 @@ class _MyHomePageState extends State<MyHomePage> {
                                                       : 5.0),
                                               child: Text(
                                                 "${regionalText["home"]["worldRank"]}\n${snapshot.data['worldRank'] != null ? snapshot.data['worldRank'].toString() + " " : "❌"}${snapshot.data['worldUp'] ?? ""}",
-                                                style: textSelection(""),
+                                                style: textSelection(),
                                                 textAlign: TextAlign.center,
                                               ),
                                             ),
@@ -4465,7 +4563,7 @@ class _MyHomePageState extends State<MyHomePage> {
                                                       : 5.0),
                                               child: Text(
                                                 "${regionalText["home"]["rarity"]}\n${snapshot.data['worldRarity'] != null ? snapshot.data['worldRarity'].toString() + " " : "❌"}${snapshot.data['worldUp'] ?? ""}",
-                                                style: textSelection(""),
+                                                style: textSelection(),
                                                 textAlign: TextAlign.center,
                                               ),
                                             ),
@@ -4477,7 +4575,7 @@ class _MyHomePageState extends State<MyHomePage> {
                                                       : 5.0),
                                               child: Text(
                                                 "${regionalText["home"]["countryRank"]}\n${snapshot.data['countryRank'] != null ? snapshot.data['countryRank'].toString() + " " : "❌"}${snapshot.data['countryUp'] ?? ""}",
-                                                style: textSelection(""),
+                                                style: textSelection(),
                                                 textAlign: TextAlign.center,
                                               ),
                                             ),
@@ -4489,7 +4587,7 @@ class _MyHomePageState extends State<MyHomePage> {
                                                       : 5.0),
                                               child: Text(
                                                 "${regionalText["home"]["countryRarity"]}\n${snapshot.data['countryRarity'] != null ? snapshot.data['countryRarity'].toString() + " " : "❌"}${snapshot.data['countryUp'] ?? ""}",
-                                                style: textSelection(""),
+                                                style: textSelection(),
                                                 textAlign: TextAlign.center,
                                               ),
                                             ),
@@ -4516,7 +4614,8 @@ class _MyHomePageState extends State<MyHomePage> {
                                                 : 5.0),
                                         Text(
                                           "PSN 100%",
-                                          style: textSelection("textLightBold"),
+                                          style: textSelection(
+                                              theme: "textLightBold"),
                                         )
                                       ],
                                     ),
@@ -4555,7 +4654,7 @@ class _MyHomePageState extends State<MyHomePage> {
                                         children: [
                                           Text(
                                             regionalText["home"]["errorPSN"],
-                                            style: textSelection(""),
+                                            style: textSelection(),
                                             softWrap: true,
                                             textAlign: TextAlign.center,
                                           ),
@@ -4574,7 +4673,7 @@ class _MyHomePageState extends State<MyHomePage> {
                                                       regionalText["home"]
                                                           ["settings"],
                                                       style: textSelection(
-                                                          'textDark')),
+                                                          theme: 'textDark')),
                                                 ),
                                               ),
                                               onTap: () {
@@ -4594,530 +4693,546 @@ class _MyHomePageState extends State<MyHomePage> {
                     ),
                   ),
                 //? This is the bottom row with the buttons for Translation/Discord/Version/Privacy
-                SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: Container(
-                    padding: EdgeInsets.all(Platform.isWindows ? 10.0 : 5.0),
-                    width: MediaQuery.of(context).size.width,
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceAround,
-                      mainAxisSize: MainAxisSize.max,
-                      children: [
-                        //? Translation button
-                        InkWell(
-                          highlightColor: Colors.transparent,
-                          splashColor: Colors.transparent,
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Image.network(
-                                "https://raw.githubusercontent.com/hjnilsson/country-flags/master/png100px/${settings.get('language')}.png",
-                                height: 15,
-                                width: 22.5,
-                              ),
-                              SizedBox(width: 5),
-                              Text(regionalText['home']['translation'],
-                                  style: textSelection("textDark")),
-                            ],
-                          ),
-                          onTap: () => showDialog(
-                            context: context,
-                            builder: (context) => Center(
-                              child: Container(
-                                decoration: BoxDecoration(
-                                    color: themeSelector["secondary"]
-                                        [settings.get("theme")],
-                                    borderRadius:
-                                        BorderRadius.all(Radius.circular(25))),
-                                width: MediaQuery.of(context).size.width * 0.8,
-                                child: Column(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      AppBar(
-                                        shape: RoundedRectangleBorder(
-                                            borderRadius: BorderRadius.vertical(
-                                                top: Radius.circular(25))),
-                                        title: Text(
-                                          regionalText["home"]["translation"],
-                                          style: textSelection(""),
-                                        ),
-                                        centerTitle: true,
-                                        automaticallyImplyLeading: false,
-                                        backgroundColor:
-                                            themeSelector["primary"]
-                                                [settings.get("theme")],
-                                        actions: [
-                                          IconButton(
-                                              splashColor: Colors.transparent,
-                                              hoverColor: Colors.transparent,
-                                              icon: Icon(
-                                                Icons.close,
-                                                color:
-                                                    themeSelector["secondary"]
-                                                        [settings.get("theme")],
-                                              ),
-                                              onPressed: () {
-                                                Navigator.pop(context);
-                                              })
-                                        ],
-                                      ),
-                                      Padding(
-                                        padding: const EdgeInsets.all(20),
-                                        child: Column(
-                                          children: [
-                                            Text(
-                                              regionalText["bottomButtons"]
-                                                  ["translationText"],
-                                              style: textSelection("textDark"),
-                                              textAlign: TextAlign.center,
-                                            ),
-                                            SizedBox(
-                                              height: 20,
-                                            ),
-                                            MaterialButton(
-                                              shape: RoundedRectangleBorder(
-                                                borderRadius:
-                                                    BorderRadius.circular(7),
-                                              ),
-                                              child: Text(
-                                                regionalText["bottomButtons"]
-                                                    ["translationButton"],
-                                                style: textSelection(""),
-                                              ),
-                                              color: themeSelector["primary"]
-                                                  [settings.get("theme")],
-                                              onPressed: () async {
-                                                final String spreadsheetLink =
-                                                    "https://docs.google.com/spreadsheets/d/1Ul3bgFmimL_kZ33A1Onzq8bWswIePYFaLnbHCfaI_U4/edit?usp=sharing";
-                                                if (await canLaunch(
-                                                    spreadsheetLink)) {
-                                                  launch(spreadsheetLink);
-                                                }
-                                              },
-                                            )
-                                          ],
-                                        ),
-                                      )
-                                    ]),
-                              ),
+                Container(
+                  padding: EdgeInsets.all(Platform.isWindows ? 10.0 : 5.0),
+                  width: MediaQuery.of(context).size.width,
+                  child: SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Container(
+                      width: MediaQuery.of(context).size.width,
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceAround,
+                        mainAxisSize: MainAxisSize.max,
+                        children: [
+                          //? Translation button
+                          InkWell(
+                            highlightColor: Colors.transparent,
+                            splashColor: Colors.transparent,
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Image.network(
+                                  "https://raw.githubusercontent.com/hjnilsson/country-flags/master/png100px/${settings.get('language')}.png",
+                                  height: 15,
+                                  width: 22.5,
+                                ),
+                                SizedBox(width: 5),
+                                Text(regionalText['home']['translation'],
+                                    style: textSelection(theme: "textDark")),
+                              ],
                             ),
-                          ),
-                        ),
-                        //? Discord button
-                        InkWell(
-                          highlightColor: Colors.transparent,
-                          splashColor: Colors.transparent,
-                          hoverColor: Colors.transparent,
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Image.network(
-                                  "https://discord.com/assets/2c21aeda16de354ba5334551a883b481.png",
-                                  height: 25),
-                              Text("Discord", style: textSelection("textDark")),
-                            ],
-                          ),
-                          onTap: () async {
-                            String discordURL = "https://discord.gg/j55v7pD";
-                            if (await canLaunch(discordURL)) {
-                              await launch(discordURL);
-                            }
-                          },
-                        ),
-                        //? Version button
-                        InkWell(
-                          highlightColor: Colors.transparent,
-                          splashColor: Colors.transparent,
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(Icons.info,
-                                  size: 20,
-                                  color: themeSelector["primary"]
-                                      [settings.get("theme")]),
-                              SizedBox(width: 5),
-                              Text(
-                                  "${regionalText['home']['version']} ${regionalText['version']['version']}",
-                                  style: textSelection("textDark")),
-                            ],
-                          ),
-                          onTap: () => showDialog(
+                            onTap: () => showDialog(
                               context: context,
-                              builder: (context) {
-                                //? The function that will fetch the latest GitHub update will be declared here
-                                //? to be used on the FutureBuilder() below
-                                Future<Map<String, dynamic>>
-                                    yuraUpdate() async {
-                                  Map<String, dynamic> update = {};
-                                  if (await ws.loadFullURL(
-                                      "https://github.com/TheYuriG/Yura/releases")) {
-                                    try {
-                                      ws
-                                          .getElementTitle(
-                                              'body > div.application-main > div > main > div.container-xl.clearfix.new-discussion-timeline.px-3.px-md-4.px-lg-5 > div > div.position-relative.border-top.clearfix > div:nth-child(1) > div > div.col-12.col-md-9.col-lg-10.px-md-3.py-md-4.release-main-section.commit.open.float-left > div.release-header > div > div > a')
-                                          .forEach((element) {
-                                        if (element.contains('v')) {
-                                          update['lastVersion'] =
-                                              element.split(' ')[1].trim();
-                                        }
-                                      });
-                                      //? Gets the 'datetime' attribute, converts it to UNIX
-                                      //? then use that to retrieve the timestamp of the update
-                                      //? I have not yet found a way to translate this to locale
-                                      //! No easy way to do dd/mm/yyyy for the right countries and mm/dd/yyyy for the rest
-                                      //! This was working before and now it isn't. I don't know why
-                                      ws
-                                          .getElementAttribute(
-                                              'div:nth-child(1) > div > div > div.release-header > p > relative-time',
-                                              'datetime')
-                                          .forEach((element) {
-                                        Intl.systemLocale = Platform.localeName;
-                                        update['when'] = DateFormat.yMMMd()
-                                            .format(DateTime.parse(element));
-                                      });
-                                      ws
-                                          .getElementAttribute(
-                                              'body > div.application-main > div > main > div.container-xl.clearfix.new-discussion-timeline.px-3.px-md-4.px-lg-5 > div > div.position-relative.border-top.clearfix > div:nth-child(1) > div > div.col-12.col-md-9.col-lg-10.px-md-3.py-md-4.release-main-section.commit.open.float-left > details > div > div > div.d-flex.flex-justify-between.flex-items-center.py-1.py-md-2.Box-body.px-2 > a',
-                                              'href')
-                                          .forEach((element) {
-                                        if (element.contains('.rar')) {
-                                          update['updateLinkDesktop'] =
-                                              "https://github.com" +
-                                                  element.trim();
-                                        }
-                                      });
-                                      ws
-                                          .getElementAttribute(
-                                              'body > div.application-main > div > main > div.container-xl.clearfix.new-discussion-timeline.px-3.px-md-4.px-lg-5 > div > div.position-relative.border-top.clearfix > div:nth-child(1) > div > div.col-12.col-md-9.col-lg-10.px-md-3.py-md-4.release-main-section.commit.open.float-left > details > div > div > div.d-flex.flex-justify-between.flex-items-center.py-1.py-md-2.Box-body.px-2 > a',
-                                              'href')
-                                          .forEach((element) {
-                                        if (element.contains('.apk')) {
-                                          update['updateLinkAndroid'] =
-                                              "https://github.com" +
-                                                  element.trim();
-                                        }
-                                      });
-                                      ws
-                                          .getElementTitle(
-                                              'body > div.application-main > div > main > div.container-xl.clearfix.new-discussion-timeline.px-3.px-md-4.px-lg-5 > div > div.position-relative.border-top.clearfix > div:nth-child(1) > div > div.col-12.col-md-9.col-lg-10.px-md-3.py-md-4.release-main-section.commit.open.float-left > div.markdown-body > ul > li')
-                                          .forEach((element) {
-                                        if (update['updateNotes'] == null) {
-                                          update['updateNotes'] =
-                                              "\n⦿ " + element.trim();
-                                        } else {
-                                          update['updateNotes'] +=
-                                              ("\n\n⦿ " + element.trim());
-                                        }
-                                      });
-                                      if (update['lastVersion'] == null) {
-                                        throw Error;
-                                      }
-                                    } catch (e) {
-                                      update['lastVersion'] = 'error';
-                                      update['updateNotes'] = 'error';
-                                    }
-                                  }
-                                  // print(update);
-                                  return update;
-                                }
-
-                                return StatefulBuilder(
-                                    builder: (BuildContext context, setState) {
-                                  return Center(
-                                    child: ClipRRect(
-                                      borderRadius:
-                                          BorderRadius.all(Radius.circular(25)),
-                                      child: Container(
-                                        width:
-                                            MediaQuery.of(context).size.width *
-                                                0.7,
-                                        height:
-                                            MediaQuery.of(context).size.height *
-                                                0.7,
-                                        decoration: BoxDecoration(
-                                          color: themeSelector["secondary"]
-                                              [settings.get("theme")],
-                                        ),
-                                        child: SingleChildScrollView(
-                                          scrollDirection: Axis.vertical,
-                                          child: Container(
-                                            child: Column(
-                                                mainAxisSize: MainAxisSize.min,
-                                                children: [
-                                                  AppBar(
-                                                    shape: RoundedRectangleBorder(
-                                                        borderRadius:
-                                                            BorderRadius.vertical(
-                                                                top: Radius
-                                                                    .circular(
-                                                                        25))),
-                                                    title: Text(
-                                                      "Yura ${regionalText['home']['version']} ${regionalText['version']['version']}",
-                                                      style: textSelection(""),
-                                                    ),
-                                                    centerTitle: true,
-                                                    automaticallyImplyLeading:
-                                                        false,
-                                                    backgroundColor:
-                                                        themeSelector["primary"]
-                                                            [settings
-                                                                .get("theme")],
-                                                    actions: [
-                                                      IconButton(
-                                                          splashColor: Colors
-                                                              .transparent,
-                                                          hoverColor: Colors
-                                                              .transparent,
-                                                          icon: Icon(
-                                                            Icons.close,
-                                                            color: themeSelector[
-                                                                    "secondary"]
-                                                                [settings.get(
-                                                                    "theme")],
-                                                          ),
-                                                          onPressed: () {
-                                                            Navigator.pop(
-                                                                context);
-                                                          })
-                                                    ],
-                                                  ),
-                                                  FutureBuilder(
-                                                      future: yuraUpdate(),
-                                                      builder:
-                                                          (context, snapshot) {
-                                                        return Padding(
-                                                          padding:
-                                                              const EdgeInsets
-                                                                  .all(20),
-                                                          child: Column(
-                                                            children: [
-                                                              if (snapshot
-                                                                      .connectionState ==
-                                                                  ConnectionState
-                                                                      .waiting)
-                                                                loadingSelector(
-                                                                    settings.get(
-                                                                        'loading'),
-                                                                    "dark"),
-                                                              if (snapshot.connectionState ==
-                                                                      ConnectionState
-                                                                          .done &&
-                                                                  snapshot.data[
-                                                                          'updateNotes'] !=
-                                                                      "error")
-                                                                Text(
-                                                                  //? This will fetch information from the website. If it works, display the latest version.
-                                                                  //? If it doesn't, display a cross mark. While it's loading, should have a "..." text.
-                                                                  '${regionalText["bottomButtons"]["latestversion"]} ${snapshot.data['lastVersion']} (${snapshot.data['when']})',
-                                                                  style: textSelection(
-                                                                      "textDark"),
-                                                                  textAlign:
-                                                                      TextAlign
-                                                                          .center,
-                                                                ),
-                                                              if (snapshot.connectionState ==
-                                                                      ConnectionState
-                                                                          .done &&
-                                                                  snapshot.data[
-                                                                          'updateNotes'] !=
-                                                                      "error")
-                                                                SizedBox(
-                                                                    height: 5),
-                                                              if (snapshot.connectionState ==
-                                                                      ConnectionState
-                                                                          .done &&
-                                                                  snapshot.data[
-                                                                          'updateNotes'] !=
-                                                                      "error")
-                                                                Text(
-                                                                  snapshot.data[
-                                                                      'updateNotes'],
-                                                                  style: textSelection(
-                                                                      "textDark"),
-                                                                ),
-                                                              if (snapshot.connectionState ==
-                                                                      ConnectionState
-                                                                          .done &&
-                                                                  snapshot.data[
-                                                                          'updateNotes'] !=
-                                                                      "error" &&
-                                                                  snapshot.data[
-                                                                          'lastVersion'] !=
-                                                                      regionalText[
-                                                                              "version"]
-                                                                          [
-                                                                          "version"])
-                                                                SizedBox(
-                                                                    height: 20),
-                                                              if (snapshot.connectionState ==
-                                                                      ConnectionState
-                                                                          .done &&
-                                                                  snapshot.data[
-                                                                          'updateNotes'] !=
-                                                                      "error")
-                                                                Row(
-                                                                  mainAxisSize:
-                                                                      MainAxisSize
-                                                                          .min,
-                                                                  children: [
-                                                                    MaterialButton(
-                                                                      shape:
-                                                                          RoundedRectangleBorder(
-                                                                        borderRadius:
-                                                                            BorderRadius.circular(7),
-                                                                      ),
-                                                                      child:
-                                                                          Text(
-                                                                        "Trello",
-                                                                        style: textSelection(
-                                                                            ""),
-                                                                      ),
-                                                                      color: themeSelector[
-                                                                              "primary"]
-                                                                          [
-                                                                          settings
-                                                                              .get("theme")],
-                                                                      onPressed:
-                                                                          () async {
-                                                                        final String
-                                                                            updateLink =
-                                                                            Platform.isWindows
-                                                                                ? snapshot.data['updateLinkDesktop']
-                                                                                : snapshot.data['updateLinkAndroid'];
-                                                                        if (await canLaunch(
-                                                                            updateLink)) {
-                                                                          launch(
-                                                                              updateLink);
-                                                                        }
-                                                                      },
-                                                                    ),
-                                                                    if (snapshot.data[
-                                                                            'lastVersion'] !=
-                                                                        regionalText["version"]
-                                                                            [
-                                                                            "version"])
-                                                                      Padding(
-                                                                        padding:
-                                                                            const EdgeInsets.only(left: 5),
-                                                                        child:
-                                                                            MaterialButton(
-                                                                          shape:
-                                                                              RoundedRectangleBorder(
-                                                                            borderRadius:
-                                                                                BorderRadius.circular(7),
-                                                                          ),
-                                                                          child:
-                                                                              Text(
-                                                                            regionalText["bottomButtons"]["update"],
-                                                                            style:
-                                                                                textSelection(""),
-                                                                          ),
-                                                                          color:
-                                                                              themeSelector["primary"][settings.get("theme")],
-                                                                          onPressed:
-                                                                              () async {
-                                                                            final String updateLink = Platform.isWindows
-                                                                                ? snapshot.data['updateLinkDesktop']
-                                                                                : snapshot.data['updateLinkAndroid'];
-                                                                            if (await canLaunch(updateLink)) {
-                                                                              launch(updateLink);
-                                                                            }
-                                                                          },
-                                                                        ),
-                                                                      ),
-                                                                  ],
-                                                                ),
-                                                            ],
-                                                          ),
-                                                        );
-                                                      })
-                                                ]),
+                              builder: (context) => Center(
+                                child: Container(
+                                  decoration: BoxDecoration(
+                                      color: themeSelector["secondary"]
+                                          [settings.get("theme")],
+                                      borderRadius: BorderRadius.all(
+                                          Radius.circular(25))),
+                                  width:
+                                      MediaQuery.of(context).size.width * 0.8,
+                                  child: Column(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        AppBar(
+                                          shape: RoundedRectangleBorder(
+                                              borderRadius:
+                                                  BorderRadius.vertical(
+                                                      top:
+                                                          Radius.circular(25))),
+                                          title: Text(
+                                            regionalText["home"]["translation"],
+                                            style: textSelection(),
                                           ),
-                                        ),
-                                      ),
-                                    ),
-                                  );
-                                });
-                              }),
-                        ),
-                        //? Privacy button
-                        InkWell(
-                          enableFeedback: false,
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(Icons.remove_red_eye,
-                                  size: 20,
-                                  color: themeSelector["primary"]
-                                      [settings.get("theme")]),
-                              SizedBox(width: 5),
-                              Text(regionalText['home']['privacy'],
-                                  style: textSelection("textDark")),
-                            ],
-                          ),
-                          onTap: () => showDialog(
-                            context: context,
-                            builder: (context) => Center(
-                              child: Container(
-                                decoration: BoxDecoration(
-                                    color: themeSelector["secondary"]
-                                        [settings.get("theme")],
-                                    borderRadius:
-                                        BorderRadius.all(Radius.circular(25))),
-                                width: MediaQuery.of(context).size.width * 0.8,
-                                child: Column(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      AppBar(
-                                        shape: RoundedRectangleBorder(
-                                            borderRadius: BorderRadius.vertical(
-                                                top: Radius.circular(25))),
-                                        title: Text(
-                                          regionalText["home"]["privacy"],
-                                          style: textSelection(""),
-                                        ),
-                                        centerTitle: true,
-                                        automaticallyImplyLeading: false,
-                                        backgroundColor:
-                                            themeSelector["primary"]
-                                                [settings.get("theme")],
-                                        actions: [
-                                          Padding(
-                                            padding: const EdgeInsets.only(
-                                                right: 10),
-                                            child: InkWell(
-                                                enableFeedback: false,
+                                          centerTitle: true,
+                                          automaticallyImplyLeading: false,
+                                          backgroundColor:
+                                              themeSelector["primary"]
+                                                  [settings.get("theme")],
+                                          actions: [
+                                            IconButton(
                                                 splashColor: Colors.transparent,
-                                                child: Icon(
+                                                hoverColor: Colors.transparent,
+                                                icon: Icon(
                                                   Icons.close,
                                                   color: themeSelector[
                                                           "secondary"]
                                                       [settings.get("theme")],
                                                 ),
-                                                onTap: () {
+                                                onPressed: () {
                                                   Navigator.pop(context);
-                                                }),
-                                          )
-                                        ],
-                                      ),
-                                      Padding(
-                                        padding: const EdgeInsets.all(20),
-                                        child: Column(
-                                          children: [
-                                            Text(
-                                                regionalText["bottomButtons"]
-                                                    ["privacyText"],
-                                                style:
-                                                    textSelection("textDark")),
+                                                })
                                           ],
                                         ),
-                                      )
-                                    ]),
+                                        Padding(
+                                          padding: const EdgeInsets.all(20),
+                                          child: Column(
+                                            children: [
+                                              Text(
+                                                regionalText["bottomButtons"]
+                                                    ["translationText"],
+                                                style: textSelection(
+                                                    theme: "textDark"),
+                                                textAlign: TextAlign.center,
+                                              ),
+                                              SizedBox(
+                                                height: 20,
+                                              ),
+                                              MaterialButton(
+                                                shape: RoundedRectangleBorder(
+                                                  borderRadius:
+                                                      BorderRadius.circular(7),
+                                                ),
+                                                child: Text(
+                                                  regionalText["bottomButtons"]
+                                                      ["translationButton"],
+                                                  style: textSelection(),
+                                                ),
+                                                color: themeSelector["primary"]
+                                                    [settings.get("theme")],
+                                                onPressed: () async {
+                                                  final String spreadsheetLink =
+                                                      "https://docs.google.com/spreadsheets/d/1Ul3bgFmimL_kZ33A1Onzq8bWswIePYFaLnbHCfaI_U4/edit?usp=sharing";
+                                                  if (await canLaunch(
+                                                      spreadsheetLink)) {
+                                                    launch(spreadsheetLink);
+                                                  }
+                                                },
+                                              )
+                                            ],
+                                          ),
+                                        )
+                                      ]),
+                                ),
                               ),
                             ),
                           ),
-                        ),
-                      ],
+                          //? Discord button
+                          InkWell(
+                            highlightColor: Colors.transparent,
+                            splashColor: Colors.transparent,
+                            hoverColor: Colors.transparent,
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Image.network(
+                                    "https://discord.com/assets/2c21aeda16de354ba5334551a883b481.png",
+                                    height: 25),
+                                Text("Discord",
+                                    style: textSelection(theme: "textDark")),
+                              ],
+                            ),
+                            onTap: () async {
+                              String discordURL = "https://discord.gg/j55v7pD";
+                              if (await canLaunch(discordURL)) {
+                                await launch(discordURL);
+                              }
+                            },
+                          ),
+                          //? Version button
+                          InkWell(
+                            highlightColor: Colors.transparent,
+                            splashColor: Colors.transparent,
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(Icons.info,
+                                    size: 20,
+                                    color: themeSelector["primary"]
+                                        [settings.get("theme")]),
+                                SizedBox(width: 5),
+                                Text(
+                                    "${regionalText['home']['version']} ${regionalText['version']['version']}",
+                                    style: textSelection(theme: "textDark")),
+                              ],
+                            ),
+                            onTap: () => showDialog(
+                                context: context,
+                                builder: (context) {
+                                  //? The function that will fetch the latest GitHub update will be declared here
+                                  //? to be used on the FutureBuilder() below
+                                  Future<Map<String, dynamic>>
+                                      yuraUpdate() async {
+                                    Map<String, dynamic> update = {};
+                                    if (await ws.loadFullURL(
+                                        "https://github.com/TheYuriG/Yura/releases")) {
+                                      try {
+                                        ws
+                                            .getElementTitle(
+                                                'body > div.application-main > div > main > div.container-xl.clearfix.new-discussion-timeline.px-3.px-md-4.px-lg-5 > div > div.position-relative.border-top.clearfix > div:nth-child(1) > div > div.col-12.col-md-9.col-lg-10.px-md-3.py-md-4.release-main-section.commit.open.float-left > div.release-header > div > div > a')
+                                            .forEach((element) {
+                                          if (element.contains('v')) {
+                                            update['lastVersion'] =
+                                                element.split(' ')[1].trim();
+                                          }
+                                        });
+                                        if (update['lastVersion'] == null) {
+                                          throw Error;
+                                        }
+                                        //? Gets the 'datetime' attribute, converts it to UNIX
+                                        //? then use that to retrieve the timestamp of the update
+                                        //? I have not yet found a way to translate this to locale
+                                        //! No easy way to do dd/mm/yyyy for the right countries and mm/dd/yyyy for the rest
+                                        //! This was working before and now it isn't. I don't know why
+                                        ws.getElement(
+                                            'div:nth-child(1) > div > div > div.release-header > p > relative-time',
+                                            ['datetime']).forEach((element) {
+                                          Intl.systemLocale =
+                                              Platform.localeName;
+                                          try {
+                                            update['when'] = DateFormat.yMMMd()
+                                                .format(DateTime.parse(
+                                                    element['attributes']
+                                                        ['datetime']));
+                                          } catch (e) {
+                                            update['when'] = element['title'];
+                                          }
+                                        });
+                                        ws
+                                            .getElementAttribute(
+                                                'body > div.application-main > div > main > div.container-xl.clearfix.new-discussion-timeline.px-3.px-md-4.px-lg-5 > div > div.position-relative.border-top.clearfix > div:nth-child(1) > div > div.col-12.col-md-9.col-lg-10.px-md-3.py-md-4.release-main-section.commit.open.float-left > details > div > div > div.d-flex.flex-justify-between.flex-items-center.py-1.py-md-2.Box-body.px-2 > a',
+                                                'href')
+                                            .forEach((element) {
+                                          if (element.contains('.rar')) {
+                                            update['updateLinkDesktop'] =
+                                                "https://github.com" +
+                                                    element.trim();
+                                          }
+                                        });
+                                        ws
+                                            .getElementAttribute(
+                                                'body > div.application-main > div > main > div.container-xl.clearfix.new-discussion-timeline.px-3.px-md-4.px-lg-5 > div > div.position-relative.border-top.clearfix > div:nth-child(1) > div > div.col-12.col-md-9.col-lg-10.px-md-3.py-md-4.release-main-section.commit.open.float-left > details > div > div > div.d-flex.flex-justify-between.flex-items-center.py-1.py-md-2.Box-body.px-2 > a',
+                                                'href')
+                                            .forEach((element) {
+                                          if (element.contains('.apk')) {
+                                            update['updateLinkAndroid'] =
+                                                "https://github.com" +
+                                                    element.trim();
+                                          }
+                                        });
+                                        ws
+                                            .getElementTitle(
+                                                'body > div.application-main > div > main > div.container-xl.clearfix.new-discussion-timeline.px-3.px-md-4.px-lg-5 > div > div.position-relative.border-top.clearfix > div:nth-child(1) > div > div.col-12.col-md-9.col-lg-10.px-md-3.py-md-4.release-main-section.commit.open.float-left > div.markdown-body > ul > li')
+                                            .forEach((element) {
+                                          if (update['updateNotes'] == null) {
+                                            update['updateNotes'] =
+                                                "\n⦿ " + element.trim();
+                                          } else {
+                                            update['updateNotes'] +=
+                                                ("\n\n⦿ " + element.trim());
+                                          }
+                                        });
+                                      } catch (e) {
+                                        print(update);
+                                        update['lastVersion'] = 'error';
+                                        update['updateNotes'] = 'error';
+                                      }
+                                    }
+                                    // print(update);
+                                    return update;
+                                  }
+
+                                  return StatefulBuilder(builder:
+                                      (BuildContext context, setState) {
+                                    return Center(
+                                      child: ClipRRect(
+                                        borderRadius: BorderRadius.all(
+                                            Radius.circular(25)),
+                                        child: Container(
+                                          width: MediaQuery.of(context)
+                                                  .size
+                                                  .width *
+                                              0.7,
+                                          height: MediaQuery.of(context)
+                                                  .size
+                                                  .height *
+                                              0.7,
+                                          decoration: BoxDecoration(
+                                            color: themeSelector["secondary"]
+                                                [settings.get("theme")],
+                                          ),
+                                          child: SingleChildScrollView(
+                                            scrollDirection: Axis.vertical,
+                                            child: Container(
+                                              child: Column(
+                                                  mainAxisSize:
+                                                      MainAxisSize.min,
+                                                  children: [
+                                                    AppBar(
+                                                      shape: RoundedRectangleBorder(
+                                                          borderRadius:
+                                                              BorderRadius.vertical(
+                                                                  top: Radius
+                                                                      .circular(
+                                                                          25))),
+                                                      title: Text(
+                                                        "Yura ${regionalText['home']['version']} ${regionalText['version']['version']}",
+                                                        style: textSelection(),
+                                                      ),
+                                                      centerTitle: true,
+                                                      automaticallyImplyLeading:
+                                                          false,
+                                                      backgroundColor:
+                                                          themeSelector[
+                                                                  "primary"][
+                                                              settings.get(
+                                                                  "theme")],
+                                                      actions: [
+                                                        IconButton(
+                                                            splashColor: Colors
+                                                                .transparent,
+                                                            hoverColor: Colors
+                                                                .transparent,
+                                                            icon: Icon(
+                                                              Icons.close,
+                                                              color: themeSelector[
+                                                                      "secondary"]
+                                                                  [settings.get(
+                                                                      "theme")],
+                                                            ),
+                                                            onPressed: () {
+                                                              Navigator.pop(
+                                                                  context);
+                                                            })
+                                                      ],
+                                                    ),
+                                                    FutureBuilder(
+                                                        future: yuraUpdate(),
+                                                        builder: (context,
+                                                            snapshot) {
+                                                          return Padding(
+                                                            padding:
+                                                                const EdgeInsets
+                                                                    .all(20),
+                                                            child: Column(
+                                                              children: [
+                                                                if (snapshot
+                                                                        .connectionState ==
+                                                                    ConnectionState
+                                                                        .waiting)
+                                                                  loadingSelector(
+                                                                      settings.get(
+                                                                          'loading'),
+                                                                      "dark"),
+                                                                if (snapshot.connectionState ==
+                                                                        ConnectionState
+                                                                            .done &&
+                                                                    snapshot.data[
+                                                                            'updateNotes'] !=
+                                                                        "error")
+                                                                  Text(
+                                                                    //? This will fetch information from the website. If it works, display the latest version.
+                                                                    //? If it doesn't, display a cross mark. While it's loading, should have a "..." text.
+                                                                    '${regionalText["bottomButtons"]["latestversion"]} ${snapshot.data['lastVersion']} (${snapshot.data['when']})',
+                                                                    style: textSelection(
+                                                                        theme:
+                                                                            "textDark"),
+                                                                    textAlign:
+                                                                        TextAlign
+                                                                            .center,
+                                                                  ),
+                                                                if (snapshot.connectionState ==
+                                                                        ConnectionState
+                                                                            .done &&
+                                                                    snapshot.data[
+                                                                            'updateNotes'] !=
+                                                                        "error")
+                                                                  SizedBox(
+                                                                      height:
+                                                                          5),
+                                                                if (snapshot.connectionState ==
+                                                                        ConnectionState
+                                                                            .done &&
+                                                                    snapshot.data[
+                                                                            'updateNotes'] !=
+                                                                        "error")
+                                                                  Text(
+                                                                    snapshot.data[
+                                                                        'updateNotes'],
+                                                                    style: textSelection(
+                                                                        theme:
+                                                                            "textDark"),
+                                                                  ),
+                                                                if (snapshot.connectionState ==
+                                                                        ConnectionState
+                                                                            .done &&
+                                                                    snapshot.data[
+                                                                            'updateNotes'] !=
+                                                                        "error" &&
+                                                                    snapshot.data[
+                                                                            'lastVersion'] !=
+                                                                        regionalText["version"]
+                                                                            [
+                                                                            "version"])
+                                                                  SizedBox(
+                                                                      height:
+                                                                          20),
+                                                                if (snapshot.connectionState ==
+                                                                        ConnectionState
+                                                                            .done &&
+                                                                    snapshot.data[
+                                                                            'updateNotes'] !=
+                                                                        "error")
+                                                                  Row(
+                                                                    mainAxisSize:
+                                                                        MainAxisSize
+                                                                            .min,
+                                                                    children: [
+                                                                      MaterialButton(
+                                                                        shape:
+                                                                            RoundedRectangleBorder(
+                                                                          borderRadius:
+                                                                              BorderRadius.circular(7),
+                                                                        ),
+                                                                        child:
+                                                                            Text(
+                                                                          "Trello",
+                                                                          style:
+                                                                              textSelection(theme: ""),
+                                                                        ),
+                                                                        color: themeSelector["primary"]
+                                                                            [
+                                                                            settings.get("theme")],
+                                                                        onPressed:
+                                                                            () async {
+                                                                          final String updateLink = Platform.isWindows
+                                                                              ? snapshot.data['updateLinkDesktop']
+                                                                              : snapshot.data['updateLinkAndroid'];
+                                                                          if (await canLaunch(
+                                                                              updateLink)) {
+                                                                            launch(updateLink);
+                                                                          }
+                                                                        },
+                                                                      ),
+                                                                      if (snapshot.data[
+                                                                              'lastVersion'] !=
+                                                                          regionalText["version"]
+                                                                              [
+                                                                              "version"])
+                                                                        Padding(
+                                                                          padding:
+                                                                              const EdgeInsets.only(left: 5),
+                                                                          child:
+                                                                              MaterialButton(
+                                                                            shape:
+                                                                                RoundedRectangleBorder(
+                                                                              borderRadius: BorderRadius.circular(7),
+                                                                            ),
+                                                                            child:
+                                                                                Text(
+                                                                              regionalText["bottomButtons"]["update"],
+                                                                              style: textSelection(),
+                                                                            ),
+                                                                            color:
+                                                                                themeSelector["primary"][settings.get("theme")],
+                                                                            onPressed:
+                                                                                () async {
+                                                                              final String updateLink = Platform.isWindows ? snapshot.data['updateLinkDesktop'] : snapshot.data['updateLinkAndroid'];
+                                                                              if (await canLaunch(updateLink)) {
+                                                                                launch(updateLink);
+                                                                              }
+                                                                            },
+                                                                          ),
+                                                                        ),
+                                                                    ],
+                                                                  ),
+                                                              ],
+                                                            ),
+                                                          );
+                                                        })
+                                                  ]),
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    );
+                                  });
+                                }),
+                          ),
+                          //? Privacy button
+                          InkWell(
+                            enableFeedback: false,
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(Icons.remove_red_eye,
+                                    size: 20,
+                                    color: themeSelector["primary"]
+                                        [settings.get("theme")]),
+                                SizedBox(width: 5),
+                                Text(regionalText['home']['privacy'],
+                                    style: textSelection(theme: "textDark")),
+                              ],
+                            ),
+                            onTap: () => showDialog(
+                              context: context,
+                              builder: (context) => Center(
+                                child: Container(
+                                  decoration: BoxDecoration(
+                                      color: themeSelector["secondary"]
+                                          [settings.get("theme")],
+                                      borderRadius: BorderRadius.all(
+                                          Radius.circular(25))),
+                                  width:
+                                      MediaQuery.of(context).size.width * 0.8,
+                                  child: Column(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        AppBar(
+                                          shape: RoundedRectangleBorder(
+                                              borderRadius:
+                                                  BorderRadius.vertical(
+                                                      top:
+                                                          Radius.circular(25))),
+                                          title: Text(
+                                            regionalText["home"]["privacy"],
+                                            style: textSelection(),
+                                          ),
+                                          centerTitle: true,
+                                          automaticallyImplyLeading: false,
+                                          backgroundColor:
+                                              themeSelector["primary"]
+                                                  [settings.get("theme")],
+                                          actions: [
+                                            Padding(
+                                              padding: const EdgeInsets.only(
+                                                  right: 10),
+                                              child: InkWell(
+                                                  enableFeedback: false,
+                                                  splashColor:
+                                                      Colors.transparent,
+                                                  child: Icon(
+                                                    Icons.close,
+                                                    color: themeSelector[
+                                                            "secondary"]
+                                                        [settings.get("theme")],
+                                                  ),
+                                                  onTap: () {
+                                                    Navigator.pop(context);
+                                                  }),
+                                            )
+                                          ],
+                                        ),
+                                        Padding(
+                                          padding: const EdgeInsets.all(20),
+                                          child: Column(
+                                            children: [
+                                              Text(
+                                                  regionalText["bottomButtons"]
+                                                      ["privacyText"],
+                                                  style: textSelection(
+                                                      theme: "textDark")),
+                                            ],
+                                          ),
+                                        )
+                                      ]),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 )

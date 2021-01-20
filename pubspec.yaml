@@ -38,3 +38,41 @@ flutter:
   uses-material-design: true
   assets:
     - images/
+  fonts:
+    - family: Archivo
+      fonts:
+        - asset: fonts/Archivo-Regular.ttf
+        - asset: fonts/Archivo-Bold.ttf
+          weight: 700 
+    - family: Arvo
+      fonts:
+        - asset: fonts/Arvo-Regular.ttf
+        - asset: fonts/Arvo-Bold.ttf
+          weight: 700
+    - family: Goldman
+      fonts:
+        - asset: fonts/Goldman-Regular.ttf
+        - asset: fonts/Goldman-Bold.ttf
+          weight: 700
+    - family: LibreBaskerville
+      fonts:
+        - asset: fonts/LibreBaskerVille-Regular.ttf
+        - asset: fonts/LibreBaskerville-Bold.ttf
+          weight: 700
+    - family: LobsterTwo
+      fonts:
+        - asset: fonts/LobsterTwo-Regular.ttf
+        - asset: fonts/LobsterTwo-Bold.ttf
+          weight: 700
+    - family: Oxygen
+      fonts:
+        - asset: fonts/Oxygen-Regular.ttf
+        - asset: fonts/Oxygen-Bold.ttf
+          weight: 700
+    - family: TurretRoad
+      fonts:
+        - asset: fonts/TurretRoad-Regular.ttf
+        - asset: fonts/TurretRoad-Bold.ttf
+          weight: 700
+    
+    

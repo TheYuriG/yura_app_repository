@@ -102,13 +102,14 @@ class _ExophaseProfileState extends State<ExophaseProfile> {
                     top: 2,
                     bottom: exophaseGames[i]['gamePercentage'] > 0 ? 10 : 0),
                 child: Column(
+                  mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
                     //? Game name
                     Padding(
                       padding: EdgeInsets.all(Platform.isWindows ? 5 : 2),
                       child: Text(exophaseGames[i]['gameName'],
-                          style: textSelection("textLightBold"),
+                          style: textSelection(theme: "textLightBold"),
                           textAlign: TextAlign.center),
                     ),
                     //? Spacing to separate the text/platforms/points from the image
@@ -145,7 +146,7 @@ class _ExophaseProfileState extends State<ExophaseProfile> {
                     ),
                     //? Last played tracked date
                     Text(exophaseGames[i]['gameLastPlayed'],
-                        style: textSelection("")),
+                        style: textSelection()),
                     //? Row with Exophase EXP, trophy earned ratio and tracked gameplay time
                     SingleChildScrollView(
                       scrollDirection: Axis.horizontal,
@@ -169,7 +170,7 @@ class _ExophaseProfileState extends State<ExophaseProfile> {
                                   //? EXP earned from this game
                                   Text(
                                     exophaseGames[i]['gameEXP'].toString(),
-                                    style: textSelection(""),
+                                    style: textSelection(),
                                   )
                                 ],
                               ),
@@ -182,7 +183,7 @@ class _ExophaseProfileState extends State<ExophaseProfile> {
                                 trophyType("total"),
                                 SizedBox(width: Platform.isWindows ? 5 : 2),
                                 Text(exophaseGames[i]['gameRatio'],
-                                    style: textSelection("")),
+                                    style: textSelection()),
                               ],
                             ),
                             if (exophaseGames[i]['gameTime'] != null)
@@ -199,7 +200,7 @@ class _ExophaseProfileState extends State<ExophaseProfile> {
                                   ),
                                   Text(
                                     exophaseGames[i]['gameTime'],
-                                    style: textSelection(""),
+                                    style: textSelection(),
                                   )
                                 ],
                               ),
@@ -219,86 +220,89 @@ class _ExophaseProfileState extends State<ExophaseProfile> {
                       SizedBox(height: 7),
                     //? Row with the trophy distribution and the multicolored circle
                     if (exophaseGames[i]['gamePercentage'] > 0)
-                      Row(
-                        mainAxisSize: MainAxisSize.min,
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          //? This contains bronze, silver, gold, platinum
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.start,
-                            mainAxisSize: MainAxisSize.max,
-                            crossAxisAlignment: CrossAxisAlignment.end,
-                            children: [
-                              //? Second column displays platinum and silver trophies, if available
-                              Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                mainAxisAlignment: MainAxisAlignment.end,
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  if (exophaseGames[i]['gamePlatinum'] != null)
-                                    trophyType("platinum",
-                                        quantity: exophaseGames[i]
-                                            ['gamePlatinum']),
-                                  SizedBox(height: 5),
-                                  if (exophaseGames[i]['gameSilver'] != null)
-                                    trophyType("silver",
-                                        quantity: exophaseGames[i]
-                                            ['gameSilver'])
-                                ],
-                              ),
-                              //? This sized box has height to make the Columns before and after
-                              //? align their trophy icons at the bottom
-                              SizedBox(
-                                  width: Platform.isWindows ? 5 : 3,
-                                  height: 65),
-                              //? Third column displays gold and bronze trophies, if available
-                              Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                mainAxisAlignment: MainAxisAlignment.end,
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  if (exophaseGames[i]['gameGold'] != null)
-                                    trophyType("gold",
-                                        quantity: exophaseGames[i]['gameGold']),
-                                  SizedBox(height: 5),
-                                  if (exophaseGames[i]['gameBronze'] != null)
-                                    trophyType("bronze",
-                                        quantity: exophaseGames[i]
-                                            ['gameBronze'])
-                                ],
-                              ),
-                            ],
-                          ),
-
-                          SizedBox(width: 10),
-                          //? This is the created MultiColorCircle class
-                          MultiColorCircle(
-                            //? This needs to have an unique key otherwise the filtering function
-                            //? will glitch the rebuild and not display the correct percentage at the correct location.
-                            key: UniqueKey(),
-                            diameter: Platform.isWindows ? 55 : 40,
-                            width: Platform.isWindows ? 10 : 7,
-                            colors: [
-                              Colors.blue,
-                              Colors.yellow,
-                              Colors.grey,
-                              Colors.brown
-                            ],
-                            unfilled: Colors.grey.withOpacity(0.5),
-                            //? This takes an array of doubles that is returned by the function below.
-                            percentages: trophyPointsDistribution(
-                                exophaseGames[i]['gamePlatinum'] ?? 0,
-                                exophaseGames[i]['gameGold'] ?? 0,
-                                exophaseGames[i]['gameSilver'] ?? 0,
-                                exophaseGames[i]['gameBronze'] ?? 0,
-                                exophaseGames[i]['gamePercentage']),
-                            centerText: Text(
-                              exophaseGames[i]['gamePercentage'].toString() +
-                                  "%",
-                              style: textSelection(""),
+                      Container(
+                        height: Platform.isWindows ? 70 : 50,
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            //? This contains bronze, silver, gold, platinum
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.start,
+                              mainAxisSize: MainAxisSize.min,
+                              crossAxisAlignment: CrossAxisAlignment.end,
+                              children: [
+                                //? First column displays platinum and silver trophies, if available
+                                Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  mainAxisAlignment: MainAxisAlignment.end,
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    if (exophaseGames[i]['gamePlatinum'] !=
+                                        null)
+                                      trophyType("platinum",
+                                          quantity: exophaseGames[i]
+                                              ['gamePlatinum']),
+                                    SizedBox(height: 5),
+                                    if (exophaseGames[i]['gameSilver'] != null)
+                                      trophyType("silver",
+                                          quantity: exophaseGames[i]
+                                              ['gameSilver'])
+                                  ],
+                                ),
+                                //? This sized box has height to make the Columns before and after
+                                //? align their trophy icons at the bottom
+                                SizedBox(width: Platform.isWindows ? 5 : 3),
+                                //? Second column displays gold and bronze trophies, if available
+                                Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  mainAxisAlignment: MainAxisAlignment.end,
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    if (exophaseGames[i]['gameGold'] != null)
+                                      trophyType("gold",
+                                          quantity: exophaseGames[i]
+                                              ['gameGold']),
+                                    SizedBox(height: 5),
+                                    if (exophaseGames[i]['gameBronze'] != null)
+                                      trophyType("bronze",
+                                          quantity: exophaseGames[i]
+                                              ['gameBronze']),
+                                  ],
+                                ),
+                              ],
                             ),
-                          ),
-                        ],
+                            SizedBox(width: 15),
+                            //? This is the created MultiColorCircle class
+                            MultiColorCircle(
+                              //? This needs to have an unique key otherwise the filtering function
+                              //? will glitch the rebuild and not display the correct percentage at the correct location.
+                              key: UniqueKey(),
+                              diameter: Platform.isWindows ? 55 : 40,
+                              width: Platform.isWindows ? 10 : 7,
+                              colors: [
+                                Colors.blue,
+                                Colors.yellow,
+                                Colors.grey,
+                                Colors.brown
+                              ],
+                              unfilled: Colors.grey.withOpacity(0.4),
+                              //? This takes an array of doubles that is returned by the function below.
+                              percentages: trophyPointsDistribution(
+                                  exophaseGames[i]['gamePlatinum'] ?? 0,
+                                  exophaseGames[i]['gameGold'] ?? 0,
+                                  exophaseGames[i]['gameSilver'] ?? 0,
+                                  exophaseGames[i]['gameBronze'] ?? 0,
+                                  exophaseGames[i]['gamePercentage']),
+                              centerText: Text(
+                                exophaseGames[i]['gamePercentage'].toString() +
+                                    "%",
+                                style: textSelection(),
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                   ],
                 ));
@@ -349,7 +353,7 @@ class _ExophaseProfileState extends State<ExophaseProfile> {
                     ),
                     child: Padding(
                       padding: EdgeInsets.symmetric(
-                          vertical: Platform.isWindows ? 8.0 : 3.0),
+                          vertical: Platform.isWindows ? 8.0 : 2.0),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         mainAxisSize: MainAxisSize.min,
@@ -358,7 +362,7 @@ class _ExophaseProfileState extends State<ExophaseProfile> {
                           SingleChildScrollView(
                             scrollDirection: Axis.horizontal,
                             child: Text(exophaseGames[i]['gameName'],
-                                style: textSelection("")),
+                                style: textSelection()),
                           ),
                           //? Game platforms and Exophase EXP
                           SizedBox(height: 1),
@@ -403,7 +407,7 @@ class _ExophaseProfileState extends State<ExophaseProfile> {
                                       //? EXP earned from this game
                                       Text(
                                         exophaseGames[i]['gameEXP'].toString(),
-                                        style: textSelection(""),
+                                        style: textSelection(),
                                       )
                                     ],
                                   ),
@@ -415,7 +419,7 @@ class _ExophaseProfileState extends State<ExophaseProfile> {
                           SingleChildScrollView(
                             scrollDirection: Axis.horizontal,
                             child: Text(exophaseGames[i]['gameLastPlayed'],
-                                style: textSelection("")),
+                                style: textSelection()),
                           ),
                           // SizedBox(height: 3),
                         ],
@@ -456,7 +460,7 @@ class _ExophaseProfileState extends State<ExophaseProfile> {
                                         SizedBox(
                                             width: Platform.isWindows ? 5 : 2),
                                         Text(exophaseGames[i]['gameRatio'],
-                                            style: textSelection("")),
+                                            style: textSelection()),
                                       ],
                                     ),
                                   ),
@@ -476,7 +480,7 @@ class _ExophaseProfileState extends State<ExophaseProfile> {
                                           ),
                                           Text(
                                             exophaseGames[i]['gameTime'],
-                                            style: textSelection(""),
+                                            style: textSelection(),
                                           )
                                         ],
                                       ),
@@ -488,7 +492,7 @@ class _ExophaseProfileState extends State<ExophaseProfile> {
                             //? Second column displays platinum and silver trophies, if available
                             Container(
                               width: Platform.isWindows ? 56 : 35,
-                              height: Platform.isWindows ? 48 : 30,
+                              height: Platform.isWindows ? 48 : 35,
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 mainAxisAlignment:
@@ -511,7 +515,7 @@ class _ExophaseProfileState extends State<ExophaseProfile> {
                             //? Third column displays gold and bronze trophies, if available
                             Container(
                               width: Platform.isWindows ? 55 : 40,
-                              height: Platform.isWindows ? 48 : 30,
+                              height: Platform.isWindows ? 48 : 35,
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 mainAxisAlignment:
@@ -806,7 +810,7 @@ class _ExophaseProfileState extends State<ExophaseProfile> {
                           padding: EdgeInsets.symmetric(horizontal: 5),
                           child: Text(
                             exophaseDump["psnID"],
-                            style: textSelection("textLightBold"),
+                            style: textSelection(theme: "textLightBold"),
                           ),
                         ),
                         //? Country flag
@@ -877,7 +881,7 @@ class _ExophaseProfileState extends State<ExophaseProfile> {
                                       vertical: 0, horizontal: 10.0),
                                   child: Text(
                                     "${regionalText["home"]["games"]}\n${exophaseDump['games'].toString()}",
-                                    style: textSelection(""),
+                                    style: textSelection(),
                                     textAlign: TextAlign.center,
                                   ),
                                 ),
@@ -886,7 +890,7 @@ class _ExophaseProfileState extends State<ExophaseProfile> {
                                       vertical: 0, horizontal: 10.0),
                                   child: Text(
                                     "${regionalText["home"]["complete"]}\n${exophaseDump['complete'].toString()} (${exophaseDump['completePercentage']}%)",
-                                    style: textSelection(""),
+                                    style: textSelection(),
                                     textAlign: TextAlign.center,
                                   ),
                                 ),
@@ -895,7 +899,7 @@ class _ExophaseProfileState extends State<ExophaseProfile> {
                                       vertical: 0, horizontal: 10.0),
                                   child: Text(
                                     "${regionalText["home"]["incomplete"]}\n${exophaseDump['incomplete'].toString()} (${exophaseDump['incompletePercentage']}%)",
-                                    style: textSelection(""),
+                                    style: textSelection(),
                                     textAlign: TextAlign.center,
                                   ),
                                 ),
@@ -904,7 +908,7 @@ class _ExophaseProfileState extends State<ExophaseProfile> {
                                       vertical: 0, horizontal: 10.0),
                                   child: Text(
                                     "${regionalText["home"]["completion"]}\n${exophaseDump['completion']}",
-                                    style: textSelection(""),
+                                    style: textSelection(),
                                     textAlign: TextAlign.center,
                                   ),
                                 ),
@@ -916,7 +920,7 @@ class _ExophaseProfileState extends State<ExophaseProfile> {
                                           vertical: 0, horizontal: 10.0),
                                       child: Text(
                                         "${regionalText["home"]["hours"]}\n${exophaseDump['hours']}",
-                                        style: textSelection(""),
+                                        style: textSelection(),
                                         textAlign: TextAlign.center,
                                       ),
                                     ),
@@ -926,7 +930,7 @@ class _ExophaseProfileState extends State<ExophaseProfile> {
                                       vertical: 0, horizontal: 10.0),
                                   child: Text(
                                     "${regionalText["home"]["exp"]}\n${exophaseDump['exp']}",
-                                    style: textSelection(""),
+                                    style: textSelection(),
                                     textAlign: TextAlign.center,
                                   ),
                                 ),
@@ -935,7 +939,7 @@ class _ExophaseProfileState extends State<ExophaseProfile> {
                                       vertical: 0, horizontal: 10.0),
                                   child: Text(
                                     "${regionalText["home"]["countryRank"]}\n${exophaseDump['countryRank'] != null ? exophaseDump['countryRank'].toString() + " " : "❌"}${exophaseDump['countryUp'] ?? ""}",
-                                    style: textSelection(""),
+                                    style: textSelection(),
                                     textAlign: TextAlign.center,
                                   ),
                                 ),
@@ -944,7 +948,7 @@ class _ExophaseProfileState extends State<ExophaseProfile> {
                                       vertical: 0, horizontal: 10.0),
                                   child: Text(
                                     "${regionalText["home"]["worldRank"]}\n${exophaseDump['worldRank'] != null ? exophaseDump['worldRank'].toString() + " " : "❌"}${exophaseDump['worldUp'] ?? ""}",
-                                    style: textSelection(""),
+                                    style: textSelection(),
                                     textAlign: TextAlign.center,
                                   ),
                                 ),
@@ -958,9 +962,10 @@ class _ExophaseProfileState extends State<ExophaseProfile> {
                     exophaseSettings['gamerCard'] == "grid")
                   Expanded(
                     child: StaggeredGridView.countBuilder(
+                      key: UniqueKey(),
                       crossAxisCount: Platform.isWindows
                           ? (MediaQuery.of(context).size.width / 150).floor()
-                          : 3,
+                          : (MediaQuery.of(context).size.width / 100).floor(),
                       staggeredTileBuilder: (index) => StaggeredTile.fit(1),
                       itemCount: exophaseGamesList.length,
                       itemBuilder: (context, index) => exophaseGamesList[index],
@@ -979,9 +984,10 @@ class _ExophaseProfileState extends State<ExophaseProfile> {
                     exophaseSettings['gamerCard'] == "block")
                   Expanded(
                     child: StaggeredGridView.countBuilder(
+                      key: UniqueKey(),
                       crossAxisCount: Platform.isWindows
                           ? (MediaQuery.of(context).size.width / 250).floor()
-                          : 2,
+                          : (MediaQuery.of(context).size.width / 150).floor(),
                       staggeredTileBuilder: (index) => StaggeredTile.fit(1),
                       itemCount: exophaseGamesList.length,
                       itemBuilder: (context, index) => exophaseGamesList[index],
@@ -1013,7 +1019,7 @@ class _ExophaseProfileState extends State<ExophaseProfile> {
                           Center(
                             child: Text(
                               regionalText['exophase']['filter'],
-                              style: textSelection("textDark"),
+                              style: textSelection(theme: "textDark"),
                               textAlign: TextAlign.center,
                             ),
                           ),
@@ -1285,7 +1291,7 @@ class _ExophaseProfileState extends State<ExophaseProfile> {
                           SizedBox(width: 10),
                           Text(
                             regionalText['exophase']['togglePlatforms'],
-                            style: textSelection("textDark"),
+                            style: textSelection(theme: "textDark"),
                             textAlign: TextAlign.center,
                           ),
                           //? Filter out PS Vita games
@@ -1421,7 +1427,7 @@ class _ExophaseProfileState extends State<ExophaseProfile> {
                           //? These let you change the view style for the trophy lists
                           Text(
                             regionalText['exophase']['viewType'],
-                            style: textSelection("textDark"),
+                            style: textSelection(theme: "textDark"),
                             textAlign: TextAlign.center,
                           ),
                           if (exophaseSettings['gamerCard'] != "list")

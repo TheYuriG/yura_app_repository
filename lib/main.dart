@@ -1216,16 +1216,16 @@ Map<String, Map<String, String>> regionSelect() {
     },
     'bottomButtons': {
       'translationText':
-          "Do you understand any language that Yura doesn't have a translation for? If your translation could help even just one other person, it will be added.\n\nFeel free to use the support Discord server to let us know that you are sending a translation sheet.",
+          "Yura's translation is crowd-sourced. Know a language yet to b\n\nIf you wish to help, the link below takes to a spreadsheet with the text used in Yura. Feel free to use the support Discord server to let us know that you are sending a translation sheet.",
       "translationButton": "Contribute!",
       "latestversion": "Most recent release:",
       "update": "Update now!",
       "updateGif":
           "Accurate representation of the coding process for this app.",
       'privacyText':
-          "There is no privacy agreement for you to accept. Yura takes none of your information, everything you see on screen is exclusively processed on your device and belongs to no one else other than you.\n\nThis might change in the future if some sort of leaderboard gets to be implemented, but you will be prompted if you wish to share before any of your PSN data gets sent. Until then, enjoy your total anonymity."
+          "There is no privacy agreement for you to accept. Yura doesn't take or store any of your information outside of your device, everything you see on screen is exclusively processed locally and belongs exclusively to you.\n\nIf, in the future, some sort of feature gets added that requires PSN account information (a leaderboard, per example), you will be prompted if you wish to participate before any of your PSN data gets sent (personal information like device model, age, location, etc., will NEVER be sent!).\n\nEnjoy your total anonymity!"
     },
-    "exophase": {
+    "games": {
       "filter": "Filter games:",
       "incomplete": "Remove incomplete games",
       "complete": "Remove complete games",
@@ -1238,13 +1238,25 @@ Map<String, Map<String, String>> regionSelect() {
       "ps3": "Remove PS3 games",
       "ps4": "Remove PS4 games",
       "ps5": "Remove PS5 games",
+      "sort": "Sort games:",
+      'lastPlayed': "Most recent:",
+      'firstPlayed': "Least recent:",
+      'expAscending': "Ascending EXP:",
+      'expDescending': "Descending EXP:",
+      'timeAscending': "Ascending tracked time:",
+      'timeDescending': "Descending tracked time:",
+      'completionAscending': "Ascending completion:",
+      'completionDescending': "Descending completion:",
+      'alphabeticalAscending': "Alphabetically:",
+      'alphabeticalDescending': "Alphabetically (reversed):",
+      "filterAndSort": "Filter and Sort:",
       "viewType": "Change display:",
       "grid": "Enable grid view",
       "block": "Enable block view",
       "list": "Enable list view",
     },
     //? Since this is just the version number, this doesn't get translated regardless of chosen language.
-    "version": {"version": "v0.13.32"}
+    "version": {"version": "v0.14.35"}
   };
   //? This changes language to Brazilian Portuguese
   if (settings.get("language") == "br") {
@@ -1313,16 +1325,16 @@ Map<String, Map<String, String>> regionSelect() {
     };
     avaiableText['bottomButtons'] = {
       'translationText':
-          "Você entende algum idioma para o qual Yura ainda não tem uma tradução? Se a sua tradução puder ajudar pelo menos uma pessoa, ela será adicionada.\n\nSinta-se livre para usar o servidor suporte de Discord para nos informar que você está mandando uma planilha de traduções.",
+          "Yura é traduzida através de contribuição colaborativa. Fala alguma lingua que ainda não tem suporte?\n\nO botão abaixo leva para a planilha com os textos usados dentro do aplicativo. Sinta-se livre para usar o servidor suporte de Discord para nos informar que você está mandando uma planilha de traduções.",
       "translationButton": "Contribua!",
       "latestversion": "Atualização mais recente:",
       "update": "Atualize agora!",
       "updateGif":
           "Representação precisa do processo de programar esse aplicativo.",
       "privacyText":
-          "Não existe um contrato de privacidade que você precisa aceitar. Yura não envia nada da sua informação, tudo o que você vê na tela é processado no seu aparelho e não pertence a ninguém além de você.\n\nIsso pode mudar no futuro caso algum tipo de placar de líderes seja implementado, mas você será perguntado antes que qualquer informação da PSN seja enviada. Até lá, aproveite sua total anonimidade."
+          "Não existe um contrato de privacidade que você precisa aceitar. Yura não envia ou guarda sua informação fora do seu aparelho, tudo o que você vê na tela é processado localmente e pertence exclusivamente a você.\n\nSe no futuro forem adicionadas funções que precisam de informações de jogadores (um placar de líderes, por exemplo), você será perguntado se deseja participar antes que qualquer informação da sua conta PSN seja enviada (informação pessoal como modelo do aparelho, idade, localização, etc., NUNCA será enviada!).\n\nAproveite sua anonimidade!"
     };
-    avaiableText["exophase"] = {
+    avaiableText["games"] = {
       "filter": "Filtre jogos:",
       "incomplete": "Remova jogos incompletos",
       "complete": "Remova jogos concluídos",
@@ -1335,6 +1347,18 @@ Map<String, Map<String, String>> regionSelect() {
       "ps3": "Remova jogos de PS3",
       "ps4": "Remova jogos de PS4",
       "ps5": "Remove jogos de PS5",
+      "sort": "Reordene jogos:",
+      'lastPlayed': "Jogado recentemente:",
+      'firstPlayed': "Jogado primeiro:",
+      'expAscending': "EXP crescente:",
+      'expDescending': "EXP decrescente:",
+      'timeAscending': "Tempo registrado crescente:",
+      'timeDescending': "Tempo registrado decrescente:",
+      'completionAscending': "Taxa de conclusão crescente:",
+      'completionDescending': "Taxa de conclusão decrescente:",
+      'alphabeticalAscending': "Alfabeticamente:",
+      'alphabeticalDescending': "Alfabeticamente (inverso):",
+      "filterAndSort": "Filtre e Organize:",
       "viewType": "Mude a aparência:",
       "grid": "Ativar visualização por tela",
       "block": "Ativar visualização por blocos",
@@ -4944,67 +4968,69 @@ class _MyHomePageState extends State<MyHomePage> {
                                                   .size
                                                   .width *
                                               0.7,
-                                          height: MediaQuery.of(context)
-                                                  .size
-                                                  .height *
-                                              0.7,
                                           decoration: BoxDecoration(
                                             color: themeSelector["secondary"]
                                                 [settings.get("theme")],
                                           ),
-                                          child: SingleChildScrollView(
-                                            scrollDirection: Axis.vertical,
-                                            child: Container(
-                                              child: Column(
-                                                  mainAxisSize:
-                                                      MainAxisSize.min,
-                                                  children: [
-                                                    AppBar(
-                                                      shape: RoundedRectangleBorder(
-                                                          borderRadius:
-                                                              BorderRadius.vertical(
-                                                                  top: Radius
-                                                                      .circular(
-                                                                          25))),
-                                                      title: Text(
-                                                        "Yura ${regionalText['home']['version']} ${regionalText['version']['version']}",
-                                                        style: textSelection(),
-                                                      ),
-                                                      centerTitle: true,
-                                                      automaticallyImplyLeading:
-                                                          false,
-                                                      backgroundColor:
-                                                          themeSelector[
-                                                                  "primary"][
+                                          child: Column(
+                                              mainAxisSize: MainAxisSize.min,
+                                              children: [
+                                                AppBar(
+                                                  shape: RoundedRectangleBorder(
+                                                      borderRadius:
+                                                          BorderRadius.vertical(
+                                                              top: Radius
+                                                                  .circular(
+                                                                      25))),
+                                                  title: Text(
+                                                    "Yura ${regionalText['home']['version']} ${regionalText['version']['version']}",
+                                                    style: textSelection(),
+                                                  ),
+                                                  centerTitle: true,
+                                                  automaticallyImplyLeading:
+                                                      false,
+                                                  backgroundColor:
+                                                      themeSelector["primary"][
+                                                          settings
+                                                              .get("theme")],
+                                                  actions: [
+                                                    IconButton(
+                                                        splashColor:
+                                                            Colors.transparent,
+                                                        hoverColor:
+                                                            Colors.transparent,
+                                                        icon: Icon(
+                                                          Icons.close,
+                                                          color: themeSelector[
+                                                                  "secondary"][
                                                               settings.get(
                                                                   "theme")],
-                                                      actions: [
-                                                        IconButton(
-                                                            splashColor: Colors
-                                                                .transparent,
-                                                            hoverColor: Colors
-                                                                .transparent,
-                                                            icon: Icon(
-                                                              Icons.close,
-                                                              color: themeSelector[
-                                                                      "secondary"]
-                                                                  [settings.get(
-                                                                      "theme")],
-                                                            ),
-                                                            onPressed: () {
-                                                              Navigator.pop(
-                                                                  context);
-                                                            })
-                                                      ],
-                                                    ),
-                                                    FutureBuilder(
+                                                        ),
+                                                        onPressed: () {
+                                                          Navigator.pop(
+                                                              context);
+                                                        })
+                                                  ],
+                                                ),
+                                                ConstrainedBox(
+                                                  constraints: BoxConstraints(
+                                                    maxHeight:
+                                                        MediaQuery.of(context)
+                                                                .size
+                                                                .height *
+                                                            0.7,
+                                                  ),
+                                                  child: SingleChildScrollView(
+                                                    scrollDirection:
+                                                        Axis.vertical,
+                                                    child: FutureBuilder(
                                                         future: yuraUpdate(),
                                                         builder: (context,
                                                             snapshot) {
                                                           return Padding(
                                                             padding:
                                                                 const EdgeInsets
-                                                                    .all(20),
+                                                                    .all(15),
                                                             child: Column(
                                                               children: [
                                                                 if (snapshot
@@ -5054,20 +5080,8 @@ class _MyHomePageState extends State<MyHomePage> {
                                                                         theme:
                                                                             "textDark"),
                                                                   ),
-                                                                if (snapshot.connectionState ==
-                                                                        ConnectionState
-                                                                            .done &&
-                                                                    snapshot.data[
-                                                                            'updateNotes'] !=
-                                                                        "error" &&
-                                                                    snapshot.data[
-                                                                            'lastVersion'] !=
-                                                                        regionalText["version"]
-                                                                            [
-                                                                            "version"])
-                                                                  SizedBox(
-                                                                      height:
-                                                                          20),
+                                                                SizedBox(
+                                                                    height: 10),
                                                                 if (snapshot.connectionState ==
                                                                         ConnectionState
                                                                             .done &&
@@ -5140,10 +5154,10 @@ class _MyHomePageState extends State<MyHomePage> {
                                                               ],
                                                             ),
                                                           );
-                                                        })
-                                                  ]),
-                                            ),
-                                          ),
+                                                        }),
+                                                  ),
+                                                )
+                                              ]),
                                         ),
                                       ),
                                     );
@@ -5219,10 +5233,12 @@ class _MyHomePageState extends State<MyHomePage> {
                                           child: Column(
                                             children: [
                                               Text(
-                                                  regionalText["bottomButtons"]
-                                                      ["privacyText"],
-                                                  style: textSelection(
-                                                      theme: "textDark")),
+                                                regionalText["bottomButtons"]
+                                                    ["privacyText"],
+                                                style: textSelection(
+                                                    theme: "textDark"),
+                                                textAlign: TextAlign.center,
+                                              ),
                                             ],
                                           ),
                                         )

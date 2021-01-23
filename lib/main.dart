@@ -1,8 +1,10 @@
 import 'dart:io' show Platform;
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:hive/hive.dart';
 import 'package:hive_flutter/hive_flutter.dart';
+// import 'package:html/parser.dart';
 import 'package:intl/intl.dart';
 import 'dart:async';
 import 'package:url_launcher/url_launcher.dart';
@@ -12,7 +14,7 @@ import 'exophase_profile.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:web_scraper/web_scraper.dart';
 
-//! This project assumes you are using VS Code and have the Todo Tree extension installed.
+//! This project assumes you are using VS Code and with the Todo Tree extension.
 void main() async {
   //? Initializes flutter depending on proper platform
   await Hive.initFlutter();
@@ -43,8 +45,11 @@ void main() async {
   runApp(MyApp());
 }
 
-//? This variable will store the status of the update and disable the FloatingActionButton from rendering
+//? This bool will store the status of the update and disable the FloatingActionButton from rendering
 bool isUpdating;
+
+//? This String displays update information in conjunction with the loadingIcon
+String updateProgress = regionalText['home']['updating'];
 
 //? This will save the settings for the app in this Hive box
 //? Examples of settings saved are the theme colors and language.
@@ -52,6 +57,13 @@ Box settings = Hive.box("settings");
 
 //? WebScraper instance for all websites.
 final WebScraper ws = WebScraper();
+
+//? This is a general loader function to use the compute functions later.
+Future<String> parsePage(String page) async {
+  WebScraper pageLoader = WebScraper();
+  await pageLoader.loadFullURL(page);
+  return pageLoader.getPageContent();
+}
 
 //? This will make a request to PSNProfiles to retrieve a small clickable profile card
 Future<Map> psnpInfo(String user) async {
@@ -484,12 +496,10 @@ Future<Map> psntlInfo(String user) async {
 }
 
 //? This will make a request to Exophase to retrieve a small clickable profile card
-Future<Map> exophaseInfo(String user) async {
-  await ws.loadFullURL('https://www.exophase.com/psn/user/$user/');
+Map exophaseInfo(String parsedHTML) {
+  ws.loadFromString(parsedHTML);
   //! parsedData holds player data only
   Map<String, dynamic> parsedData = {};
-  //! parsedGames holds player games only
-  Map<int, Map<String, dynamic>> parsedGames = {};
   try {
     // https://api.exophase.com/public/player/(data-playerid)/game/(data-game)/earned
     // data-game = #app > div > div.row.col-game-information.pb-3
@@ -500,9 +510,6 @@ Future<Map> exophaseInfo(String user) async {
             '#sub-user-info > section > div.col.col-md-auto.column-username.me-lg-4.pb-3.pt-3 > h2')
         .forEach((element) {
       parsedData['psnID'] = element.trim();
-      if (parsedData['psnID'] != user && !parsedData['psnID'].contains(' ')) {
-        settings.put('psnID', parsedData['psnID']);
-      }
     });
     if (parsedData['psnID'] == null) {
       throw Error;
@@ -647,44 +654,69 @@ Future<Map> exophaseInfo(String user) async {
         .forEach((element) {
       parsedData['exp'] = int.parse(element.replaceAll(",", "").trim());
     });
+  } catch (e) {
+    print("error scanning Exophase");
+    parsedData = null;
+  }
+  // print(parsedData);
+  return parsedData;
+}
+
+List<Map<String, dynamic>> fetchExophaseGames(Map<String, dynamic> data) {
+  String parsedHTML = data['html'];
+  int games = data['games'];
+  int position = data['position'];
+
+  //! parsedGames holds player games only
+  List<Map<String, dynamic>> parsedGames = [];
+
+  if (position == 0) {
+    //? Loads the page from String parsed HTML
+    if (!ws.loadFromString(parsedHTML)) {
+      throw Error;
+    }
+
     //! Games data
-    //? ngames is defined to check how many games this should scan for
     //? if the user has more than 50 (default initial game display for exophase) games on their profile, scan for 50
-    //? otherwise scan the number of games. Currently using only 20 games to hasten the bug testing process
-    int ngames = parsedData['games'] > 50 ? 52 : parsedData['games'] + 2;
-    for (var i = 1; i < ngames; i++) {
-      parsedGames[i] = {};
+    //? otherwise scan the number of games.
+    for (var i = 1; i < (games > 50 ? 52 : games + 2); i++) {
+      Map<String, dynamic> first50 = {};
+      //? Retrieves game name and link
+      ws.getElement(
+          '#app > div > div.row.user-container > div.col-12.col-xl-9 > ul > li:nth-child(${(i * 2) - 1}) > div.row.gx-0.align-items-center > div.col.col-game.game-info.pe-3 > div > h3 > a',
+          ['href']).forEach((element) {
+        first50['gameLink'] = element['attributes']['href'].trim();
+        first50['gameName'] = element['title'].trim();
+      });
+      if (first50['gameName'] == null) {
+        continue;
+      }
+
       //? Retrieves game image
       ws
           .getElementAttribute(
               '#app > div > div.row.user-container > div.col-12.col-xl-9 > ul > li:nth-child(${(i * 2) - 1}) > div > div > div.box.image > img',
               'src')
           .forEach((element) {
-        parsedGames[i]['gameImage'] = element.trim();
+        first50['gameImage'] = element.trim();
       });
-      //? Retrieves game name and link
-      ws.getElement(
-          '#app > div > div.row.user-container > div.col-12.col-xl-9 > ul > li:nth-child(${(i * 2) - 1}) > div.row.gx-0.align-items-center > div.col.col-game.game-info.pe-3 > div > h3 > a',
-          ['href']).forEach((element) {
-        parsedGames[i]['gameLink'] = element['attributes']['href'].trim();
-        parsedGames[i]['gameName'] = element['title'].trim();
-      });
+
       //? Retrieves game platforms
       ws
           .getElementTitle(
               '#app > div > div.row.user-container > div.col-12.col-xl-9 > ul > li:nth-child(${(i * 2) - 1}) > div.row.gx-0.align-items-center > div.col.col-game.game-info.pe-3 > div > div')
           .forEach((element) {
         if (element.toLowerCase().contains("ps3")) {
-          parsedGames[i]['gamePS3'] = true;
+          first50['gamePS3'] = true;
         }
         if (element.toLowerCase().contains("ps4")) {
-          parsedGames[i]['gamePS4'] = true;
+          first50['gamePS4'] = true;
         }
         if (element.toLowerCase().contains("ps5")) {
-          parsedGames[i]['gamePS5'] = true;
+          first50['gamePS5'] = true;
         }
         if (element.toLowerCase().contains("vita")) {
-          parsedGames[i]['gameVita'] = true;
+          first50['gameVita'] = true;
         }
       });
       //? Retrieves game playtime
@@ -692,7 +724,7 @@ Future<Map> exophaseInfo(String user) async {
           .getElementTitle(
               '#app > div > div.row.user-container > div.col-12.col-xl-9 > ul > li:nth-child(${(i * 2) - 1}) > div.row.gx-0.align-items-center > div.col.col-game.game-info.pe-3 > div > span.hours')
           .forEach((element) {
-        parsedGames[i]['gameTime'] = element.trim();
+        first50['gameTime'] = element.trim();
       });
       //? Retrieves game ID
       ws
@@ -700,49 +732,48 @@ Future<Map> exophaseInfo(String user) async {
               '#app > div > div.row.user-container > div.col-12.col-xl-9 > ul > li:nth-child(${(i * 2) - 1})',
               'data-gameid')
           .forEach((element) {
-        parsedGames[i]['gameID'] = element.trim();
+        first50['gameID'] = element.trim();
       });
       //? Retrieves game trophy ratio (trophies earned / trophy total)
       ws
           .getElementTitle(
               '#app > div > div.row.user-container > div.col-12.col-xl-9 > ul > li:nth-child(${(i * 2) - 1}) > div.row.gx-0.align-items-center > div.col-12.col-md.px-3.pb-4.pe-md-0.pb-md-0.game-progress > div.row.gx-0.progress-units-top.pb-2 > div:first-child')
           .forEach((element) {
-        parsedGames[i]['gameRatio'] = element.trim();
+        first50['gameRatio'] = element.trim();
       });
       //? Retrieves game EXP
       ws
           .getElementTitle(
               '#app > div > div.row.user-container > div.col-12.col-xl-9 > ul > li:nth-child(${(i * 2) - 1}) > div.row.gx-0.align-items-center > div.col-12.col-md.px-3.pb-4.pe-md-0.pb-md-0.game-progress > div.row.gx-0.progress-units-top.pb-2 > div:nth-child(3)')
           .forEach((element) {
-        parsedGames[i]['gameEXP'] =
-            int.parse(element.replaceAll(",", "").trim());
+        first50['gameEXP'] = int.parse(element.replaceAll(",", "").trim());
       });
       //? Retrieves game bronze trophies
       ws
           .getElementTitle(
               '#app > div > div.row.user-container > div.col-12.col-xl-9 > ul > li:nth-child(${(i * 2) - 1}) > div.row.gx-0.align-items-center > div.col-12.col-md.px-3.pb-4.pe-md-0.pb-md-0.game-progress > div.holders > div > span.bronze')
           .forEach((element) {
-        parsedGames[i]['gameBronze'] = int.parse(element.trim());
+        first50['gameBronze'] = int.parse(element.trim());
       });
       //? Retrieves game silver trophies
       ws
           .getElementTitle(
               '#app > div > div.row.user-container > div.col-12.col-xl-9 > ul > li:nth-child(${(i * 2) - 1}) > div.row.gx-0.align-items-center > div.col-12.col-md.px-3.pb-4.pe-md-0.pb-md-0.game-progress > div.holders > div > span.silver')
           .forEach((element) {
-        parsedGames[i]['gameSilver'] = int.parse(element.trim());
+        first50['gameSilver'] = int.parse(element.trim());
       });
       //? Retrieves game gold trophies
       ws
           .getElementTitle(
               '#app > div > div.row.user-container > div.col-12.col-xl-9 > ul > li:nth-child(${(i * 2) - 1}) > div.row.gx-0.align-items-center > div.col-12.col-md.px-3.pb-4.pe-md-0.pb-md-0.game-progress > div.holders > div > span.gold')
           .forEach((element) {
-        parsedGames[i]['gameGold'] = int.parse(element.trim());
+        first50['gameGold'] = int.parse(element.trim());
       });
       //? Retrieves game platinum trophies
       ws.getElement(
           '#app > div > div.row.user-container > div.col-12.col-xl-9 > ul > li:nth-child(${(i * 2) - 1}) > div.row.gx-0.align-items-center > div.col-12.col-md.px-3.pb-4.pe-md-0.pb-md-0.game-progress > div.holders > div > span.platinum',
           []).forEach((element) {
-        parsedGames[i]['gamePlatinum'] = 1;
+        first50['gamePlatinum'] = 1;
       });
       //? Retrieves game percentage progress
       ws
@@ -750,7 +781,7 @@ Future<Map> exophaseInfo(String user) async {
               '#app > div > div.row.user-container > div.col-12.col-xl-9 > ul > li:nth-child(${(i * 2) - 1}) > div.row.gx-0.align-items-center > div.col-12.col-md.px-3.pb-4.pe-md-0.pb-md-0.game-progress > div.progress > div',
               'style')
           .forEach((element) {
-        parsedGames[i]['gamePercentage'] = int.parse(
+        first50['gamePercentage'] = int.parse(
             element.replaceAll("%;", "").replaceAll("width: ", "").trim());
       });
       //? Retrieves game last played date
@@ -758,19 +789,136 @@ Future<Map> exophaseInfo(String user) async {
           .getElementTitle(
               '#app > div > div.row.user-container > div.col-12.col-xl-9 > ul > li:nth-child(${(i * 2) - 1}) > div.row.gx-0.align-items-center > div.col-12.col-md.col-lastplayed.text-center.text-md-end.mb-2.mb-md-0 > div.lastplayed')
           .forEach((element) {
-        parsedGames[i]['gameLastPlayed'] = element.trim();
+        first50['gameLastPlayed'] = element.trim();
       });
+      parsedGames.add(first50);
     }
-    settings.put('exophaseDump', parsedData);
-    // print(parsedGames);
-    settings.put('exophaseGames', parsedGames);
-  } catch (e) {
-    print("error scanning Exophase");
-    parsedData = null;
-    settings.put('exophase', false);
+  } else {
+    if (ws.loadFragment(parsedHTML) != true) {
+      throw Error;
+    }
+
+    int listLength = ws
+        .getElementAttribute('li > div > div > div.box.image > img', 'src')
+        .length;
+
+    //! Games data
+    //? if the user has more than 50 (default initial game display for exophase) games on their profile, scan for 50
+    //? otherwise scan the number of games.
+    for (var i = 0; i <= listLength; i++) {
+      Map<String, dynamic> next50 = {};
+      //? Retrieves game name and link
+      ws.getElement(
+          'li:nth-child(${(i * 2) + 1}) > div.row.gx-0.align-items-center > div.col.col-game.game-info.pe-3 > div > h3 > a',
+          ['href']).forEach((element) {
+        next50['gameLink'] = element['attributes']['href'].trim();
+        next50['gameName'] = element['title'].trim();
+      });
+      if (next50['gameName'] == null) {
+        continue;
+      }
+
+      //? Retrieves game image
+      ws
+          .getElementAttribute(
+              'li:nth-child(${(i * 2) + 1}) > div > div > div.box.image > img',
+              'src')
+          .forEach((element) {
+        next50['gameImage'] = element.trim();
+      });
+
+      //? Retrieves game platforms
+      ws
+          .getElementTitle(
+              'li:nth-child(${(i * 2) + 1}) > div.row.gx-0.align-items-center > div.col.col-game.game-info.pe-3 > div > div')
+          .forEach((element) {
+        if (element.toLowerCase().contains("ps3")) {
+          next50['gamePS3'] = true;
+        }
+        if (element.toLowerCase().contains("ps4")) {
+          next50['gamePS4'] = true;
+        }
+        if (element.toLowerCase().contains("ps5")) {
+          next50['gamePS5'] = true;
+        }
+        if (element.toLowerCase().contains("vita")) {
+          next50['gameVita'] = true;
+        }
+      });
+      //? Retrieves game playtime
+      ws
+          .getElementTitle(
+              'li:nth-child(${(i * 2) + 1}) > div.row.gx-0.align-items-center > div.col.col-game.game-info.pe-3 > div > span.hours')
+          .forEach((element) {
+        next50['gameTime'] = element.trim();
+      });
+      //? Retrieves game ID
+      ws
+          .getElementAttribute('li:nth-child(${(i * 2) + 1})', 'data-gameid')
+          .forEach((element) {
+        next50['gameID'] = element.trim();
+      });
+      //? Retrieves game trophy ratio (trophies earned / trophy total)
+      ws
+          .getElementTitle(
+              'li:nth-child(${(i * 2) + 1}) > div.row.gx-0.align-items-center > div.col-12.col-md.px-3.pb-4.pe-md-0.pb-md-0.game-progress > div.row.gx-0.progress-units-top.pb-2 > div:first-child')
+          .forEach((element) {
+        next50['gameRatio'] = element.trim();
+      });
+      //? Retrieves game EXP
+      ws
+          .getElementTitle(
+              'li:nth-child(${(i * 2) + 1}) > div.row.gx-0.align-items-center > div.col-12.col-md.px-3.pb-4.pe-md-0.pb-md-0.game-progress > div.row.gx-0.progress-units-top.pb-2 > div:nth-child(3)')
+          .forEach((element) {
+        next50['gameEXP'] = int.parse(element.replaceAll(",", "").trim());
+      });
+      //? Retrieves game bronze trophies
+      ws
+          .getElementTitle(
+              'li:nth-child(${(i * 2) + 1}) > div.row.gx-0.align-items-center > div.col-12.col-md.px-3.pb-4.pe-md-0.pb-md-0.game-progress > div.holders > div > span.bronze')
+          .forEach((element) {
+        next50['gameBronze'] = int.parse(element.trim());
+      });
+      //? Retrieves game silver trophies
+      ws
+          .getElementTitle(
+              'li:nth-child(${(i * 2) + 1}) > div.row.gx-0.align-items-center > div.col-12.col-md.px-3.pb-4.pe-md-0.pb-md-0.game-progress > div.holders > div > span.silver')
+          .forEach((element) {
+        next50['gameSilver'] = int.parse(element.trim());
+      });
+      //? Retrieves game gold trophies
+      ws
+          .getElementTitle(
+              'li:nth-child(${(i * 2) + 1}) > div.row.gx-0.align-items-center > div.col-12.col-md.px-3.pb-4.pe-md-0.pb-md-0.game-progress > div.holders > div > span.gold')
+          .forEach((element) {
+        next50['gameGold'] = int.parse(element.trim());
+      });
+      //? Retrieves game platinum trophies
+      ws.getElement(
+          'li:nth-child(${(i * 2) + 1}) > div.row.gx-0.align-items-center > div.col-12.col-md.px-3.pb-4.pe-md-0.pb-md-0.game-progress > div.holders > div > span.platinum',
+          []).forEach((element) {
+        next50['gamePlatinum'] = 1;
+      });
+      //? Retrieves game percentage progress
+      ws
+          .getElementAttribute(
+              'li:nth-child(${(i * 2) + 1}) > div.row.gx-0.align-items-center > div.col-12.col-md.px-3.pb-4.pe-md-0.pb-md-0.game-progress > div.progress > div',
+              'style')
+          .forEach((element) {
+        next50['gamePercentage'] = int.parse(
+            element.replaceAll("%;", "").replaceAll("width: ", "").trim());
+      });
+      //? Retrieves game last played date
+      ws
+          .getElementTitle(
+              'li:nth-child(${(i * 2) + 1}) > div.row.gx-0.align-items-center > div.col-12.col-md.col-lastplayed.text-center.text-md-end.mb-2.mb-md-0 > div.lastplayed')
+          .forEach((element) {
+        next50['gameLastPlayed'] = element.trim();
+      });
+      parsedGames.add(next50);
+    }
   }
-  // print(parsedData);
-  return parsedData;
+  return parsedGames;
 }
 
 //? This will make a request to True Trophies to retrieve a small clickable profile card
@@ -950,27 +1098,6 @@ Future<Map> trueTrophiesInfo(String user) async {
 
 //? This will make a request to PSN 100% to retrieve a small clickable profile card
 Future<Map> psn100Info(String user) async {
-  // try {
-  //   WebScraper pageContent = WebScraper();
-  //   print("Created a WebScraper Object");
-  //   await pageContent.loadFullURL("https://psn100.net/");
-  //   print("Loaded webpage from URL");
-  //   String page = pageContent.getPageContent();
-  //   print("Stringified page's body");
-  //   // print(page);
-  //   WebScraper pagev2 = WebScraper();
-  //   pagev2.loadFromString(page);
-  //   print("Loaded page from string");
-  //   pagev2
-  //       .getElementTitle(
-  //           "body > main > div > div > div > div > div > table > tbody > tr > td > a")
-  //       .forEach((element) {
-  //     print("[" + element.trim() + "]");
-  //   });
-  // } catch (e) {
-  //   print("error");
-  // }
-
   await ws.loadFullURL('https://psn100.net/player/$user');
   Map<String, dynamic> parsedData = {};
   try {
@@ -1000,10 +1127,14 @@ Future<Map> psn100Info(String user) async {
     //? Retrieves PSN avatar
     ws
         .getElementAttribute(
-            'body > main > div > div:nth-child(1) > div:nth-child(1) > div > img:nth-child(1)',
+            'body > main >  div.container >div.row > div.col-2 > div > img',
             'src')
         .forEach((element) {
-      parsedData['avatar'] = 'https://psn100.net/' + element;
+      if (element.contains("avatar")) {
+        parsedData['avatar'] = 'https://psn100.net/' + element;
+      } else if (element.contains("plus")) {
+        parsedData['plus'] = true;
+      }
     });
     //? Retrieves PSN Level progress first and then the level itself
     //? This is done because there is no individual DIV for the level, so you gotta
@@ -1155,11 +1286,12 @@ Map<String, Map<String, String>> regionSelect() {
       "appBar": "Welcome to Yura - A Playstation-based trophy app!",
       "inputID": "Please, provide your PSN ID:",
       "IDhere": "PSN ID goes here...",
+      "updating": "Requesting profile info...",
       "settings": "Settings",
       'errorPSN':
           'No cards to display!\nThis happens because either you disabled all cards or provided a PSN ID that no website is tracking. You can fix either of those issues on the settings menu.',
       "supportedWebsites": "Avaiable websites:",
-      "games": "Games\nTracked:",
+      "games": "Games:",
       "complete": "Games\nCompleted:",
       "incomplete": "Incomplete\nGames:",
       "completion": "Completion:",
@@ -1216,7 +1348,7 @@ Map<String, Map<String, String>> regionSelect() {
     },
     'bottomButtons': {
       'translationText':
-          "Yura's translation is crowd-sourced. Know a language yet to b\n\nIf you wish to help, the link below takes to a spreadsheet with the text used in Yura. Feel free to use the support Discord server to let us know that you are sending a translation sheet.",
+          "Yura's translation is crowd-sourced. Know a language yet to be supported?\n\nIf you wish to help, the link below takes to a spreadsheet with the text used in Yura. Feel free to use the support Discord server to let us know that you are sending a translation sheet.",
       "translationButton": "Contribute!",
       "latestversion": "Most recent release:",
       "update": "Update now!",
@@ -1239,16 +1371,16 @@ Map<String, Map<String, String>> regionSelect() {
       "ps4": "Remove PS4 games",
       "ps5": "Remove PS5 games",
       "sort": "Sort games:",
-      'lastPlayed': "Most recent:",
-      'firstPlayed': "Least recent:",
-      'expAscending': "Ascending EXP:",
-      'expDescending': "Descending EXP:",
-      'timeAscending': "Ascending tracked time:",
-      'timeDescending': "Descending tracked time:",
-      'completionAscending': "Ascending completion:",
-      'completionDescending': "Descending completion:",
-      'alphabeticalAscending': "Alphabetically:",
-      'alphabeticalDescending': "Alphabetically (reversed):",
+      'lastPlayed': "Most recent",
+      'firstPlayed': "Least recent",
+      'expAscending': "Ascending EXP",
+      'expDescending': "Descending EXP",
+      'timeAscending': "Ascending tracked time",
+      'timeDescending': "Descending tracked time",
+      'completionAscending': "Ascending completion",
+      'completionDescending': "Descending completion",
+      'alphabeticalAscending': "Alphabetically",
+      'alphabeticalDescending': "Alphabetically (reversed)",
       "filterAndSort": "Filter and Sort:",
       "viewType": "Change display:",
       "grid": "Enable grid view",
@@ -1256,7 +1388,7 @@ Map<String, Map<String, String>> regionSelect() {
       "list": "Enable list view",
     },
     //? Since this is just the version number, this doesn't get translated regardless of chosen language.
-    "version": {"version": "v0.14.35"}
+    "version": {"version": "v0.16.39"}
   };
   //? This changes language to Brazilian Portuguese
   if (settings.get("language") == "br") {
@@ -1264,11 +1396,12 @@ Map<String, Map<String, String>> regionSelect() {
       "appBar": "Bem vindo a Yura - Um aplicativo para troféus Playstation!",
       "inputID": "Por favor, informe sua ID PSN:",
       "IDhere": "ID da PSN vai aqui...",
+      "updating": "Pedindo informação do perfil...",
       "settings": "Configurações",
       'errorPSN':
           'Nenhum cartão para mostrar!\nIsso acontece porque ou você desativou todos os cartões ou a ID usada não é registrada em nenhum dos sites suportados. Você pode resolver qualquer uma dessas situações nas configurações.',
       "supportedWebsites": "Sites disponíveis:",
-      "games": "Jogos\nregistrados:",
+      "games": "Jogos:",
       "complete": "Jogos\nConcluídos:",
       "incomplete": "Jogos\nPendentes:",
       "completion": "Conclusão:",
@@ -1280,8 +1413,8 @@ Map<String, Map<String, String>> regionSelect() {
       "worldRank": "Rank\nMundial:",
       "mimic":
           "Número de jogadores rastreados em PSN Trophy Leaders que também usam esse avatar",
-      "standard": "Rank\nPadrão",
-      "adjusted": "Rank\nAjustado",
+      "standard": "Rank\nPadrão:",
+      "adjusted": "Rank\nAjustado:",
       "completist": "Rank\nConclusão:",
       "rarity": "Rank\nRaridade:",
       "translation": "Tradução",
@@ -1348,16 +1481,16 @@ Map<String, Map<String, String>> regionSelect() {
       "ps4": "Remova jogos de PS4",
       "ps5": "Remove jogos de PS5",
       "sort": "Reordene jogos:",
-      'lastPlayed': "Jogado recentemente:",
-      'firstPlayed': "Jogado primeiro:",
-      'expAscending': "EXP crescente:",
-      'expDescending': "EXP decrescente:",
-      'timeAscending': "Tempo registrado crescente:",
-      'timeDescending': "Tempo registrado decrescente:",
-      'completionAscending': "Taxa de conclusão crescente:",
-      'completionDescending': "Taxa de conclusão decrescente:",
-      'alphabeticalAscending': "Alfabeticamente:",
-      'alphabeticalDescending': "Alfabeticamente (inverso):",
+      'lastPlayed': "Jogado recentemente",
+      'firstPlayed': "Jogado primeiro",
+      'expAscending': "EXP crescente",
+      'expDescending': "EXP decrescente",
+      'timeAscending': "Tempo registrado crescente",
+      'timeDescending': "Tempo registrado decrescente",
+      'completionAscending': "Taxa de conclusão crescente",
+      'completionDescending': "Taxa de conclusão decrescente",
+      'alphabeticalAscending': "Alfabeticamente",
+      'alphabeticalDescending': "Alfabeticamente (inverso)",
       "filterAndSort": "Filtre e Organize:",
       "viewType": "Mude a aparência:",
       "grid": "Ativar visualização por tela",
@@ -1463,6 +1596,8 @@ final Map<String, String> img = {
   "newSilver": "images/new_silver.png",
   "newBronze": "images/new_bronze.png",
   "ps": "images/playstation.png",
+  'psntl': "images/psntl.png",
+  'trueTrophies': "images/truetrophies.png",
   "psn100": "images/psn100.png",
   "allTrophies": "images/trophy_cluster.png",
   "rarity1": "images/rarity1.png",
@@ -1929,58 +2064,173 @@ class _MyHomePageState extends State<MyHomePage> {
   void updateProfiles() async {
     //? First it changes the information on every document to be as updating, so every block displays a loading icon
     isUpdating = true;
+
     //? then, if it's enabled, it updates PSNP first while waiting the result to not start the other websites yet.
     if (settings.get("psnp") == true) {
       setState(() {
         psnpDump = {'update': true};
+        updateProgress = regionalText['home']['updating'];
       });
       psnpDump = await psnpInfo(settings.get("psnID"));
       setState(() {
         psnpDump = settings.get("psnpDump");
       });
     }
+
     //? then, if it's enabled, it updates PSN Trophy Leaders and waits the result.
     if (settings.get("psntl") == true) {
       setState(() {
         psntlDump = {'update': true};
+        updateProgress = regionalText['home']['updating'];
       });
       psntlDump = await psntlInfo(settings.get("psnID"));
       setState(() {
         psntlDump = settings.get("psntlDump");
       });
     }
+
     //? then, if it's enabled, it updates Exophase and waits the result.
     if (settings.get("exophase") == true) {
       setState(() {
+        //? Sets this Map to make the loading icon appear.
         exophaseDump = {'update': true};
+        updateProgress = regionalText['home']['updating'];
       });
-      exophaseDump = await exophaseInfo(settings.get("psnID"));
-      setState(() {
-        exophaseDump = settings.get("exophaseDump");
-      });
+
+      //? This will return a HTML parsed as String to be used in the compute() function below.
+      String exophaseHTML = await parsePage(
+          'https://www.exophase.com/psn/user/${settings.get("psnID")}/');
+
+      int oldGames = settings.get('exophaseDump') == null
+          ? 0
+          : settings.get('exophaseDump')['games'];
+      int oldTrophies = settings.get('exophaseDump') == null
+          ? 0
+          : settings.get('exophaseDump')['total'];
+
+      //? Uses the string above to run the compute() function and avoid jank.
+      //? This compute function will pull user profile data like total number of trophies, number of games played, etc..
+      exophaseDump = await compute(exophaseInfo, exophaseHTML);
+
+      //? If the ID is valid and uses better uppercase formating than the ID provided, save it as actual PSN ID in the settings.
+      if (exophaseDump['psnID'] != settings.get('psnID') &&
+          !exophaseDump['psnID'].contains(' ')) {
+        settings.put('psnID', exophaseDump['psnID']);
+      }
+
+      //? Save all the received information from the compute() function in the database.
+      //? This is done to avoid sending repeated data requests unnecessarily.
+      settings.put('exophaseDump', exophaseDump);
+
+      //? Checks if the user has new trophies and games, otherwise skip updating game stats.
+      //? This is done to save on resources/improve waiting times.
+      if (oldGames != 0 &&
+          oldGames == exophaseDump['games'] &&
+          oldTrophies == exophaseDump['total']) {
+        print("skipping games update due to same stats");
+      } else {
+        List oldExophaseGames;
+        if (settings.get('exophaseGames') is Map) {
+          oldExophaseGames = settings.get('exophaseGames').values.toList();
+        } else {
+          oldExophaseGames = settings.get('exophaseGames') ?? [];
+        }
+
+        //? This Map temporarily stores data to pass into another compute() function as the body to get ther remaining games.
+        Map<String, dynamic> exophaseData = {
+          'html': exophaseHTML,
+          'games': exophaseDump['games'],
+          'position': 0
+        };
+
+        if ((exophaseDump['games'] ?? 0) - oldExophaseGames.length < 50) {
+          print('running compare function');
+
+          //? Run another compute() function using the Map exophaseData to process games information.
+          //? This compute function will pull game data for up to 50 games at a time.
+          List<Map<String, dynamic>> newExophaseGames =
+              await compute(fetchExophaseGames, exophaseData);
+
+          //? Separates only the links from the new games into another list to be used as filter in filteredOldGamesList.
+          List newGamesLink = [];
+          for (var i = 0; i < newExophaseGames.length; i++) {
+            newGamesLink.add(newExophaseGames[i]['gameLink']);
+          }
+
+          //? Filters the old list saved in the database to return a new list where repeated game links will not be returned.
+          List filteredOldGamesList = oldExophaseGames
+              .where((element) => !newGamesLink.contains(element['gameLink']))
+              .toList();
+
+          //? Stores the new updated games and the old untouched games together in a single list.
+          List exophaseGames = newExophaseGames + filteredOldGamesList;
+
+          //? Save the new list into the database for future use.
+          settings.put('exophaseGames', exophaseGames);
+        } else {
+          //? Run another compute() function using the Map exophaseData to process games information.
+          //? This compute function will pull game data for up to 50 games at a time.
+          List exophaseGames = await compute(fetchExophaseGames, exophaseData);
+
+          for (int i = 1; (i * 50) < exophaseData['games']; i++) {
+            setState(() {
+              updateProgress =
+                  "${regionalText['home']['games']} ${i * 50}/${exophaseData['games']}";
+            });
+            //! Define a variable and make the main screen display how many games were fetched so far
+            dynamic extraGames = await (await ws.poster(
+                Uri.parse(
+                    'https://api.exophase.com/public/user/get_latest_games'),
+                body: {
+                  'env': 'psn',
+                  'playerid': exophaseDump['exophaseID'],
+                  'sort': '1',
+                  'start': '${i * 50}'
+                }))['renderedHtml'];
+
+            // print(extraGames);
+
+            exophaseData['position'] = i;
+            exophaseData['html'] = extraGames.toString();
+            List<Map<String, dynamic>> newData =
+                await compute(fetchExophaseGames, exophaseData);
+            exophaseGames.addAll(newData);
+          }
+
+          //? Once successful, save the retrived games in the database to avoid spamming network requests.
+          settings.put('exophaseGames', exophaseGames);
+        }
+      }
     }
+
     //? then, if it's enabled, it updates True Trophies and waits the result.
     if (settings.get("trueTrophies") == true) {
       setState(() {
         trueTrophiesDump = {'update': true};
+        updateProgress = regionalText['home']['updating'];
       });
       trueTrophiesDump = await trueTrophiesInfo(settings.get("psnID"));
       setState(() {
         trueTrophiesDump = settings.get("trueTrophiesDump");
       });
     }
+
     //? then, if it's enabled, it updates PSN100 and waits the result.
     if (settings.get("psn100") == true) {
       setState(() {
         psn100Dump = {'update': true};
+        updateProgress = regionalText['home']['updating'];
       });
       psn100Dump = await psn100Info(settings.get("psnID"));
       setState(() {
         psn100Dump = settings.get("psn100Dump");
       });
     }
-
-    isUpdating = false;
+    setState(() {
+      //? After it finishes updating every enabled card, allow the floating action button to reappear.
+      isUpdating = false;
+      updateProgress = regionalText['home']['updating'];
+    });
   }
 
   @override
@@ -2197,8 +2447,11 @@ class _MyHomePageState extends State<MyHomePage> {
                                 hoverColor: Colors.transparent,
                                 materialTapTargetSize:
                                     MaterialTapTargetSize.shrinkWrap,
-                                child: Image.network(
-                                  "https://raw.githubusercontent.com/hjnilsson/country-flags/master/png100px/br.png",
+                                child: CachedNetworkImage(
+                                  placeholder: (context, url) =>
+                                      loadingSelector(),
+                                  imageUrl:
+                                      "https://raw.githubusercontent.com/hjnilsson/country-flags/master/png100px/br.png",
                                   height: 50,
                                   width: 75,
                                 ),
@@ -2216,8 +2469,11 @@ class _MyHomePageState extends State<MyHomePage> {
                                 hoverColor: Colors.transparent,
                                 materialTapTargetSize:
                                     MaterialTapTargetSize.shrinkWrap,
-                                child: Image.network(
-                                  "https://raw.githubusercontent.com/hjnilsson/country-flags/master/png100px/us.png",
+                                child: CachedNetworkImage(
+                                  placeholder: (context, url) =>
+                                      loadingSelector(),
+                                  imageUrl:
+                                      "https://raw.githubusercontent.com/hjnilsson/country-flags/master/png100px/us.png",
                                   height: 50,
                                   width: 75,
                                 ),
@@ -2265,9 +2521,11 @@ class _MyHomePageState extends State<MyHomePage> {
                                   borderRadius:
                                       BorderRadius.all(Radius.circular(5)),
                                 ),
-                                child: Image.network(
-                                    "https://psnprofiles.com/favicon.ico",
-                                    scale: 2),
+                                child: CachedNetworkImage(
+                                    imageUrl:
+                                        "https://psnprofiles.com/favicon.ico",
+                                    height: 32,
+                                    width: 32),
                               ),
                               onTap: () {
                                 setState(() {
@@ -2294,9 +2552,7 @@ class _MyHomePageState extends State<MyHomePage> {
                                   borderRadius:
                                       BorderRadius.all(Radius.circular(5)),
                                 ),
-                                child: Image.network(
-                                    "https://psntl.com/favicon.ico",
-                                    scale: 0.5),
+                                child: Image.asset(img['psntl'], height: 32),
                               ),
                               onTap: () {
                                 setState(() {
@@ -2323,9 +2579,10 @@ class _MyHomePageState extends State<MyHomePage> {
                                   borderRadius:
                                       BorderRadius.all(Radius.circular(5)),
                                 ),
-                                child: Image.network(
-                                  "https://www.exophase.com/assets/zeal/_icons/favicon.ico",
-                                  scale: 4,
+                                child: CachedNetworkImage(
+                                  imageUrl:
+                                      "https://www.exophase.com/assets/zeal/_icons/favicon.ico",
+                                  height: 32,
                                 ),
                               ),
                               onTap: () {
@@ -2354,10 +2611,8 @@ class _MyHomePageState extends State<MyHomePage> {
                                   borderRadius:
                                       BorderRadius.all(Radius.circular(5)),
                                 ),
-                                child: Image.network(
-                                  "https://truetrophies.com/favicon.ico",
-                                  scale: 0.5,
-                                ),
+                                child: Image.asset(img['trueTrophies'],
+                                    height: 32),
                               ),
                               onTap: () {
                                 setState(() {
@@ -2921,9 +3176,10 @@ class _MyHomePageState extends State<MyHomePage> {
                                         children: [
                                           Padding(
                                             padding: const EdgeInsets.all(5.0),
-                                            child: Image.network(
-                                              "https://psnprofiles.com/favicon.ico",
-                                              scale: 2,
+                                            child: CachedNetworkImage(
+                                              imageUrl:
+                                                  "https://psnprofiles.com/favicon.ico",
+                                              height: 30,
                                             ),
                                           ),
                                           Padding(
@@ -2955,10 +3211,8 @@ class _MyHomePageState extends State<MyHomePage> {
                                             Padding(
                                               padding:
                                                   const EdgeInsets.all(5.0),
-                                              child: Image.network(
-                                                "https://psntl.com/favicon.ico",
-                                                scale: 0.5,
-                                              ),
+                                              child: Image.asset(img['psntl'],
+                                                  height: 30),
                                             ),
                                             Padding(
                                               padding:
@@ -2994,10 +3248,9 @@ class _MyHomePageState extends State<MyHomePage> {
                                         children: [
                                           Padding(
                                             padding: const EdgeInsets.all(5.0),
-                                            child: Image.network(
-                                              "https://truetrophies.com/favicon.ico",
-                                              scale: 0.5,
-                                            ),
+                                            child: Image.asset(
+                                                img['trueTrophies'],
+                                                height: 32),
                                           ),
                                           Padding(
                                             padding: const EdgeInsets.all(5.0),
@@ -3025,9 +3278,10 @@ class _MyHomePageState extends State<MyHomePage> {
                                         children: [
                                           Padding(
                                             padding: const EdgeInsets.all(5.0),
-                                            child: Image.network(
-                                              "https://www.exophase.com/assets/zeal/_icons/favicon.ico",
-                                              scale: 0.5,
+                                            child: CachedNetworkImage(
+                                              imageUrl:
+                                                  "https://www.exophase.com/assets/zeal/_icons/favicon.ico",
+                                              height: 30,
                                             ),
                                           ),
                                           Padding(
@@ -3093,7 +3347,7 @@ class _MyHomePageState extends State<MyHomePage> {
                                   //       children: [
                                   //         Padding(
                                   //           padding: const EdgeInsets.all(5.0),
-                                  //           child: Image.network(
+                                  //           child: CachedNetworkImage(imageUrl:
                                   //             "https://www.exophase.com/assets/zeal/_icons/favicon.ico",
                                   //             scale: 0.5,
                                   //           ),
@@ -3126,6 +3380,7 @@ class _MyHomePageState extends State<MyHomePage> {
                         // //! PSN Profiles card display
                         if (settings.get("psnp") != false)
                           Container(
+                            key: UniqueKey(),
                             margin: EdgeInsets.all(Platform.isWindows ? 15 : 5),
                             padding:
                                 EdgeInsets.all(Platform.isWindows ? 15 : 10),
@@ -3151,8 +3406,10 @@ class _MyHomePageState extends State<MyHomePage> {
                                             MainAxisAlignment.spaceBetween,
                                         children: [
                                           //? Avatar PSN Profiles
-                                          Image.network(
-                                            snapshot.data['avatar'] ??
+                                          CachedNetworkImage(
+                                            placeholder: (context, url) =>
+                                                loadingSelector(),
+                                            imageUrl: snapshot.data['avatar'] ??
                                                 "https://i.psnprofiles.com/avatars/m/Gfba90ec21.png",
                                             height:
                                                 Platform.isWindows ? 60 : 50,
@@ -3184,8 +3441,10 @@ class _MyHomePageState extends State<MyHomePage> {
                                                     ),
                                                     SizedBox(width: 5),
                                                     //? Country flag
-                                                    Image.network(
-                                                        "https://raw.githubusercontent.com/hjnilsson/country-flags/master/png100px/${snapshot.data['country']}.png",
+                                                    CachedNetworkImage(
+                                                        key: UniqueKey(),
+                                                        imageUrl:
+                                                            "https://raw.githubusercontent.com/hjnilsson/country-flags/master/png100px/${snapshot.data['country']}.png",
                                                         height: 20),
                                                   ]),
                                               //? Level, level progress and level icon
@@ -3203,10 +3462,11 @@ class _MyHomePageState extends State<MyHomePage> {
                                           InkWell(
                                             child: Tooltip(
                                               message: "PSN Profiles",
-                                              child: Image.network(
-                                                "https://psnprofiles.com/favicon.ico",
-                                                height: 25,
-                                              ),
+                                              child: CachedNetworkImage(
+                                                  imageUrl:
+                                                      "https://psnprofiles.com/favicon.ico",
+                                                  height: 25,
+                                                  width: 25),
                                             ),
                                             onTap: () async {
                                               String userProfile =
@@ -3490,7 +3750,15 @@ class _MyHomePageState extends State<MyHomePage> {
                                   );
                                 } //? Display loading circle while Future is being processed
                                 else {
-                                  return Center(child: loadingSelector());
+                                  return Center(
+                                    child: Column(
+                                      children: [
+                                        Text(updateProgress,
+                                            style: textSelection()),
+                                        loadingSelector(),
+                                      ],
+                                    ),
+                                  );
                                 }
                               },
                             ),
@@ -3498,6 +3766,7 @@ class _MyHomePageState extends State<MyHomePage> {
                         // ! PSN Trophy Leaders card display
                         if (settings.get("psntl") != false)
                           Container(
+                            key: UniqueKey(),
                             margin: EdgeInsets.all(Platform.isWindows ? 15 : 5),
                             padding:
                                 EdgeInsets.all(Platform.isWindows ? 15 : 10),
@@ -3528,8 +3797,11 @@ class _MyHomePageState extends State<MyHomePage> {
                                                 MainAxisAlignment.center,
                                             children: [
                                               //? PSNTL avatar
-                                              Image.network(
-                                                snapshot.data['avatar'] ??
+                                              CachedNetworkImage(
+                                                placeholder: (context, url) =>
+                                                    loadingSelector(),
+                                                imageUrl: snapshot
+                                                        .data['avatar'] ??
                                                     "https://i.psnprofiles.com/avatars/m/Gfba90ec21.png",
                                                 height: Platform.isWindows
                                                     ? 60
@@ -3571,8 +3843,10 @@ class _MyHomePageState extends State<MyHomePage> {
                                                     ),
                                                     SizedBox(width: 5),
                                                     //? Country flag
-                                                    Image.network(
-                                                        "https://raw.githubusercontent.com/hjnilsson/country-flags/master/png100px/${snapshot.data['country']}.png",
+                                                    CachedNetworkImage(
+                                                        key: UniqueKey(),
+                                                        imageUrl:
+                                                            "https://raw.githubusercontent.com/hjnilsson/country-flags/master/png100px/${snapshot.data['country']}.png",
                                                         height: 20),
                                                   ]),
                                               //? Level, level progress and level icon
@@ -3591,10 +3865,8 @@ class _MyHomePageState extends State<MyHomePage> {
                                           InkWell(
                                             child: Tooltip(
                                               message: 'PSN Trophy Leaders',
-                                              child: Image.network(
-                                                "https://psntl.com/favicon.ico",
-                                                scale: 0.7,
-                                              ),
+                                              child: Image.asset(img['psntl'],
+                                                  height: 30),
                                             ),
                                             onTap: () async {
                                               String userProfile =
@@ -3753,7 +4025,15 @@ class _MyHomePageState extends State<MyHomePage> {
                                 }
                                 //? Display loading circle while Future is being processed
                                 else {
-                                  return Center(child: loadingSelector());
+                                  return Center(
+                                    child: Column(
+                                      children: [
+                                        Text(updateProgress,
+                                            style: textSelection()),
+                                        loadingSelector(),
+                                      ],
+                                    ),
+                                  );
                                 }
                               },
                             ),
@@ -3761,6 +4041,7 @@ class _MyHomePageState extends State<MyHomePage> {
                         //! Exophase card display
                         if (settings.get("exophase") != false)
                           Container(
+                            key: UniqueKey(),
                             margin: EdgeInsets.all(Platform.isWindows ? 15 : 5),
                             padding:
                                 EdgeInsets.all(Platform.isWindows ? 15 : 10),
@@ -3773,7 +4054,9 @@ class _MyHomePageState extends State<MyHomePage> {
                               builder: (context, snapshot) {
                                 //? Display card info if all information is successfully fetched
                                 if (snapshot.data != null &&
-                                    snapshot.data['update'] != true) {
+                                    snapshot.data['update'] != true &&
+                                    updateProgress ==
+                                        regionalText['home']['updating']) {
                                   return InkWell(
                                     onTap: () => Navigator.push(
                                         context,
@@ -3797,8 +4080,11 @@ class _MyHomePageState extends State<MyHomePage> {
                                               mainAxisAlignment:
                                                   MainAxisAlignment.center,
                                               children: [
-                                                Image.network(
-                                                  snapshot.data['avatar'] ??
+                                                CachedNetworkImage(
+                                                  placeholder: (context, url) =>
+                                                      loadingSelector(),
+                                                  imageUrl: snapshot
+                                                          .data['avatar'] ??
                                                       "https://i.psnprofiles.com/avatars/m/Gfba90ec21.png",
                                                   height: Platform.isWindows
                                                       ? 60
@@ -3827,8 +4113,10 @@ class _MyHomePageState extends State<MyHomePage> {
                                                       ),
                                                       SizedBox(width: 5),
                                                       //? Country flag
-                                                      Image.network(
-                                                          "https://raw.githubusercontent.com/hjnilsson/country-flags/master/png100px/${snapshot.data['country']}.png",
+                                                      CachedNetworkImage(
+                                                          key: UniqueKey(),
+                                                          imageUrl:
+                                                              "https://raw.githubusercontent.com/hjnilsson/country-flags/master/png100px/${snapshot.data['country']}.png",
                                                           height: 20),
                                                     ]),
                                                 //? Level, level progress and level icon
@@ -3846,9 +4134,10 @@ class _MyHomePageState extends State<MyHomePage> {
                                             InkWell(
                                               child: Tooltip(
                                                 message: "Exophase",
-                                                child: Image.network(
-                                                  "https://www.exophase.com/assets/zeal/_icons/favicon.ico",
-                                                  scale: 4,
+                                                child: CachedNetworkImage(
+                                                  imageUrl:
+                                                      "https://www.exophase.com/assets/zeal/_icons/favicon.ico",
+                                                  height: 30,
                                                 ),
                                               ),
                                               onTap: () async {
@@ -4056,7 +4345,15 @@ class _MyHomePageState extends State<MyHomePage> {
                                   );
                                 } //? Display loading circle while Future is being processed
                                 else {
-                                  return Center(child: loadingSelector());
+                                  return Center(
+                                    child: Column(
+                                      children: [
+                                        Text(updateProgress,
+                                            style: textSelection()),
+                                        loadingSelector(),
+                                      ],
+                                    ),
+                                  );
                                 }
                               },
                             ),
@@ -4064,6 +4361,7 @@ class _MyHomePageState extends State<MyHomePage> {
                         //! True Trophies card display
                         if (settings.get("trueTrophies") != false)
                           Container(
+                            key: UniqueKey(),
                             margin: EdgeInsets.all(Platform.isWindows ? 15 : 5),
                             padding:
                                 EdgeInsets.all(Platform.isWindows ? 15 : 10),
@@ -4093,8 +4391,11 @@ class _MyHomePageState extends State<MyHomePage> {
                                             mainAxisAlignment:
                                                 MainAxisAlignment.center,
                                             children: [
-                                              Image.network(
-                                                snapshot.data['avatar'] ??
+                                              CachedNetworkImage(
+                                                placeholder: (context, url) =>
+                                                    loadingSelector(),
+                                                imageUrl: snapshot
+                                                        .data['avatar'] ??
                                                     "https://i.psnprofiles.com/avatars/m/Gfba90ec21.png",
                                                 height: Platform.isWindows
                                                     ? 60
@@ -4129,8 +4430,9 @@ class _MyHomePageState extends State<MyHomePage> {
                                                     if (snapshot
                                                             .data['country'] !=
                                                         null)
-                                                      Image.network(
-                                                          snapshot
+                                                      CachedNetworkImage(
+                                                          key: UniqueKey(),
+                                                          imageUrl: snapshot
                                                               .data['country'],
                                                           height: 20),
                                                   ]),
@@ -4149,10 +4451,9 @@ class _MyHomePageState extends State<MyHomePage> {
                                           InkWell(
                                             child: Tooltip(
                                               message: "True Trophies",
-                                              child: Image.network(
-                                                "https://truetrophies.com/favicon.ico",
-                                                scale: 0.5,
-                                              ),
+                                              child: Image.asset(
+                                                  img['trueTrophies'],
+                                                  height: 30),
                                             ),
                                             onTap: () async {
                                               String userProfile =
@@ -4207,8 +4508,9 @@ class _MyHomePageState extends State<MyHomePage> {
                                           Tooltip(
                                             message: "TrueScore",
                                             child: Row(children: [
-                                              Image.network(
-                                                  "https://www.truetrophies.com/images/badges/tt-emblem-mono.png",
+                                              CachedNetworkImage(
+                                                  imageUrl:
+                                                      "https://www.truetrophies.com/images/badges/tt-emblem-mono.png",
                                                   color: themeSelector[
                                                           "secondary"]
                                                       [settings.get("theme")],
@@ -4351,7 +4653,15 @@ class _MyHomePageState extends State<MyHomePage> {
                                   );
                                 } //? Display loading circle while Future is being processed
                                 else {
-                                  return Center(child: loadingSelector());
+                                  return Center(
+                                    child: Column(
+                                      children: [
+                                        Text(updateProgress,
+                                            style: textSelection()),
+                                        loadingSelector(),
+                                      ],
+                                    ),
+                                  );
                                 }
                               },
                             ),
@@ -4359,6 +4669,7 @@ class _MyHomePageState extends State<MyHomePage> {
                         //! PSN 100% card display
                         if (settings.get("psn100") != false)
                           Container(
+                            key: UniqueKey(),
                             margin: EdgeInsets.all(Platform.isWindows ? 15 : 5),
                             padding:
                                 EdgeInsets.all(Platform.isWindows ? 15 : 10),
@@ -4388,8 +4699,11 @@ class _MyHomePageState extends State<MyHomePage> {
                                             mainAxisAlignment:
                                                 MainAxisAlignment.center,
                                             children: [
-                                              Image.network(
-                                                snapshot.data['avatar'] ??
+                                              CachedNetworkImage(
+                                                placeholder: (context, url) =>
+                                                    loadingSelector(),
+                                                imageUrl: snapshot
+                                                        .data['avatar'] ??
                                                     "https://i.psnprofiles.com/avatars/m/Gfba90ec21.png",
                                                 height: Platform.isWindows
                                                     ? 60
@@ -4418,8 +4732,10 @@ class _MyHomePageState extends State<MyHomePage> {
                                                     ),
                                                     SizedBox(width: 5),
                                                     //? Country flag
-                                                    Image.network(
-                                                        "https://raw.githubusercontent.com/hjnilsson/country-flags/master/png100px/${snapshot.data['country']}.png",
+                                                    CachedNetworkImage(
+                                                        key: UniqueKey(),
+                                                        imageUrl:
+                                                            "https://raw.githubusercontent.com/hjnilsson/country-flags/master/png100px/${snapshot.data['country']}.png",
                                                         height: 20),
                                                   ]),
                                               //? Level, level progress and level icon
@@ -4646,7 +4962,15 @@ class _MyHomePageState extends State<MyHomePage> {
                                   );
                                 } //? Display loading circle while Future is being processed
                                 else {
-                                  return Center(child: loadingSelector());
+                                  return Center(
+                                    child: Column(
+                                      children: [
+                                        Text(updateProgress,
+                                            style: textSelection()),
+                                        loadingSelector(),
+                                      ],
+                                    ),
+                                  );
                                 }
                               },
                             ),
@@ -4735,8 +5059,11 @@ class _MyHomePageState extends State<MyHomePage> {
                             child: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                Image.network(
-                                  "https://raw.githubusercontent.com/hjnilsson/country-flags/master/png100px/${settings.get('language')}.png",
+                                CachedNetworkImage(
+                                  placeholder: (context, url) =>
+                                      loadingSelector(),
+                                  imageUrl:
+                                      "https://raw.githubusercontent.com/hjnilsson/country-flags/master/png100px/${settings.get('language')}.png",
                                   height: 15,
                                   width: 22.5,
                                 ),
@@ -4840,8 +5167,11 @@ class _MyHomePageState extends State<MyHomePage> {
                             child: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                Image.network(
-                                    "https://discord.com/assets/2c21aeda16de354ba5334551a883b481.png",
+                                CachedNetworkImage(
+                                    placeholder: (context, url) =>
+                                        loadingSelector(),
+                                    imageUrl:
+                                        "https://discord.com/assets/2c21aeda16de354ba5334551a883b481.png",
                                     height: 25),
                                 Text("Discord",
                                     style: textSelection(theme: "textDark")),

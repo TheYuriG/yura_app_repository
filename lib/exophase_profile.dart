@@ -1,4 +1,5 @@
 import 'dart:io' show Platform;
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 import 'multicolorcircle.dart';
 import 'main.dart';
@@ -19,7 +20,12 @@ class _ExophaseProfileState extends State<ExophaseProfile> {
   @override
   Widget build(BuildContext context) {
     Map exophaseDump = settings.get('exophaseDump');
-    Map exophaseGames = settings.get('exophaseGames');
+    List exophaseGamesList;
+    if (settings.get('exophaseGames') is Map) {
+      exophaseGamesList = settings.get('exophaseGames').values.toList();
+    } else {
+      exophaseGamesList = settings.get('exophaseGames');
+    }
 
     if (settings.get('exophaseSettings') != null) {
       settings.put('gameSettings', settings.get('exophaseSettings'));
@@ -45,8 +51,8 @@ class _ExophaseProfileState extends State<ExophaseProfile> {
           'sorting': "latest",
         };
       }
+
       //? This variable will briefly store the data previously fetched and sort it if necessary.
-      List exophaseGamesList = exophaseGames.values.toList();
 
       //? Last played sorting in reverse manner (older games before newer games).
       if (gameSettings['sorting'] == "firstPlayed") {
@@ -189,9 +195,18 @@ class _ExophaseProfileState extends State<ExophaseProfile> {
                     ),
                     //? Spacing to separate the text/platforms/points from the image
                     //? Game image
-                    Image.network(
-                      exophaseGamesList[i]['gameImage'],
-                      scale: 0.4,
+                    Container(
+                      width: Platform.isWindows
+                          ? 260
+                          : (MediaQuery.of(context).size.width - 20) / 2,
+                      child: FittedBox(
+                        fit: BoxFit.fill,
+                        child: CachedNetworkImage(
+                          filterQuality: FilterQuality.high,
+                          placeholder: (context, url) => loadingSelector(),
+                          imageUrl: exophaseGamesList[i]['gameImage'],
+                        ),
+                      ),
                     ),
                     //? Spacing to separate the text/platforms/points from the image
                     Row(
@@ -238,9 +253,12 @@ class _ExophaseProfileState extends State<ExophaseProfile> {
                                 children: [
                                   //? Exophase's favicon used as EXP icon since the EXP icon is
                                   //? way too transparent to be used consistently
-                                  Image.network(
-                                      "https://www.exophase.com/assets/zeal/_icons/favicon.ico",
-                                      scale: Platform.isWindows ? 8 : 10),
+                                  CachedNetworkImage(
+                                      placeholder: (context, url) =>
+                                          loadingSelector(),
+                                      imageUrl:
+                                          "https://www.exophase.com/assets/zeal/_icons/favicon.ico",
+                                      height: 20),
                                   SizedBox(width: Platform.isWindows ? 5 : 3),
                                   //? EXP earned from this game
                                   Text(
@@ -362,7 +380,7 @@ class _ExophaseProfileState extends State<ExophaseProfile> {
                               colors: [
                                 Colors.blue[400],
                                 Colors.yellow[600],
-                                Colors.grey[300],
+                                Colors.grey[400],
                                 Colors.brown
                               ],
                               unfilled: Colors.grey.withOpacity(0.4),
@@ -412,9 +430,16 @@ class _ExophaseProfileState extends State<ExophaseProfile> {
                   ClipRRect(
                     borderRadius:
                         BorderRadius.horizontal(left: Radius.circular(7)),
-                    child: Image.network(
-                      exophaseGamesList[i]['gameImage'],
-                      scale: 0.8,
+                    child: Container(
+                      height: Platform.isWindows ? 95 : 58,
+                      child: FittedBox(
+                        fit: BoxFit.fill,
+                        child: CachedNetworkImage(
+                          filterQuality: FilterQuality.high,
+                          placeholder: (context, url) => loadingSelector(),
+                          imageUrl: exophaseGamesList[i]['gameImage'],
+                        ),
+                      ),
                     ),
                   ),
                   //? Spacing to separate the text/platforms/points from the image
@@ -478,9 +503,12 @@ class _ExophaseProfileState extends State<ExophaseProfile> {
                                     children: [
                                       //? Exophase's favicon used as EXP icon since the EXP icon is
                                       //? way too transparent to be used consistently
-                                      Image.network(
-                                          "https://www.exophase.com/assets/zeal/_icons/favicon.ico",
-                                          scale: Platform.isWindows ? 8 : 10),
+                                      CachedNetworkImage(
+                                          placeholder: (context, url) =>
+                                              loadingSelector(),
+                                          imageUrl:
+                                              "https://www.exophase.com/assets/zeal/_icons/favicon.ico",
+                                          height: 15),
                                       SizedBox(
                                           width: Platform.isWindows ? 5 : 3),
                                       //? EXP earned from this game
@@ -680,7 +708,7 @@ class _ExophaseProfileState extends State<ExophaseProfile> {
                                   if (exophaseGamesList[i]['gameSilver'] !=
                                       null)
                                     Container(
-                                      color: Colors.grey[300],
+                                      color: Colors.grey[400],
                                       height: Platform.isWindows ? 10 : 5,
                                       width: (Platform.isWindows ? 2 : 1.2) *
                                           trophyPointsDistribution(
@@ -767,9 +795,18 @@ class _ExophaseProfileState extends State<ExophaseProfile> {
                     ClipRRect(
                       borderRadius:
                           BorderRadius.vertical(top: Radius.circular(7)),
-                      child: Image.network(
-                        exophaseGamesList[i]['gameImage'],
-                        scale: 0.8,
+                      child: Container(
+                        width: Platform.isWindows
+                            ? 260
+                            : (MediaQuery.of(context).size.width - 20) / 2,
+                        child: FittedBox(
+                          fit: BoxFit.fill,
+                          child: CachedNetworkImage(
+                            filterQuality: FilterQuality.high,
+                            placeholder: (context, url) => loadingSelector(),
+                            imageUrl: exophaseGamesList[i]['gameImage'],
+                          ),
+                        ),
                       ),
                     ),
                     Row(
@@ -834,7 +871,7 @@ class _ExophaseProfileState extends State<ExophaseProfile> {
                             //? Silver points distribution
                             if (exophaseGamesList[i]['gameSilver'] != null)
                               Container(
-                                color: Colors.grey[300],
+                                color: Colors.grey[400],
                                 height: Platform.isWindows ? 10 : 7,
                                 width: trophyPointsDistribution(
                                     exophaseGamesList[i]['gamePlatinum'] ?? 0,
@@ -906,8 +943,9 @@ class _ExophaseProfileState extends State<ExophaseProfile> {
                     // Expanded(child: SizedBox()),
                     Row(
                       children: [
-                        Image.network(
-                          exophaseDump['avatar'] ??
+                        CachedNetworkImage(
+                          placeholder: (context, url) => loadingSelector(),
+                          imageUrl: exophaseDump['avatar'] ??
                               "https://i.psnprofiles.com/avatars/m/Gfba90ec21.png",
                           height: 30,
                         ),
@@ -919,8 +957,10 @@ class _ExophaseProfileState extends State<ExophaseProfile> {
                           ),
                         ),
                         //? Country flag
-                        Image.network(
-                            "https://raw.githubusercontent.com/hjnilsson/country-flags/master/png100px/${exophaseDump['country']}.png",
+                        CachedNetworkImage(
+                            placeholder: (context, url) => loadingSelector(),
+                            imageUrl:
+                                "https://raw.githubusercontent.com/hjnilsson/country-flags/master/png100px/${exophaseDump['country']}.png",
                             height: 20),
                       ],
                     ),
@@ -1104,10 +1144,11 @@ class _ExophaseProfileState extends State<ExophaseProfile> {
                 //? This expanded shows an image if there is no trophy data to display
                 if (exophaseGamesWidgetList.length == 0)
                   Expanded(
-                    child: Image.network(
-                      "https://pbs.twimg.com/media/EYfO0SfXkAEA3iY.jpg",
-                      scale: 0.2,
-                    ),
+                    child: CachedNetworkImage(
+                        placeholder: (context, url) => loadingSelector(),
+                        imageUrl:
+                            "https://pbs.twimg.com/media/EYfO0SfXkAEA3iY.jpg",
+                        width: MediaQuery.of(context).size.width),
                   ),
                 //? This Wrap contains the bottom bar buttons to change settings and display options.
                 Container(
@@ -1537,210 +1578,387 @@ class _ExophaseProfileState extends State<ExophaseProfile> {
                         ),
                       //? This Row lets you filter in and out specific types of games.
                       if (gameSettings['sort'] == true)
-                        Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Center(
-                              child: Text(
-                                regionalText['games']['sort'],
-                                style: textSelection(theme: "textDark"),
-                                textAlign: TextAlign.center,
-                              ),
-                            ),
-                            Row(
-                              mainAxisSize: MainAxisSize.max,
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        Container(
+                          child: SingleChildScrollView(
+                            scrollDirection: Axis.horizontal,
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
                               children: [
-                                SizedBox(width: 5),
-                                //? Sort games by first played
-                                Tooltip(
-                                  message: regionalText['games']['lastPlayed'],
-                                  child: InkWell(
-                                    child: Text(
-                                      "📆↑",
-                                      style: textSelection(theme: "textDark"),
-                                      textAlign: TextAlign.center,
-                                    ),
-                                    onTap: () {
-                                      setState(() {
-                                        gameSettings['sorting'] = "lastPlayed";
-                                      });
-                                    },
+                                Center(
+                                  child: Text(
+                                    regionalText['games']['sort'],
+                                    style: textSelection(theme: "textDark"),
+                                    textAlign: TextAlign.center,
                                   ),
                                 ),
-                                SizedBox(width: 5),
-                                //? Sort games by Last played
-                                Tooltip(
-                                  message: regionalText['games']['firstPlayed'],
-                                  child: InkWell(
-                                    child: Text(
-                                      "📆↓",
-                                      style: textSelection(theme: "textDark"),
-                                      textAlign: TextAlign.center,
+                                Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    SizedBox(width: 3),
+                                    //? Sort games by Last played
+                                    Tooltip(
+                                      message: regionalText['games']
+                                          ['lastPlayed'],
+                                      child: Container(
+                                        decoration: BoxDecoration(
+                                          //? To paint the border, we check the value of the settings for this website is true.
+                                          //? If it's false or null (never set), we will paint red.
+                                          border: Border.all(
+                                              color: gameSettings['sorting'] ==
+                                                      'lastPlayed'
+                                                  ? Colors.green
+                                                  : Colors.transparent,
+                                              width:
+                                                  Platform.isWindows ? 5 : 2),
+                                          borderRadius: BorderRadius.all(
+                                              Radius.circular(5)),
+                                        ),
+                                        child: InkWell(
+                                          child: Text(
+                                            "📆⬆️",
+                                            style: textSelection(
+                                                theme: "textDark"),
+                                            textAlign: TextAlign.center,
+                                          ),
+                                          onTap: () {
+                                            setState(() {
+                                              gameSettings['sorting'] =
+                                                  "lastPlayed";
+                                            });
+                                          },
+                                        ),
+                                      ),
                                     ),
-                                    onTap: () {
-                                      setState(() {
-                                        gameSettings['sorting'] = "firstPlayed";
-                                      });
-                                    },
-                                  ),
-                                ),
-                                SizedBox(width: 5),
-                                //? Sort games by ascending completion
-                                Tooltip(
-                                  message: regionalText['games']
-                                      ['completionAscending'],
-                                  child: InkWell(
-                                    child: Text(
-                                      "%↑",
-                                      style: textSelection(theme: "textDark"),
-                                      textAlign: TextAlign.center,
+                                    SizedBox(width: 3),
+                                    //? Sort games by First played
+                                    Tooltip(
+                                      message: regionalText['games']
+                                          ['firstPlayed'],
+                                      child: Container(
+                                        decoration: BoxDecoration(
+                                          //? To paint the border, we check the value of the settings for this website is true.
+                                          //? If it's false or null (never set), we will paint red.
+                                          border: Border.all(
+                                              color: gameSettings['sorting'] ==
+                                                      'firstPlayed'
+                                                  ? Colors.green
+                                                  : Colors.transparent,
+                                              width:
+                                                  Platform.isWindows ? 5 : 2),
+                                          borderRadius: BorderRadius.all(
+                                              Radius.circular(5)),
+                                        ),
+                                        child: InkWell(
+                                          child: Text(
+                                            "📆⬇️",
+                                            style: textSelection(
+                                                theme: "textDark"),
+                                            textAlign: TextAlign.center,
+                                          ),
+                                          onTap: () {
+                                            setState(() {
+                                              gameSettings['sorting'] =
+                                                  "firstPlayed";
+                                            });
+                                          },
+                                        ),
+                                      ),
                                     ),
-                                    onTap: () {
-                                      setState(() {
-                                        gameSettings['sorting'] =
-                                            "completionAscending";
-                                      });
-                                    },
-                                  ),
-                                ),
-                                SizedBox(width: 5),
-                                //? Sort games by descending completion
-                                Tooltip(
-                                  message: regionalText['games']
-                                      ['completionDescending'],
-                                  child: InkWell(
-                                    child: Text(
-                                      "%↓",
-                                      style: textSelection(theme: "textDark"),
-                                      textAlign: TextAlign.center,
+                                    SizedBox(width: 3),
+                                    //? Sort games by ascending completion
+                                    Tooltip(
+                                      message: regionalText['games']
+                                          ['completionAscending'],
+                                      child: InkWell(
+                                        child: Container(
+                                          decoration: BoxDecoration(
+                                            //? To paint the border, we check the value of the settings for this website is true.
+                                            //? If it's false or null (never set), we will paint red.
+                                            border: Border.all(
+                                                color: gameSettings[
+                                                            'sorting'] ==
+                                                        'completionAscending'
+                                                    ? Colors.green
+                                                    : Colors.transparent,
+                                                width:
+                                                    Platform.isWindows ? 5 : 2),
+                                            borderRadius: BorderRadius.all(
+                                                Radius.circular(5)),
+                                          ),
+                                          child: Text(
+                                            "%⬆️",
+                                            style: textSelection(
+                                                theme: "textDark"),
+                                            textAlign: TextAlign.center,
+                                          ),
+                                        ),
+                                        onTap: () {
+                                          setState(() {
+                                            gameSettings['sorting'] =
+                                                "completionAscending";
+                                          });
+                                        },
+                                      ),
                                     ),
-                                    onTap: () {
-                                      setState(() {
-                                        gameSettings['sorting'] =
-                                            "completionDescending";
-                                      });
-                                    },
-                                  ),
-                                ),
-                                SizedBox(width: 5),
-                                //? Sort games by ascending Alphabetical (A to Z)
-                                Tooltip(
-                                  message: regionalText['games']
-                                      ['alphabeticalAscending'],
-                                  child: InkWell(
-                                    child: Text(
-                                      "Az↓",
-                                      style: textSelection(theme: "textDark"),
-                                      textAlign: TextAlign.center,
+                                    SizedBox(width: 3),
+                                    //? Sort games by descending completion
+                                    Tooltip(
+                                      message: regionalText['games']
+                                          ['completionDescending'],
+                                      child: InkWell(
+                                        child: Container(
+                                          decoration: BoxDecoration(
+                                            //? To paint the border, we check the value of the settings for this website is true.
+                                            //? If it's false or null (never set), we will paint red.
+                                            border: Border.all(
+                                                color: gameSettings[
+                                                            'sorting'] ==
+                                                        'completionDescending'
+                                                    ? Colors.green
+                                                    : Colors.transparent,
+                                                width:
+                                                    Platform.isWindows ? 5 : 2),
+                                            borderRadius: BorderRadius.all(
+                                                Radius.circular(5)),
+                                          ),
+                                          child: Text(
+                                            "%⬇️",
+                                            style: textSelection(
+                                                theme: "textDark"),
+                                            textAlign: TextAlign.center,
+                                          ),
+                                        ),
+                                        onTap: () {
+                                          setState(() {
+                                            gameSettings['sorting'] =
+                                                "completionDescending";
+                                          });
+                                        },
+                                      ),
                                     ),
-                                    onTap: () {
-                                      setState(() {
-                                        gameSettings['sorting'] =
-                                            "alphabeticalAscending";
-                                      });
-                                    },
-                                  ),
-                                ),
-                                SizedBox(width: 5),
-                                //? Sort games by descending Alphabetical (Z to A)
-                                Tooltip(
-                                  message: regionalText['games']
-                                      ['alphabeticalDescending'],
-                                  child: InkWell(
-                                    child: Text(
-                                      "aZ↑",
-                                      style: textSelection(theme: "textDark"),
-                                      textAlign: TextAlign.center,
+                                    SizedBox(width: 3),
+                                    //? Sort games by ascending Alphabetical (A to Z)
+                                    Tooltip(
+                                      message: regionalText['games']
+                                          ['alphabeticalAscending'],
+                                      child: InkWell(
+                                        child: Container(
+                                          decoration: BoxDecoration(
+                                            //? To paint the border, we check the value of the settings for this website is true.
+                                            //? If it's false or null (never set), we will paint red.
+                                            border: Border.all(
+                                                color: gameSettings[
+                                                            'sorting'] ==
+                                                        'alphabeticalAscending'
+                                                    ? Colors.green
+                                                    : Colors.transparent,
+                                                width:
+                                                    Platform.isWindows ? 5 : 2),
+                                            borderRadius: BorderRadius.all(
+                                                Radius.circular(5)),
+                                          ),
+                                          child: Text(
+                                            "Abc⬇️",
+                                            style: textSelection(
+                                                theme: "textDark"),
+                                            textAlign: TextAlign.center,
+                                          ),
+                                        ),
+                                        onTap: () {
+                                          setState(() {
+                                            gameSettings['sorting'] =
+                                                "alphabeticalAscending";
+                                          });
+                                        },
+                                      ),
                                     ),
-                                    onTap: () {
-                                      setState(() {
-                                        gameSettings['sorting'] =
-                                            "alphabeticalDescending";
-                                      });
-                                    },
-                                  ),
-                                ),
-                                SizedBox(width: 5),
-                                //? Sort games by ascending EXP
-                                Tooltip(
-                                  message: regionalText['games']
-                                      ['expAscending'],
-                                  child: InkWell(
-                                    child: Text(
-                                      "EXP↑",
-                                      style: textSelection(theme: "textDark"),
-                                      textAlign: TextAlign.center,
+                                    SizedBox(width: 3),
+                                    //? Sort games by descending Alphabetical (Z to A)
+                                    Tooltip(
+                                      message: regionalText['games']
+                                          ['alphabeticalDescending'],
+                                      child: InkWell(
+                                        child: Container(
+                                          decoration: BoxDecoration(
+                                            //? To paint the border, we check the value of the settings for this website is true.
+                                            //? If it's false or null (never set), we will paint red.
+                                            border: Border.all(
+                                                color: gameSettings[
+                                                            'sorting'] ==
+                                                        'alphabeticalDescending'
+                                                    ? Colors.green
+                                                    : Colors.transparent,
+                                                width:
+                                                    Platform.isWindows ? 5 : 2),
+                                            borderRadius: BorderRadius.all(
+                                                Radius.circular(5)),
+                                          ),
+                                          child: Text(
+                                            "Zyx⬆️",
+                                            style: textSelection(
+                                                theme: "textDark"),
+                                            textAlign: TextAlign.center,
+                                          ),
+                                        ),
+                                        onTap: () {
+                                          setState(() {
+                                            gameSettings['sorting'] =
+                                                "alphabeticalDescending";
+                                          });
+                                        },
+                                      ),
                                     ),
-                                    onTap: () {
-                                      setState(() {
-                                        gameSettings['sorting'] =
-                                            "expAscending";
-                                      });
-                                    },
-                                  ),
-                                ),
-                                SizedBox(width: 5),
-                                //? Sort games by descending EXP
-                                Tooltip(
-                                  message: regionalText['games']
-                                      ['expDescending'],
-                                  child: InkWell(
-                                    child: Text(
-                                      "EXP↓",
-                                      style: textSelection(theme: "textDark"),
-                                      textAlign: TextAlign.center,
+                                    SizedBox(width: 3),
+                                    //? Sort games by ascending EXP
+                                    Tooltip(
+                                      message: regionalText['games']
+                                          ['expAscending'],
+                                      child: InkWell(
+                                        child: Container(
+                                          decoration: BoxDecoration(
+                                            //? To paint the border, we check the value of the settings for this website is true.
+                                            //? If it's false or null (never set), we will paint red.
+                                            border: Border.all(
+                                                color:
+                                                    gameSettings['sorting'] ==
+                                                            'expAscending'
+                                                        ? Colors.green
+                                                        : Colors.transparent,
+                                                width:
+                                                    Platform.isWindows ? 5 : 2),
+                                            borderRadius: BorderRadius.all(
+                                                Radius.circular(5)),
+                                          ),
+                                          child: Text(
+                                            "EXP⬆️",
+                                            style: textSelection(
+                                                theme: "textDark"),
+                                            textAlign: TextAlign.center,
+                                          ),
+                                        ),
+                                        onTap: () {
+                                          setState(() {
+                                            gameSettings['sorting'] =
+                                                "expAscending";
+                                          });
+                                        },
+                                      ),
                                     ),
-                                    onTap: () {
-                                      setState(() {
-                                        gameSettings['sorting'] =
-                                            "expDescending";
-                                      });
-                                    },
-                                  ),
-                                ),
-                                SizedBox(width: 5),
-                                //? Sort games by ascending time tracked (when avaiable)
-                                Tooltip(
-                                  message: regionalText['games']
-                                      ['timeAscending'],
-                                  child: InkWell(
-                                    child: Text(
-                                      "⏰↑",
-                                      style: textSelection(theme: "textDark"),
-                                      textAlign: TextAlign.center,
+                                    SizedBox(width: 3),
+                                    //? Sort games by descending EXP
+                                    Tooltip(
+                                      message: regionalText['games']
+                                          ['expDescending'],
+                                      child: InkWell(
+                                        child: Container(
+                                          decoration: BoxDecoration(
+                                            //? To paint the border, we check the value of the settings for this website is true.
+                                            //? If it's false or null (never set), we will paint red.
+                                            border: Border.all(
+                                                color:
+                                                    gameSettings['sorting'] ==
+                                                            'expDescending'
+                                                        ? Colors.green
+                                                        : Colors.transparent,
+                                                width:
+                                                    Platform.isWindows ? 5 : 2),
+                                            borderRadius: BorderRadius.all(
+                                                Radius.circular(5)),
+                                          ),
+                                          child: Text(
+                                            "EXP⬇️",
+                                            style: textSelection(
+                                                theme: "textDark"),
+                                            textAlign: TextAlign.center,
+                                          ),
+                                        ),
+                                        onTap: () {
+                                          setState(() {
+                                            gameSettings['sorting'] =
+                                                "expDescending";
+                                          });
+                                        },
+                                      ),
                                     ),
-                                    onTap: () {
-                                      setState(() {
-                                        gameSettings['sorting'] =
-                                            "timeAscending";
-                                      });
-                                    },
-                                  ),
-                                ),
-                                SizedBox(width: 5),
-                                //? Sort games by descending time tracked (when avaiable)
-                                Tooltip(
-                                  message: regionalText['games']
-                                      ['timeDescending'],
-                                  child: InkWell(
-                                    child: Text(
-                                      "⏰↓",
-                                      style: textSelection(theme: "textDark"),
-                                      textAlign: TextAlign.center,
+                                    SizedBox(width: 3),
+                                    //? Sort games by ascending time tracked (when avaiable)
+                                    Tooltip(
+                                      message: regionalText['games']
+                                          ['timeAscending'],
+                                      child: InkWell(
+                                        child: Container(
+                                          decoration: BoxDecoration(
+                                            //? To paint the border, we check the value of the settings for this website is true.
+                                            //? If it's false or null (never set), we will paint red.
+                                            border: Border.all(
+                                                color:
+                                                    gameSettings['sorting'] ==
+                                                            'timeAscending'
+                                                        ? Colors.green
+                                                        : Colors.transparent,
+                                                width:
+                                                    Platform.isWindows ? 5 : 2),
+                                            borderRadius: BorderRadius.all(
+                                                Radius.circular(5)),
+                                          ),
+                                          child: Text(
+                                            "⏰⬆️",
+                                            style: textSelection(
+                                                theme: "textDark"),
+                                            textAlign: TextAlign.center,
+                                          ),
+                                        ),
+                                        onTap: () {
+                                          setState(() {
+                                            gameSettings['sorting'] =
+                                                "timeAscending";
+                                          });
+                                        },
+                                      ),
                                     ),
-                                    onTap: () {
-                                      setState(() {
-                                        gameSettings['sorting'] =
-                                            "timeDescending";
-                                      });
-                                    },
-                                  ),
+                                    SizedBox(width: 3),
+                                    //? Sort games by descending time tracked (when avaiable)
+                                    Tooltip(
+                                      message: regionalText['games']
+                                          ['timeDescending'],
+                                      child: InkWell(
+                                        child: Container(
+                                          decoration: BoxDecoration(
+                                            //? To paint the border, we check the value of the settings for this website is true.
+                                            //? If it's false or null (never set), we will paint red.
+                                            border: Border.all(
+                                                color:
+                                                    gameSettings['sorting'] ==
+                                                            'timeDescending'
+                                                        ? Colors.green
+                                                        : Colors.transparent,
+                                                width:
+                                                    Platform.isWindows ? 5 : 2),
+                                            borderRadius: BorderRadius.all(
+                                                Radius.circular(5)),
+                                          ),
+                                          child: Text(
+                                            "⏰⬇️",
+                                            style: textSelection(
+                                                theme: "textDark"),
+                                            textAlign: TextAlign.center,
+                                          ),
+                                        ),
+                                        onTap: () {
+                                          setState(() {
+                                            gameSettings['sorting'] =
+                                                "timeDescending";
+                                          });
+                                        },
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ],
                             ),
-                          ],
+                          ),
                         ),
+                      //? This row contains the sorting menu and the layout menu.
                       Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [

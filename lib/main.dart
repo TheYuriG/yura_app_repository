@@ -4,13 +4,10 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:hive/hive.dart';
 import 'package:hive_flutter/hive_flutter.dart';
-// import 'package:html/parser.dart';
-import 'package:intl/intl.dart';
+import 'package:time_machine/time_machine.dart';
 import 'dart:async';
 import 'package:url_launcher/url_launcher.dart';
 import 'exophase_profile.dart';
-// ignore: unused_import
-// import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:web_scraper/web_scraper.dart';
 
@@ -57,6 +54,18 @@ Box settings = Hive.box("settings");
 
 //? WebScraper instance for all websites.
 final WebScraper ws = WebScraper();
+
+BoxDecoration backgroundDecoration() {
+  return BoxDecoration(
+    gradient: LinearGradient(
+        begin: Alignment.topRight,
+        end: Alignment.bottomRight,
+        colors: [
+          themeSelector["primary"][settings.get("theme")],
+          themeSelector["secondary"][settings.get("theme")],
+        ]),
+  );
+}
 
 //? This is a general loader function to use the compute functions later.
 Future<String> parsePage(String page) async {
@@ -726,13 +735,19 @@ List<Map<String, dynamic>> fetchExophaseGames(Map<String, dynamic> data) {
           .forEach((element) {
         first50['gameTime'] = element.trim();
       });
-      //? Retrieves game ID
-      ws
-          .getElementAttribute(
-              '#app > div > div.row.user-container > div.col-12.col-xl-9 > ul > li:nth-child(${(i * 2) - 1})',
-              'data-gameid')
-          .forEach((element) {
-        first50['gameID'] = element.trim();
+      //? Retrieves game ID, game Last Played timestamp and game Completed timestamp (when avaiable)
+      ws.getElement(
+          '#app > div > div.row.user-container > div.col-12.col-xl-9 > ul > li:nth-child(${(i * 2) - 1}).col-12.game-visible.psn',
+          [
+            'data-gameid',
+            'data-lastplayed',
+            'data-completion'
+          ]).forEach((element) {
+        first50['gameID'] = element['attributes']['data-gameid'].trim();
+        first50['gameLastPlayedTimestamp'] =
+            int.parse(element['attributes']['data-lastplayed'].trim());
+        first50['gameCompletionTimestamp'] =
+            int.parse(element['attributes']['data-completion'].trim());
       });
       //? Retrieves game trophy ratio (trophies earned / trophy total)
       ws
@@ -852,11 +867,17 @@ List<Map<String, dynamic>> fetchExophaseGames(Map<String, dynamic> data) {
           .forEach((element) {
         next50['gameTime'] = element.trim();
       });
-      //? Retrieves game ID
-      ws
-          .getElementAttribute('li:nth-child(${(i * 2) + 1})', 'data-gameid')
-          .forEach((element) {
-        next50['gameID'] = element.trim();
+      //? Retrieves game ID, game Last Played timestamp and game Completed timestamp (when avaiable)
+      ws.getElement('li:nth-child(${(i * 2) + 1}).col-12.game-visible.psn', [
+        'data-gameid',
+        'data-lastplayed',
+        'data-completion'
+      ]).forEach((element) {
+        next50['gameID'] = element['attributes']['data-gameid'].trim();
+        next50['gameLastPlayedTimestamp'] =
+            int.parse(element['attributes']['data-lastplayed'].trim());
+        next50['gameCompletionTimestamp'] =
+            int.parse(element['attributes']['data-completion'].trim());
       });
       //? Retrieves game trophy ratio (trophies earned / trophy total)
       ws
@@ -1283,9 +1304,9 @@ Map<String, Map<String, String>> regionSelect() {
   //? to wait for updated translation. Yura will use english text on those new features while a language patch isn't done
   Map<String, Map<String, String>> avaiableText = {
     "home": {
-      "appBar": "Welcome to Yura - A Playstation-based trophy app!",
-      "inputID": "Please, provide your PSN ID:",
-      "IDhere": "PSN ID goes here...",
+      "appBar": "Yura: A Playstation-based trophy app!",
+      "inputTitle": "Please, provide your PSN ID:",
+      "inputText": "PSN ID goes here...",
       "updating": "Requesting profile info...",
       "settings": "Settings",
       'errorPSN':
@@ -1310,6 +1331,7 @@ Map<String, Map<String, String>> regionSelect() {
       "translation": "Translation",
       "version": "Version",
       "privacy": "Privacy",
+      'undo': "Revert all settings"
     },
     "settings": {
       "trophyPicker": "Change trophy type display:",
@@ -1330,7 +1352,7 @@ Map<String, Map<String, String>> regionSelect() {
       "blue": "Deep Ocean",
       "black": "Before Dawn",
       "white": "Dog Vision",
-      "boredom": "Death by Boredom",
+      "boredom": "True Royalty",
       "removePSN": "Remove the saved PSN ID?",
     },
     "trophy": {
@@ -1358,7 +1380,10 @@ Map<String, Map<String, String>> regionSelect() {
           "There is no privacy agreement for you to accept. Yura doesn't take or store any of your information outside of your device, everything you see on screen is exclusively processed locally and belongs exclusively to you.\n\nIf, in the future, some sort of feature gets added that requires PSN account information (a leaderboard, per example), you will be prompted if you wish to participate before any of your PSN data gets sent (personal information like device model, age, location, etc., will NEVER be sent!).\n\nEnjoy your total anonymity!"
     },
     "games": {
+      "search": "Search:",
+      "searchText": "Game",
       "filter": "Filter games:",
+      'filteredGames': 'Number of games displayed (and filtered)',
       "incomplete": "Remove incomplete games",
       "complete": "Remove complete games",
       "backlog": "Remove backlog (0%) games",
@@ -1381,21 +1406,52 @@ Map<String, Map<String, String>> regionSelect() {
       'completionDescending': "Descending completion",
       'alphabeticalAscending': "Alphabetically",
       'alphabeticalDescending': "Alphabetically (reversed)",
-      "filterAndSort": "Filter and Sort:",
-      "viewType": "Change display:",
+      "options": "Options:",
+      "display": "Change display:",
       "grid": "Enable grid view",
       "block": "Enable block view",
       "list": "Enable list view",
     },
+    "trophies": {
+      'trophies': 'Trophies:',
+      "filter": "Filter trophies:",
+      "options": "Options:",
+      'settings': 'Settings:',
+      "sort": "Sort trophies by:",
+      "display": "Change view type:",
+      // filters
+      "earned": "Display earned trophies",
+      "unearned": "Display unearned trophies",
+      "showHidden": "Display hidden trophies information",
+      "urOnly": "Display only ultra rare trophies (5-%)",
+      "noCommons": "Display common trophies (50+%)",
+      // settings
+      "hidden": "Display hidden trophies",
+      "description": "Display trophies description",
+      "DLCseparator": "Display DLC separate from main game trophies",
+      "localization":
+          "Enable/Disable localization for trophies (translated trophy names/description and translated timestamps)",
+      // sorting
+      "original": "Sort trophies by their original PSN order",
+      "value": "Sort trophies by their PSN points",
+      "alphabetical": "Sort trophies by alphabetical order",
+      "rarity": "Sort trophies by their rarity",
+      "exp": "Sort trophies by their exp",
+      "earnedTimestamp": "Sort trophies by earned date",
+      // display
+      "grid": "Enable grid view",
+      "minimal": "Enable minimalist view",
+      "list": "Enable list view",
+    },
     //? Since this is just the version number, this doesn't get translated regardless of chosen language.
-    "version": {"version": "v0.16.39"}
+    "version": {"version": "v0.20.53"}
   };
   //? This changes language to Brazilian Portuguese
   if (settings.get("language") == "br") {
     avaiableText["home"] = {
-      "appBar": "Bem vindo a Yura - Um aplicativo para troféus Playstation!",
-      "inputID": "Por favor, informe sua ID PSN:",
-      "IDhere": "ID da PSN vai aqui...",
+      "appBar": "Yura: Um aplicativo para troféus Playstation!",
+      "inputTitle": "Por favor, informe sua ID PSN:",
+      "inputText": "ID da PSN vai aqui...",
       "updating": "Pedindo informação do perfil...",
       "settings": "Configurações",
       'errorPSN':
@@ -1420,6 +1476,7 @@ Map<String, Map<String, String>> regionSelect() {
       "translation": "Tradução",
       "version": "Versão",
       "privacy": "Privacidade",
+      'undo': "Desfazer todas as mudanças"
     };
     avaiableText["settings"] = {
       "trophyPicker": "Mude a aparência dos troféus:",
@@ -1440,7 +1497,7 @@ Map<String, Map<String, String>> regionSelect() {
       "blue": "Oceano Profundo",
       "black": "Antes do Amanhecer",
       "white": "Visão de Cão",
-      "boredom": "Morte por Tédio",
+      "boredom": "Verdadeira Realeza",
       "removePSN": "Remover a ID PSN salva?",
     };
     avaiableText["trophy"] = {
@@ -1468,7 +1525,10 @@ Map<String, Map<String, String>> regionSelect() {
           "Não existe um contrato de privacidade que você precisa aceitar. Yura não envia ou guarda sua informação fora do seu aparelho, tudo o que você vê na tela é processado localmente e pertence exclusivamente a você.\n\nSe no futuro forem adicionadas funções que precisam de informações de jogadores (um placar de líderes, por exemplo), você será perguntado se deseja participar antes que qualquer informação da sua conta PSN seja enviada (informação pessoal como modelo do aparelho, idade, localização, etc., NUNCA será enviada!).\n\nAproveite sua anonimidade!"
     };
     avaiableText["games"] = {
+      "search": "Pesquisa:",
+      "searchText": "Jogo",
       "filter": "Filtre jogos:",
+      'filteredGames': 'Quantidade de jogos mostrados (e filtrados)',
       "incomplete": "Remova jogos incompletos",
       "complete": "Remova jogos concluídos",
       "backlog": "Remova jogos sem troféus obtidos (0%)",
@@ -1491,10 +1551,41 @@ Map<String, Map<String, String>> regionSelect() {
       'completionDescending': "Taxa de conclusão decrescente",
       'alphabeticalAscending': "Alfabeticamente",
       'alphabeticalDescending': "Alfabeticamente (inverso)",
-      "filterAndSort": "Filtre e Organize:",
-      "viewType": "Mude a aparência:",
+      "options": "Opções:",
+      "display": "Mude a aparência:",
       "grid": "Ativar visualização por tela",
       "block": "Ativar visualização por blocos",
+      "list": "Ativar visualização por lista",
+    };
+    avaiableText["trophies"] = {
+      'trophies': 'Troféus:',
+      "filter": "Filtre troféus:",
+      "sort": "Rearranjar troféus:",
+      "options": "Opções:",
+      'settings': 'Configurações:',
+      "display": "Mude a aparência:",
+      // filters
+      "earned": "Mostrar troféus conquistados",
+      "unearned": "Mostrar troféus pendentes",
+      "showHidden": "Mostrar informação de troféus secretos",
+      "urOnly": "Mostrar apenas troféus ultra raros (5-%)",
+      "noCommons": "Mostrar troféus comuns (50+%)",
+      // settings
+      "hidden": "Mostrar troféus secretos",
+      "description": "Mostrar descrições",
+      "DLCseparator": "Separar troféus DLC de troféus jogo base",
+      "localization":
+          "Ativar/desativar localização para troféus (data de troféu, troféus e descrições traduzidas)",
+      // sorting
+      "original": "Organizar troféus por sua ordem original PSN",
+      "value": "Organizar troféus por sua pontuação PSN",
+      "alphabetical": "Organizar troféus alfabeticamente",
+      "rarity": "Organizar troféus por sua raridade",
+      "exp": "Organizar troféus por sua experiência",
+      "earnedTimestamp": "Organizar troféus por data de conquista",
+      // display
+      "grid": "Ativar visualização por tela",
+      "minimal": "Ativar visualização minimalista",
       "list": "Ativar visualização por lista",
     };
   }
@@ -1507,19 +1598,19 @@ Map<String, Map<String, String>> regionalText = regionSelect();
 final Map<String, Map<String, Color>> themeSelector = {
   "primary": {
     "pink": Colors.pink[300],
-    "black": Colors.black87,
     "blue": Colors.blueAccent[700],
-    "orange": Colors.orange[900],
-    "white": Colors.blueGrey[900],
-    "boredom": Colors.blue
+    "orange": Colors.orange[800],
+    "boredom": Colors.deepPurple[900],
+    "white": Colors.black87,
+    "black": Colors.blueGrey[900],
   },
   "secondary": {
     "pink": Colors.pink[50],
-    "black": Colors.indigo[100],
-    "blue": Colors.blue[100],
-    "orange": Colors.red[50],
+    "blue": Colors.lightBlue[200],
+    "boredom": Colors.purple[100],
+    "orange": Colors.amber[50],
     "white": Colors.white,
-    "boredom": Colors.white
+    "black": Colors.indigo[100],
   }
 };
 
@@ -1529,21 +1620,11 @@ TextStyle textSelection({String theme, String family}) {
   if (family == null) {
     family = settings.get('font') ?? 'Oxygen';
   }
-  if (theme == "textLightBold") {
-    //? Option for light bold text
-    return TextStyle(
-        color: themeSelector["secondary"][settings.get("theme")],
-        fontSize: Platform.isWindows ? 20 : 16,
-        fontWeight: FontWeight.bold,
-        decoration: TextDecoration.none,
-        fontFamily: family);
-    // LobsterTwo ok, Arvo ok, Archivo ok, LibreBaskerville ok, Oxygen ok
-    // Amita bad, BigShouldersStencilText ???, Elsie bad, Gaegu ???, Goldman ok, Kalam bad, LifeSavers bad, TurretRoad ok
-  } else if (theme == "textDark") {
+  if (theme == "textDark") {
     //? Option for dark thin text
     return TextStyle(
         color: themeSelector["primary"][settings.get("theme")],
-        fontSize: Platform.isWindows ? 16 : 12,
+        fontSize: Platform.isWindows ? 16 : 10,
         fontWeight: FontWeight.normal,
         decoration: TextDecoration.none,
         fontFamily: family);
@@ -1551,7 +1632,15 @@ TextStyle textSelection({String theme, String family}) {
 //? Option for dark bold text
     return TextStyle(
         color: themeSelector["primary"][settings.get("theme")],
-        fontSize: Platform.isWindows ? 20 : 16,
+        fontSize: Platform.isWindows ? 20 : 12,
+        fontWeight: FontWeight.bold,
+        decoration: TextDecoration.none,
+        fontFamily: family);
+  } else if (theme == "textLightBold") {
+    //? Option for light bold text
+    return TextStyle(
+        color: themeSelector["secondary"][settings.get("theme")],
+        fontSize: Platform.isWindows ? 20 : 12,
         fontWeight: FontWeight.bold,
         decoration: TextDecoration.none,
         fontFamily: family);
@@ -1559,7 +1648,7 @@ TextStyle textSelection({String theme, String family}) {
     //? Option for light thin text
     return TextStyle(
         color: themeSelector["secondary"][settings.get("theme")],
-        fontSize: Platform.isWindows ? 16 : 12,
+        fontSize: Platform.isWindows ? 16 : 10,
         fontWeight: FontWeight.normal,
         decoration: TextDecoration.none,
         fontFamily: family);
@@ -1938,7 +2027,7 @@ Row levelType(int plat, int gold, int silver, int bronze) {
 //? This function takes your earned trophies and returns a List of how much
 //? each trophy type is giving you of your points total. It can also be used to
 //? calculate points distribution when totals are below 100%, like an incomplete trophy list.
-trophyPointsDistribution(
+List<double> trophyPointsDistribution(
     int plat, int gold, int silver, int bronze, int total) {
   int p = plat * (settings.get('levelType') == "new" ? 20 : 12);
   int g = gold * 6;
@@ -2118,16 +2207,11 @@ class _MyHomePageState extends State<MyHomePage> {
         settings.put('psnID', exophaseDump['psnID']);
       }
 
-      //? Save all the received information from the compute() function in the database.
-      //? This is done to avoid sending repeated data requests unnecessarily.
-      settings.put('exophaseDump', exophaseDump);
-
       //? Checks if the user has new trophies and games, otherwise skip updating game stats.
       //? This is done to save on resources/improve waiting times.
       if (oldGames != 0 &&
           oldGames == exophaseDump['games'] &&
           oldTrophies == exophaseDump['total']) {
-        print("skipping games update due to same stats");
       } else {
         List oldExophaseGames;
         if (settings.get('exophaseGames') is Map) {
@@ -2158,12 +2242,13 @@ class _MyHomePageState extends State<MyHomePage> {
           }
 
           //? Filters the old list saved in the database to return a new list where repeated game links will not be returned.
-          List filteredOldGamesList = oldExophaseGames
+          List<Map<String, dynamic>> filteredOldGamesList = oldExophaseGames
               .where((element) => !newGamesLink.contains(element['gameLink']))
               .toList();
 
           //? Stores the new updated games and the old untouched games together in a single list.
-          List exophaseGames = newExophaseGames + filteredOldGamesList;
+          List<Map<String, dynamic>> exophaseGames =
+              newExophaseGames + filteredOldGamesList;
 
           //? Save the new list into the database for future use.
           settings.put('exophaseGames', exophaseGames);
@@ -2196,6 +2281,10 @@ class _MyHomePageState extends State<MyHomePage> {
                 await compute(fetchExophaseGames, exophaseData);
             exophaseGames.addAll(newData);
           }
+
+          //? Save all the received information from the compute() function in the database.
+          //? This is done to avoid sending repeated data requests unnecessarily.
+          settings.put('exophaseDump', exophaseDump);
 
           //? Once successful, save the retrived games in the database to avoid spamming network requests.
           settings.put('exophaseGames', exophaseGames);
@@ -2318,20 +2407,19 @@ class _MyHomePageState extends State<MyHomePage> {
                       ),
                     ),
                   ),
-                  Padding(
-                    padding: EdgeInsets.symmetric(
-                        horizontal: Platform.isWindows ? 10.0 : 5.0),
-                    child: Wrap(
-                      children: [
-                        //? Option to use Yura's trophies as default display
-                        if (settings.get('trophyType') != "yura")
-                          Tooltip(
+                  Wrap(
+                    children: [
+                      //? Option to use Yura's trophies as default display
+                      if (settings.get('trophyType') != "yura")
+                        Padding(
+                          padding: EdgeInsets.symmetric(
+                              horizontal: Platform.isWindows ? 10.0 : 5.0),
+                          child: Tooltip(
                             message: regionalText["settings"]["yuraTrophies"],
                             child: InkWell(
                                 child: Image.asset(
                                   img['platFill'],
-                                  height: 50,
-                                  width: 75,
+                                  height: Platform.isWindows ? 50 : 30,
                                 ),
                                 onTap: () => {
                                       setState(() {
@@ -2339,15 +2427,18 @@ class _MyHomePageState extends State<MyHomePage> {
                                       }),
                                     }),
                           ),
-                        //? Option to use old PSN trophies as default display
-                        if (settings.get('trophyType') != "old")
-                          Tooltip(
+                        ),
+                      //? Option to use old PSN trophies as default display
+                      if (settings.get('trophyType') != "old")
+                        Padding(
+                          padding: EdgeInsets.symmetric(
+                              horizontal: Platform.isWindows ? 10.0 : 5.0),
+                          child: Tooltip(
                             message: regionalText["settings"]["oldTrophies"],
                             child: InkWell(
                                 child: Image.asset(
                                   img['oldPlatinum'],
-                                  height: 50,
-                                  width: 75,
+                                  height: Platform.isWindows ? 50 : 30,
                                 ),
                                 onTap: () => {
                                       setState(() {
@@ -2355,15 +2446,18 @@ class _MyHomePageState extends State<MyHomePage> {
                                       }),
                                     }),
                           ),
-                        //? Option to use new PSN trophies as default display
-                        if (settings.get('trophyType') != "new")
-                          Tooltip(
+                        ),
+                      //? Option to use new PSN trophies as default display
+                      if (settings.get('trophyType') != "new")
+                        Padding(
+                          padding: EdgeInsets.symmetric(
+                              horizontal: Platform.isWindows ? 10.0 : 5.0),
+                          child: Tooltip(
                             message: regionalText["settings"]["newTrophies"],
                             child: InkWell(
                                 child: Image.asset(
                                   img['newPlatinum'],
-                                  height: 50,
-                                  width: 75,
+                                  height: Platform.isWindows ? 50 : 30,
                                 ),
                                 onTap: () => {
                                       setState(() {
@@ -2371,8 +2465,8 @@ class _MyHomePageState extends State<MyHomePage> {
                                       }),
                                     }),
                           ),
-                      ],
-                    ),
+                        ),
+                    ],
                   ),
                   //? Allows the user to change the leveling system used
                   //? User cannot change to the currently chosen system
@@ -2398,8 +2492,7 @@ class _MyHomePageState extends State<MyHomePage> {
                             child: InkWell(
                                 child: Image.asset(
                                   img['platinumlevel'],
-                                  height: 50,
-                                  width: 75,
+                                  height: Platform.isWindows ? 50 : 30,
                                 ),
                                 onTap: () => {
                                       setState(() {
@@ -2412,7 +2505,9 @@ class _MyHomePageState extends State<MyHomePage> {
                           Tooltip(
                             message: regionalText["settings"]["oldLevel"],
                             child: InkWell(
-                                child: Image.asset(img['oldLevel'], scale: 0.7),
+                                child: Container(
+                                    height: Platform.isWindows ? 50 : 30,
+                                    child: Image.asset(img['oldLevel'])),
                                 onTap: () => {
                                       setState(() {
                                         settings.put('levelType', 'old');
@@ -2448,12 +2543,9 @@ class _MyHomePageState extends State<MyHomePage> {
                                 materialTapTargetSize:
                                     MaterialTapTargetSize.shrinkWrap,
                                 child: CachedNetworkImage(
-                                  placeholder: (context, url) =>
-                                      loadingSelector(),
                                   imageUrl:
                                       "https://raw.githubusercontent.com/hjnilsson/country-flags/master/png100px/br.png",
-                                  height: 50,
-                                  width: 75,
+                                  height: Platform.isWindows ? 50 : 30,
                                 ),
                                 onPressed: () {
                                   setState(() {
@@ -2470,12 +2562,9 @@ class _MyHomePageState extends State<MyHomePage> {
                                 materialTapTargetSize:
                                     MaterialTapTargetSize.shrinkWrap,
                                 child: CachedNetworkImage(
-                                  placeholder: (context, url) =>
-                                      loadingSelector(),
                                   imageUrl:
                                       "https://raw.githubusercontent.com/hjnilsson/country-flags/master/png100px/us.png",
-                                  height: 50,
-                                  width: 75,
+                                  height: Platform.isWindows ? 50 : 30,
                                 ),
                                 onPressed: () {
                                   setState(() {
@@ -2504,7 +2593,7 @@ class _MyHomePageState extends State<MyHomePage> {
                     padding: EdgeInsets.symmetric(
                         horizontal: Platform.isWindows ? 10.0 : 5.0),
                     child: Wrap(
-                      spacing: 5,
+                      spacing: 3,
                       children: [
                         Tooltip(
                           message: 'PSN Profiles',
@@ -2524,8 +2613,8 @@ class _MyHomePageState extends State<MyHomePage> {
                                 child: CachedNetworkImage(
                                     imageUrl:
                                         "https://psnprofiles.com/favicon.ico",
-                                    height: 32,
-                                    width: 32),
+                                    width: Platform.isWindows ? 50 : 25,
+                                    height: Platform.isWindows ? 50 : 25),
                               ),
                               onTap: () {
                                 setState(() {
@@ -2552,7 +2641,9 @@ class _MyHomePageState extends State<MyHomePage> {
                                   borderRadius:
                                       BorderRadius.all(Radius.circular(5)),
                                 ),
-                                child: Image.asset(img['psntl'], height: 32),
+                                child: Image.asset(img['psntl'],
+                                    width: Platform.isWindows ? 50 : 25,
+                                    height: Platform.isWindows ? 50 : 25),
                               ),
                               onTap: () {
                                 setState(() {
@@ -2580,10 +2671,10 @@ class _MyHomePageState extends State<MyHomePage> {
                                       BorderRadius.all(Radius.circular(5)),
                                 ),
                                 child: CachedNetworkImage(
-                                  imageUrl:
-                                      "https://www.exophase.com/assets/zeal/_icons/favicon.ico",
-                                  height: 32,
-                                ),
+                                    imageUrl:
+                                        "https://www.exophase.com/assets/dist/images/icon-exo-large-55px.2af9b014.png",
+                                    width: Platform.isWindows ? 50 : 25,
+                                    height: Platform.isWindows ? 50 : 25),
                               ),
                               onTap: () {
                                 setState(() {
@@ -2612,7 +2703,8 @@ class _MyHomePageState extends State<MyHomePage> {
                                       BorderRadius.all(Radius.circular(5)),
                                 ),
                                 child: Image.asset(img['trueTrophies'],
-                                    height: 32),
+                                    width: Platform.isWindows ? 50 : 25,
+                                    height: Platform.isWindows ? 50 : 25),
                               ),
                               onTap: () {
                                 setState(() {
@@ -2639,10 +2731,9 @@ class _MyHomePageState extends State<MyHomePage> {
                                   borderRadius:
                                       BorderRadius.all(Radius.circular(5)),
                                 ),
-                                child: Image.asset(
-                                  img['psn100'],
-                                  height: 32,
-                                ),
+                                child: Image.asset(img['psn100'],
+                                    width: Platform.isWindows ? 50 : 25,
+                                    height: Platform.isWindows ? 50 : 25),
                               ),
                               onTap: () {
                                 setState(() {
@@ -2678,9 +2769,8 @@ class _MyHomePageState extends State<MyHomePage> {
                             "fadingCircle")
                           InkWell(
                               child: Container(
-                                  padding: EdgeInsets.all(0),
-                                  width: 60,
-                                  height: 60,
+                                  width: 50,
+                                  height: 50,
                                   child:
                                       loadingSelector("fadingCircle", "dark")),
                               onTap: () {
@@ -2694,9 +2784,8 @@ class _MyHomePageState extends State<MyHomePage> {
                         if (settings.get('loading') != "fadingFour")
                           InkWell(
                               child: Container(
-                                  padding: EdgeInsets.all(0),
-                                  width: 60,
-                                  height: 60,
+                                  width: 50,
+                                  height: 50,
                                   child: loadingSelector("fadingFour", "dark")),
                               onTap: () {
                                 setState(() {
@@ -2708,9 +2797,8 @@ class _MyHomePageState extends State<MyHomePage> {
                         if (settings.get('loading') != "fadingGrid")
                           InkWell(
                               child: Container(
-                                  padding: EdgeInsets.all(0),
-                                  width: 60,
-                                  height: 60,
+                                  width: 50,
+                                  height: 50,
                                   child: loadingSelector("fadingGrid", "dark")),
                               onTap: () {
                                 setState(() {
@@ -2722,9 +2810,8 @@ class _MyHomePageState extends State<MyHomePage> {
                         if (settings.get('loading') != "cubeGrid")
                           InkWell(
                               child: Container(
-                                  padding: EdgeInsets.all(0),
-                                  width: 60,
-                                  height: 60,
+                                  width: 50,
+                                  height: 50,
                                   child: loadingSelector("cubeGrid", "dark")),
                               onTap: () {
                                 setState(() {
@@ -2736,9 +2823,8 @@ class _MyHomePageState extends State<MyHomePage> {
                         if (settings.get('loading') != "pouringHourglass")
                           InkWell(
                               child: Container(
-                                  padding: EdgeInsets.all(0),
-                                  width: 60,
-                                  height: 60,
+                                  width: 50,
+                                  height: 50,
                                   child: loadingSelector(
                                       "pouringHourglass", "dark")),
                               onTap: () {
@@ -2768,7 +2854,7 @@ class _MyHomePageState extends State<MyHomePage> {
                     padding: EdgeInsets.symmetric(
                         horizontal: Platform.isWindows ? 10.0 : 5.0),
                     child: Wrap(
-                      spacing: 10,
+                      spacing: 5,
                       runSpacing: 10,
                       children: [
                         if ((settings.get('theme') ?? "pink") != "pink")
@@ -2779,13 +2865,13 @@ class _MyHomePageState extends State<MyHomePage> {
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
                                     Container(
-                                      width: 25,
-                                      height: 50,
+                                      width: Platform.isWindows ? 25 : 15,
+                                      height: Platform.isWindows ? 50 : 30,
                                       color: themeSelector["primary"]["pink"],
                                     ),
                                     Container(
-                                      width: 25,
-                                      height: 50,
+                                      width: Platform.isWindows ? 25 : 15,
+                                      height: Platform.isWindows ? 50 : 30,
                                       color: themeSelector["secondary"]["pink"],
                                     )
                                   ],
@@ -2804,13 +2890,13 @@ class _MyHomePageState extends State<MyHomePage> {
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
                                     Container(
-                                      width: 25,
-                                      height: 50,
+                                      width: Platform.isWindows ? 25 : 15,
+                                      height: Platform.isWindows ? 50 : 30,
                                       color: themeSelector["primary"]["orange"],
                                     ),
                                     Container(
-                                      width: 25,
-                                      height: 50,
+                                      width: Platform.isWindows ? 25 : 15,
+                                      height: Platform.isWindows ? 50 : 30,
                                       color: themeSelector["secondary"]
                                           ["orange"],
                                     )
@@ -2830,13 +2916,13 @@ class _MyHomePageState extends State<MyHomePage> {
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
                                     Container(
-                                      width: 25,
-                                      height: 50,
+                                      width: Platform.isWindows ? 25 : 15,
+                                      height: Platform.isWindows ? 50 : 30,
                                       color: themeSelector["primary"]["blue"],
                                     ),
                                     Container(
-                                      width: 25,
-                                      height: 50,
+                                      width: Platform.isWindows ? 25 : 15,
+                                      height: Platform.isWindows ? 50 : 30,
                                       color: themeSelector["secondary"]["blue"],
                                     )
                                   ],
@@ -2844,6 +2930,33 @@ class _MyHomePageState extends State<MyHomePage> {
                                 onTap: () => {
                                       setState(() {
                                         settings.put('theme', 'blue');
+                                      }),
+                                    }),
+                          ),
+                        if (settings.get('theme') != "boredom")
+                          Tooltip(
+                            message: regionalText["settings"]["boredom"],
+                            child: InkWell(
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Container(
+                                      width: Platform.isWindows ? 25 : 15,
+                                      height: Platform.isWindows ? 50 : 30,
+                                      color: themeSelector["primary"]
+                                          ["boredom"],
+                                    ),
+                                    Container(
+                                      width: Platform.isWindows ? 25 : 15,
+                                      height: Platform.isWindows ? 50 : 30,
+                                      color: themeSelector["secondary"]
+                                          ["boredom"],
+                                    )
+                                  ],
+                                ),
+                                onTap: () => {
+                                      setState(() {
+                                        settings.put('theme', 'boredom');
                                       }),
                                     }),
                           ),
@@ -2855,13 +2968,13 @@ class _MyHomePageState extends State<MyHomePage> {
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
                                     Container(
-                                      width: 25,
-                                      height: 50,
+                                      width: Platform.isWindows ? 25 : 15,
+                                      height: Platform.isWindows ? 50 : 30,
                                       color: themeSelector["primary"]["black"],
                                     ),
                                     Container(
-                                      width: 25,
-                                      height: 50,
+                                      width: Platform.isWindows ? 25 : 15,
+                                      height: Platform.isWindows ? 50 : 30,
                                       color: themeSelector["secondary"]
                                           ["black"],
                                     )
@@ -2881,13 +2994,13 @@ class _MyHomePageState extends State<MyHomePage> {
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
                                     Container(
-                                      width: 25,
-                                      height: 50,
+                                      width: Platform.isWindows ? 25 : 15,
+                                      height: Platform.isWindows ? 50 : 30,
                                       color: themeSelector["primary"]["white"],
                                     ),
                                     Container(
-                                      width: 25,
-                                      height: 50,
+                                      width: Platform.isWindows ? 25 : 15,
+                                      height: Platform.isWindows ? 50 : 30,
                                       color: themeSelector["secondary"]
                                           ["white"],
                                     )
@@ -2896,33 +3009,6 @@ class _MyHomePageState extends State<MyHomePage> {
                                 onTap: () => {
                                       setState(() {
                                         settings.put('theme', 'white');
-                                      }),
-                                    }),
-                          ),
-                        if (settings.get('theme') != "boredom")
-                          Tooltip(
-                            message: regionalText["settings"]["boredom"],
-                            child: InkWell(
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Container(
-                                      width: 25,
-                                      height: 50,
-                                      color: themeSelector["primary"]
-                                          ["boredom"],
-                                    ),
-                                    Container(
-                                      width: 25,
-                                      height: 50,
-                                      color: themeSelector["secondary"]
-                                          ["boredom"],
-                                    )
-                                  ],
-                                ),
-                                onTap: () => {
-                                      setState(() {
-                                        settings.put('theme', 'boredom');
                                       }),
                                     }),
                           ),
@@ -3097,9 +3183,7 @@ class _MyHomePageState extends State<MyHomePage> {
                         });
                       },
                     ),
-                  SizedBox(
-                    height: 20,
-                  ),
+                  SizedBox(height: 20),
                 ],
               ),
             ),
@@ -3107,12 +3191,7 @@ class _MyHomePageState extends State<MyHomePage> {
         ),
         body: Center(
           child: Container(
-            decoration: BoxDecoration(
-                gradient: RadialGradient(colors: [
-              themeSelector["primary"][settings.get("theme")].withOpacity(0.4),
-              themeSelector["secondary"][settings.get("theme")]
-                  .withOpacity(0.4),
-            ])),
+            decoration: backgroundDecoration(),
             width: MediaQuery.of(context).size.width,
             child: Column(
               //? Max main axis size to use the entire avaiable soace left from the appBar and Safe Area.
@@ -3131,13 +3210,14 @@ class _MyHomePageState extends State<MyHomePage> {
                         child: Column(
                           children: [
                             //? If user doesn't have a set PSN ID, display the fields for them to input one.
-                            Text(regionalText['home']['inputID'],
+                            Text(regionalText['home']['inputTitle'],
                                 style: textSelection(theme: "textDarkBold")),
                             Container(
                               width: MediaQuery.of(context).size.width * 0.5,
                               child: TextFormField(
                                   decoration: InputDecoration(
-                                      hintText: regionalText['home']['IDhere'],
+                                      hintText: regionalText['home']
+                                          ['inputText'],
                                       hintStyle:
                                           textSelection(theme: "textDark")),
                                   textAlign: TextAlign.center,
@@ -3145,7 +3225,6 @@ class _MyHomePageState extends State<MyHomePage> {
                                   autofocus: Platform.isWindows ? true : false,
                                   onChanged: (text) {
                                     debounce.run(() {
-                                      //! Perform search here later to validate the ID provided
                                       setState(() {
                                         settings.put('psnID', text);
                                         updateProfiles();
@@ -3469,6 +3548,8 @@ class _MyHomePageState extends State<MyHomePage> {
                                                   width: 25),
                                             ),
                                             onTap: () async {
+                                              // print(
+                                              //     await getTemporaryDirectory());
                                               String userProfile =
                                                   "https://psnprofiles.com/${snapshot.data['psnID']}";
                                               if (await canLaunch(
@@ -5060,8 +5141,6 @@ class _MyHomePageState extends State<MyHomePage> {
                               mainAxisSize: MainAxisSize.min,
                               children: [
                                 CachedNetworkImage(
-                                  placeholder: (context, url) =>
-                                      loadingSelector(),
                                   imageUrl:
                                       "https://raw.githubusercontent.com/hjnilsson/country-flags/master/png100px/${settings.get('language')}.png",
                                   height: 15,
@@ -5168,8 +5247,6 @@ class _MyHomePageState extends State<MyHomePage> {
                               mainAxisSize: MainAxisSize.min,
                               children: [
                                 CachedNetworkImage(
-                                    placeholder: (context, url) =>
-                                        loadingSelector(),
                                     imageUrl:
                                         "https://discord.com/assets/2c21aeda16de354ba5334551a883b481.png",
                                     height: 25),
@@ -5232,13 +5309,15 @@ class _MyHomePageState extends State<MyHomePage> {
                                         ws.getElement(
                                             'div:nth-child(1) > div > div > div.release-header > p > relative-time',
                                             ['datetime']).forEach((element) {
-                                          Intl.systemLocale =
-                                              Platform.localeName;
                                           try {
-                                            update['when'] = DateFormat.yMMMd()
-                                                .format(DateTime.parse(
+                                            var moment = Instant.dateTime(
+                                                DateTime.parse(
                                                     element['attributes']
                                                         ['datetime']));
+                                            update['when'] = moment
+                                                .inLocalZone()
+                                                .toString(
+                                                    'dddd, MMMM d, yyyy - H:mm');
                                           } catch (e) {
                                             update['when'] = element['title'];
                                           }
@@ -5440,9 +5519,9 @@ class _MyHomePageState extends State<MyHomePage> {
                                                                             settings.get("theme")],
                                                                         onPressed:
                                                                             () async {
-                                                                          final String updateLink = Platform.isWindows
-                                                                              ? snapshot.data['updateLinkDesktop']
-                                                                              : snapshot.data['updateLinkAndroid'];
+                                                                          final String
+                                                                              updateLink =
+                                                                              "https://trello.com/b/EK0M1sl8/yuras-development-board";
                                                                           if (await canLaunch(
                                                                               updateLink)) {
                                                                             launch(updateLink);

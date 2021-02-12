@@ -31,7 +31,7 @@ class MultiColorCircle extends StatefulWidget {
     assert(
         percentages.length > 0, '"percentages" requires a valid List<double>');
     assert(percentages.reduce((value, element) => value + element) <= 100.1,
-        'Sum of all percentages cannot exceed 100%!');
+        'Sum of all percentages cannot exceed 100.1%!');
   }
 
   @override

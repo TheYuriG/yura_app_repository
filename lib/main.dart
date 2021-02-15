@@ -61,7 +61,10 @@ BoxDecoration backgroundDecoration() {
         begin: Alignment.topRight,
         end: Alignment.bottomRight,
         colors: [
-          themeSelector["primary"][settings.get("theme")],
+          if (settings.get('psnID') != null)
+            themeSelector["primary"][settings.get("theme")],
+          if (settings.get('psnID') == null)
+            themeSelector["secondary"][settings.get("theme")],
           themeSelector["secondary"][settings.get("theme")],
         ]),
   );
@@ -1443,8 +1446,30 @@ Map<String, Map<String, String>> regionSelect() {
       "minimal": "Enable minimalist view",
       "list": "Enable list view",
     },
+    "log": {
+      'earnedTitle': "PSNID's Trophy Log",
+      'unearnedTitle': "PSNID's Trophy Advisor",
+      "searchText": "Trophy",
+      "type": "Sort by type:",
+      "rarity": "Sort by rarity:",
+      "platform": "Sort by platform",
+      'prestige': "Display Prestige (1-%) trophies",
+      'ultraRare': "Display Ultra Rare (1% - 5%) trophies",
+      'veryRare': 'Display Very Rare (5% - 10%) trophies',
+      'rare': "Display Rare (10% - 25%) trophies",
+      'uncommon': 'Display Uncommon (25% - 50%) trophies',
+      'common': 'Display Common (50+%) trophies',
+      'platinum': "Display Platinum trophies",
+      'gold': 'Display Gold trophies',
+      'silver': 'Display Silver trophies',
+      'bronze': 'Display Bronze trophies',
+      'psv': 'Display Vita trophies',
+      'ps3': 'Display PS3 trophies',
+      'ps4': 'Display PS4 trophies',
+      'ps5': 'Display PS5 trophies'
+    },
     //? Since this is just the version number, this doesn't get translated regardless of chosen language.
-    "version": {"version": "v0.20.53"}
+    "version": {"version": "v0.27.65"}
   };
   //? This changes language to Brazilian Portuguese
   if (settings.get("language") == "br") {
@@ -1587,6 +1612,28 @@ Map<String, Map<String, String>> regionSelect() {
       "grid": "Ativar visualização por tela",
       "minimal": "Ativar visualização minimalista",
       "list": "Ativar visualização por lista",
+    };
+    avaiableText["log"] = {
+      'earnedTitle': "Registro de troféus obtidos de PSNID",
+      'unearnedTitle': "Registro de troféus pendentes de PSNID",
+      "searchText": "Troféu",
+      "type": "Organizar por tipo:",
+      "rarity": "Organizar por raridade:",
+      "platform": "Organizar por plataforma:",
+      'prestige': "Mostrar troféus Prestigiosos (1-%)",
+      'ultraRare': "Mostrar troféus Ultra Raros (1% - 5%)",
+      'veryRare': 'Mostrar troféus Muito Raros (5% - 10%)',
+      'rare': "Mostrar troféus Raros (10% - 25%)",
+      'uncommon': 'Mostrar troféus Incomuns (25% - 50%)',
+      'common': 'Mostrar troféus Comuns (50+%)',
+      'platinum': "Mostrar troféus de Platina",
+      'gold': 'Mostrar troféus de Ouro',
+      'silver': 'Mostrar troféus de Prata',
+      'bronze': 'Mostrar troféus de Bronze',
+      'psv': 'Mostrar troféus de Vita',
+      'ps3': 'Mostrar troféus de PS3',
+      'ps4': 'Mostrar troféus de PS4',
+      'ps5': 'Mostrar troféus de PS5'
     };
   }
   return avaiableText;
@@ -2506,8 +2553,12 @@ class _MyHomePageState extends State<MyHomePage> {
                             message: regionalText["settings"]["oldLevel"],
                             child: InkWell(
                                 child: Container(
-                                    height: Platform.isWindows ? 50 : 30,
-                                    child: Image.asset(img['oldLevel'])),
+                                  height: Platform.isWindows ? 50 : 30,
+                                  child: Image.asset(
+                                    img['oldLevel'],
+                                    scale: 0.5,
+                                  ),
+                                ),
                                 onTap: () => {
                                       setState(() {
                                         settings.put('levelType', 'old');
@@ -2613,8 +2664,8 @@ class _MyHomePageState extends State<MyHomePage> {
                                 child: CachedNetworkImage(
                                     imageUrl:
                                         "https://psnprofiles.com/favicon.ico",
-                                    width: Platform.isWindows ? 50 : 25,
-                                    height: Platform.isWindows ? 50 : 25),
+                                    width: Platform.isWindows ? 40 : 25,
+                                    height: Platform.isWindows ? 40 : 25),
                               ),
                               onTap: () {
                                 setState(() {
@@ -2642,8 +2693,8 @@ class _MyHomePageState extends State<MyHomePage> {
                                       BorderRadius.all(Radius.circular(5)),
                                 ),
                                 child: Image.asset(img['psntl'],
-                                    width: Platform.isWindows ? 50 : 25,
-                                    height: Platform.isWindows ? 50 : 25),
+                                    width: Platform.isWindows ? 40 : 25,
+                                    height: Platform.isWindows ? 40 : 25),
                               ),
                               onTap: () {
                                 setState(() {
@@ -2673,8 +2724,8 @@ class _MyHomePageState extends State<MyHomePage> {
                                 child: CachedNetworkImage(
                                     imageUrl:
                                         "https://www.exophase.com/assets/dist/images/icon-exo-large-55px.2af9b014.png",
-                                    width: Platform.isWindows ? 50 : 25,
-                                    height: Platform.isWindows ? 50 : 25),
+                                    width: Platform.isWindows ? 40 : 25,
+                                    height: Platform.isWindows ? 40 : 25),
                               ),
                               onTap: () {
                                 setState(() {
@@ -2703,8 +2754,8 @@ class _MyHomePageState extends State<MyHomePage> {
                                       BorderRadius.all(Radius.circular(5)),
                                 ),
                                 child: Image.asset(img['trueTrophies'],
-                                    width: Platform.isWindows ? 50 : 25,
-                                    height: Platform.isWindows ? 50 : 25),
+                                    width: Platform.isWindows ? 40 : 25,
+                                    height: Platform.isWindows ? 40 : 25),
                               ),
                               onTap: () {
                                 setState(() {
@@ -2732,8 +2783,8 @@ class _MyHomePageState extends State<MyHomePage> {
                                       BorderRadius.all(Radius.circular(5)),
                                 ),
                                 child: Image.asset(img['psn100'],
-                                    width: Platform.isWindows ? 50 : 25,
-                                    height: Platform.isWindows ? 50 : 25),
+                                    width: Platform.isWindows ? 40 : 25,
+                                    height: Platform.isWindows ? 40 : 25),
                               ),
                               onTap: () {
                                 setState(() {
@@ -3167,6 +3218,8 @@ class _MyHomePageState extends State<MyHomePage> {
                         settings.delete('exophaseGames');
                         settings.delete('trueTrophiesDump');
                         settings.delete('psn100Dump');
+                        settings.delete('trophyPending');
+                        settings.delete('trophyEarned');
                         settings.put('psnp', true);
                         settings.put('psntl', true);
                         settings.put('exophase', true);

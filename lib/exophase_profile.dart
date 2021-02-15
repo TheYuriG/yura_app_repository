@@ -3,6 +3,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 import 'package:yura_trophy/trophy_list.dart';
+import 'trophy_log.dart';
 import 'multicolorcircle.dart';
 import 'main.dart';
 import 'package:flutter/material.dart';
@@ -46,23 +47,11 @@ class _ExophaseProfileState extends State<ExophaseProfile> {
   @override
   Widget build(BuildContext context) {
     Map exophaseDump = settings.get('exophaseDump');
-    List exophaseGamesList;
+    List exophaseGamesList = settings.get('exophaseGames');
 
     //? These integers will store how many games were filtered and how many are being displayed currently.
     int _displayedGames = 0;
     int _filteredGames = 0;
-
-    if (settings.get('exophaseGames') is Map) {
-      exophaseGamesList = settings.get('exophaseGames').values.toList();
-    } else {
-      exophaseGamesList = settings.get('exophaseGames');
-    }
-
-    if (settings.get('exophaseSettings') != null) {
-      settings.put('gameSettings', settings.get('exophaseSettings'));
-      settings.delete('exophaseSettings');
-      print('exophaseSettings deleted, gameSettings saved');
-    }
 
     List<Widget> fetchExophaseGames() {
       List<Widget> cardAndGames = [];
@@ -80,7 +69,7 @@ class _ExophaseProfileState extends State<ExophaseProfile> {
       }
 
       //? Last played sorting in reverse manner (older games before newer games).
-      if (gameSettings['sorting'] == "firstPlayed") {
+      else if (gameSettings['sorting'] == "firstPlayed") {
         exophaseGamesList.sort((a, b) => (a['gameLastPlayedTimestamp'] ?? 0) >
                 (b['gameLastPlayedTimestamp'] ?? 0)
             ? 1
@@ -1055,18 +1044,19 @@ class _ExophaseProfileState extends State<ExophaseProfile> {
                         Icons.arrow_back,
                         color: themeSelector["secondary"]
                             [settings.get("theme")],
-                        size: 25,
                       ),
                       onTap: () => Navigator.pop(context),
                     ),
                     // Expanded(child: SizedBox()),
                     Row(
                       children: [
+                        //? PSN Avatar
                         CachedNetworkImage(
                           imageUrl: exophaseDump['avatar'] ??
                               "https://i.psnprofiles.com/avatars/m/Gfba90ec21.png",
-                          height: 25,
+                          height: 35,
                         ),
+                        //? PSN ID
                         Padding(
                           padding: EdgeInsets.symmetric(horizontal: 5),
                           child: Text(
@@ -1082,7 +1072,7 @@ class _ExophaseProfileState extends State<ExophaseProfile> {
                       ],
                     ),
                     Container(
-                      height: 25,
+                      height: 35,
                       child: levelType(
                           exophaseDump['platinum'],
                           exophaseDump['gold'],
@@ -1098,7 +1088,6 @@ class _ExophaseProfileState extends State<ExophaseProfile> {
               children: [
                 //? This container contains all the trophy data related to the player
                 Container(
-                    // height: 150,
                     width: MediaQuery.of(context).size.width,
                     padding: EdgeInsets.symmetric(
                         vertical: Platform.isWindows ? 15 : 5),
@@ -1110,20 +1099,81 @@ class _ExophaseProfileState extends State<ExophaseProfile> {
                         Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            trophyType('platinum',
-                                quantity: exophaseDump['platinum']),
+                            InkWell(
+                              child: trophyType('platinum',
+                                  quantity: exophaseDump['platinum']),
+                              onTap: () => Navigator.push(
+                                context,
+                                MaterialPageRoute(builder: (context) {
+                                  return TrophyLog(trophyData: {
+                                    'website': 'exophase',
+                                    'log': 'earned',
+                                    'type': 'platinum'
+                                  });
+                                }),
+                              ),
+                            ),
                             SizedBox(width: Platform.isWindows ? 20 : 10),
-                            trophyType('gold', quantity: exophaseDump['gold']),
+                            InkWell(
+                              child: trophyType('gold',
+                                  quantity: exophaseDump['gold']),
+                              onTap: () => Navigator.push(
+                                context,
+                                MaterialPageRoute(builder: (context) {
+                                  return TrophyLog(trophyData: {
+                                    'website': 'exophase',
+                                    'log': 'earned',
+                                    'type': 'gold'
+                                  });
+                                }),
+                              ),
+                            ),
                             SizedBox(width: Platform.isWindows ? 20 : 10),
-                            trophyType('silver',
-                                quantity: exophaseDump['silver']),
+                            InkWell(
+                              child: trophyType('silver',
+                                  quantity: exophaseDump['silver']),
+                              onTap: () => Navigator.push(
+                                context,
+                                MaterialPageRoute(builder: (context) {
+                                  return TrophyLog(trophyData: {
+                                    'website': 'exophase',
+                                    'log': 'earned',
+                                    'type': 'silver'
+                                  });
+                                }),
+                              ),
+                            ),
                             SizedBox(width: Platform.isWindows ? 20 : 10),
-                            trophyType('bronze',
-                                quantity: exophaseDump['bronze']),
+                            InkWell(
+                              child: trophyType('bronze',
+                                  quantity: exophaseDump['bronze']),
+                              onTap: () => Navigator.push(
+                                context,
+                                MaterialPageRoute(builder: (context) {
+                                  return TrophyLog(trophyData: {
+                                    'website': 'exophase',
+                                    'log': 'earned',
+                                    'type': 'bronze'
+                                  });
+                                }),
+                              ),
+                            ),
                             SizedBox(width: Platform.isWindows ? 20 : 10),
-                            trophyType('total',
-                                quantity:
-                                    "${exophaseDump['total'].toString()}"),
+                            InkWell(
+                              child: trophyType('total',
+                                  quantity:
+                                      "${exophaseDump['total'].toString()}"),
+                              onTap: () => Navigator.push(
+                                context,
+                                MaterialPageRoute(builder: (context) {
+                                  return TrophyLog(trophyData: {
+                                    'website': 'exophase',
+                                    'log': 'earned',
+                                    'type': 'all'
+                                  });
+                                }),
+                              ),
+                            ),
                             SizedBox(width: Platform.isWindows ? 20 : 10),
                             Tooltip(
                               message: regionalText["games"]["filteredGames"],
@@ -2302,6 +2352,10 @@ class _ExophaseProfileState extends State<ExophaseProfile> {
                                       setState(() {
                                         if (gameSettings['filter'] != true) {
                                           gameSettings['filter'] = true;
+                                          gameSettings['togglePlatforms'] =
+                                              false;
+                                          gameSettings['sort'] = false;
+                                          gameSettings['display'] = false;
                                         } else {
                                           gameSettings['filter'] = false;
                                         }
@@ -2338,8 +2392,11 @@ class _ExophaseProfileState extends State<ExophaseProfile> {
                                       setState(() {
                                         if (gameSettings['togglePlatforms'] !=
                                             true) {
+                                          gameSettings['filter'] = false;
                                           gameSettings['togglePlatforms'] =
                                               true;
+                                          gameSettings['sort'] = false;
+                                          gameSettings['display'] = false;
                                         } else {
                                           gameSettings['togglePlatforms'] =
                                               false;
@@ -2374,7 +2431,11 @@ class _ExophaseProfileState extends State<ExophaseProfile> {
                                 onTap: () => {
                                       setState(() {
                                         if (gameSettings['sort'] != true) {
+                                          gameSettings['filter'] = false;
+                                          gameSettings['togglePlatforms'] =
+                                              false;
                                           gameSettings['sort'] = true;
+                                          gameSettings['display'] = false;
                                         } else {
                                           gameSettings['sort'] = false;
                                         }
@@ -2413,6 +2474,10 @@ class _ExophaseProfileState extends State<ExophaseProfile> {
                                 onTap: () => {
                                       setState(() {
                                         if (gameSettings['display'] != true) {
+                                          gameSettings['filter'] = false;
+                                          gameSettings['togglePlatforms'] =
+                                              false;
+                                          gameSettings['sort'] = false;
                                           gameSettings['display'] = true;
                                         } else {
                                           gameSettings['display'] = false;
@@ -2447,6 +2512,7 @@ class _ExophaseProfileState extends State<ExophaseProfile> {
                                     'sort': false,
                                     'display': false
                                   };
+                                  searchQuery = [];
                                 });
                                 settings.put('gameSettings', gameSettings);
                               },

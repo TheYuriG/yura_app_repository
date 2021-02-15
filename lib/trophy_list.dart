@@ -19,6 +19,26 @@ class TrophyList extends StatefulWidget {
 
 //! Icon for the roadmap trophy list: Icons.account_tree
 
+//? Stored list of pending trophies
+Map trophyPending = settings.get('trophyPending') ??
+    {
+      'psnProfiles': {},
+      'psnTrophyLeaders': {},
+      'exophase': {},
+      'trueTrophies': {},
+      'psn100': {}
+    };
+
+//? Stored list of earned trophies
+Map trophyEarned = settings.get('trophyEarned') ??
+    {
+      'psnProfiles': {},
+      'psnTrophyLeaders': {},
+      'exophase': {},
+      'trueTrophies': {},
+      'psn100': {}
+    };
+
 //? These integers will store how many games were filtered and how many are being displayed currently.
 int _displayedTrophies = 0;
 
@@ -154,6 +174,9 @@ Map<String, dynamic> _trophyData(String parsedHTMLasString,
               break;
           }
           trophyData[trophyNumber]['id'] = trophyIDNumber;
+          if (countDLC > 0) {
+            trophyData[trophyNumber]['dlc'] = true;
+          }
         });
 
         //? Stores the trophy image
@@ -220,7 +243,7 @@ Map<String, dynamic> _trophyData(String parsedHTMLasString,
 }
 
 class _TrophyListState extends State<TrophyList> {
-  //? Sets the information here to be used throughout the trophy page.
+  //? Sets the settings here to be used throughout the trophy page.
   Map trophySettings = settings.get('trophySettings') ??
       {
         //? Filter options
@@ -249,7 +272,7 @@ class _TrophyListState extends State<TrophyList> {
 
   Map trophyListData;
 
-  //? Load a webpage, parse it as a string and then computes the result and returns a map
+  //! Load a webpage, parse it as a string and then computes the result and returns a map
   Future<Map<String, dynamic>> requestWebsite(String link) async {
     //? Initializes the String variable
     String parsedHTML;
@@ -317,18 +340,14 @@ class _TrophyListState extends State<TrophyList> {
               finalData['gamePack${dlcPack}TrophyData']
                       [trophy['canonical_id'] - 1 - totalSkipped]
                   ['parsedTimestamp'] = Instant.dateTime(
-                      DateTime.fromMillisecondsSinceEpoch(
-                          trophy['timestamp'] * 1000))
-                  .inLocalZone()
-                  .toString('MMMM d, yyyy (dddd) - H:mm');
+                DateTime.fromMillisecondsSinceEpoch(trophy['timestamp'] * 1000),
+              ).inLocalZone().toString('MMMM d, yyyy (dddd) - H:mm');
             } else {
               finalData['gamePack${dlcPack}TrophyData']
                       [trophy['canonical_id'] - 1 - totalSkipped]
                   ['parsedTimestamp'] = Instant.dateTime(
-                      DateTime.fromMillisecondsSinceEpoch(
-                          trophy['timestamp'] * 1000))
-                  // .inLocalZone()
-                  .toString('MMMM d, yyyy (dddd) - H:mm');
+                DateTime.fromMillisecondsSinceEpoch(trophy['timestamp'] * 1000),
+              ).toString('MMMM d, yyyy (dddd) - H:mm');
             }
           } catch (e) {
             finalData['gamePack${dlcPack}TrophyData']
@@ -337,6 +356,8 @@ class _TrophyListState extends State<TrophyList> {
           }
         }
       }
+
+      // print(finalData);
 
       //? Gives the parsed HTML to the compute function which will run in the background
       return finalData;
@@ -347,9 +368,13 @@ class _TrophyListState extends State<TrophyList> {
 
   //? Parses trophy list data and returns the trophy list in the proper display mode.
   Widget trophyListDisplay() {
+    //? Returns the properly formatted list/grid of items to be displayed
     Widget listDisplay;
+
+    //? Stores and organizes all trophies to be displayed inside listDisplay
     List trophiesArray = [];
 
+    //? Stores how many trophies are currently being displayed using the filters applied
     _displayedTrophies = 0;
 
     //? Stores all the trophy widgets, being them in a List or Grid.
@@ -366,6 +391,35 @@ class _TrophyListState extends State<TrophyList> {
       trophiesArray += trophyDataMap['gamePack${i}TrophyData'];
     }
 
+    trophiesArray.forEach((element) {
+      if (element is Map) {
+        //? Attaches game name to trophy for the Trophy Log
+        element['gameData'] = trophyListData;
+
+        //? If this is an exophase page, store information on the exophase part of the database
+        if (trophyListData['gameLink'].contains("exophase.com")) {
+          //? If this trophy was earned (has a timestamp), save it on the earned trophies database
+          if (element['timestamp'] != null) {
+            if (trophyEarned['exophase'][element['gameLink']] == null) {
+              trophyEarned['exophase'][element['gameLink']] = {};
+            }
+            trophyEarned['exophase'][element['gameLink']][element['link']] =
+                element;
+          }
+          //? Stores the other trophies without timestamps in the other database
+          else {
+            if (trophyPending['exophase'][element['gameLink']] == null) {
+              trophyPending['exophase'][element['gameLink']] = {};
+            }
+            trophyPending['exophase'][element['gameLink']][element['link']] =
+                element;
+          }
+        }
+      }
+    });
+    settings.put('trophyEarned', trophyEarned);
+    settings.put('trophyPending', trophyPending);
+
     //? Alphabetical sorting in ascending manner (A trophies before Z trophies).
     if (trophySettings['sorting'] == "alphabetical") {
       trophiesArray.sort((a, b) => (a['name'] ?? "")
@@ -374,8 +428,17 @@ class _TrophyListState extends State<TrophyList> {
     }
     //? Rarity sorting in ascending manner (low % trophies before high % trophies).
     else if (trophySettings['sorting'] == "rarity") {
-      trophiesArray
-          .sort((a, b) => (a['rarity'] ?? 0) > (b['rarity'] ?? 0) ? 1 : -1);
+      trophiesArray.sort((a, b) =>
+          //? If both trophies have the same rarity
+          (a['rarity'] ?? 0) == (b['rarity'] ?? 0)
+              //? Sort them out by their trophy ID. This will sort trophies by their original list position
+              ? (a['id']) > (b['id'])
+                  ? 1
+                  : -1
+              //? If they have different rarities, sort them by rarity
+              : (a['rarity'] ?? 0) > (b['rarity'] ?? 0)
+                  ? 1
+                  : -1);
     }
     //? Trophy type sorting in descending manner (Platinum > Gold > Silver > Bronze).
     else if (trophySettings['sorting'] == "value") {
@@ -395,11 +458,13 @@ class _TrophyListState extends State<TrophyList> {
 
         int trophyA = _value(a['type']);
         int trophyB = _value(b['type']);
-        if (trophyA > trophyB) {
-          return -1;
-        } else {
-          return 1;
-        }
+        return trophyA == trophyB
+            ? a['id'] > b['id']
+                ? 1
+                : -1
+            : trophyA > trophyB
+                ? -1
+                : 1;
       });
     }
     //? Rarity sorting in ascending manner (low % trophies before high % trophies).
@@ -421,36 +486,39 @@ class _TrophyListState extends State<TrophyList> {
                 padding: EdgeInsets.symmetric(
                     vertical: Platform.isWindows ? 10 : 3,
                     horizontal: Platform.isWindows ? 10 : 3),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(20),
+                child: Container(
+                  width: MediaQuery.of(context).size.width -
+                      (Platform.isWindows ? 30 : 5),
                   child: Container(
-                    width: MediaQuery.of(context).size.width -
-                        (Platform.isWindows ? 30 : 5),
-                    child: Container(
-                      padding: EdgeInsets.all(5),
-                      color: themeSelector["primary"][settings.get("theme")],
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          if (trophiesArray[i][1] != null)
-                            CachedNetworkImage(
-                                imageUrl: trophySettings['hidden'] != false ||
-                                        trophiesArray[i]['hidden'] != true
-                                    ? trophiesArray[i][1]
-                                    : "https://www.exophase.com/assets/zeal/images/default_hidden.png",
-                                fit: BoxFit.fill),
-                          SingleChildScrollView(
-                            scrollDirection: Axis.horizontal,
-                            child: Container(
-                              child: Text(
-                                trophiesArray[i][0],
-                                style: textSelection(theme: "textLightBold"),
-                              ),
+                    padding: EdgeInsets.all(5),
+                    decoration: BoxDecoration(
+                        color: themeSelector["primary"][settings.get("theme")],
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(
+                            width: Platform.isWindows ? 5 : 3,
+                            color: themeSelector["secondary"]
+                                [settings.get("theme")])),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        if (trophiesArray[i][1] != null)
+                          CachedNetworkImage(
+                              imageUrl: trophySettings['hidden'] != false ||
+                                      trophiesArray[i]['hidden'] != true
+                                  ? trophiesArray[i][1]
+                                  : "https://www.exophase.com/assets/zeal/images/default_hidden.png",
+                              fit: BoxFit.fill),
+                        SingleChildScrollView(
+                          scrollDirection: Axis.horizontal,
+                          child: Container(
+                            child: Text(
+                              trophiesArray[i][0],
+                              style: textSelection(theme: "textLightBold"),
                             ),
-                          )
-                        ],
-                      ),
+                          ),
+                        )
+                      ],
                     ),
                   ),
                 ),
@@ -623,36 +691,39 @@ class _TrophyListState extends State<TrophyList> {
                 padding: EdgeInsets.symmetric(
                     vertical: Platform.isWindows ? 10 : 3,
                     horizontal: Platform.isWindows ? 10 : 3),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(20),
+                child: Container(
+                  width: MediaQuery.of(context).size.width -
+                      (Platform.isWindows ? 30 : 5),
                   child: Container(
-                    width: MediaQuery.of(context).size.width -
-                        (Platform.isWindows ? 30 : 5),
-                    child: Container(
-                      padding: EdgeInsets.all(5),
-                      color: themeSelector["primary"][settings.get("theme")],
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          if (trophiesArray[i][1] != null)
-                            CachedNetworkImage(
-                                imageUrl: trophySettings['hidden'] != false ||
-                                        trophiesArray[i]['hidden'] != true
-                                    ? trophiesArray[i][1]
-                                    : "https://www.exophase.com/assets/zeal/images/default_hidden.png",
-                                fit: BoxFit.fill),
-                          SingleChildScrollView(
-                            scrollDirection: Axis.horizontal,
-                            child: Container(
-                              child: Text(
-                                trophiesArray[i][0],
-                                style: textSelection(theme: "textLightBold"),
-                              ),
+                    padding: EdgeInsets.all(5),
+                    decoration: BoxDecoration(
+                        color: themeSelector["primary"][settings.get("theme")],
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(
+                            width: Platform.isWindows ? 5 : 3,
+                            color: themeSelector["secondary"]
+                                [settings.get("theme")])),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        if (trophiesArray[i][1] != null)
+                          CachedNetworkImage(
+                              imageUrl: trophySettings['hidden'] != false ||
+                                      trophiesArray[i]['hidden'] != true
+                                  ? trophiesArray[i][1]
+                                  : "https://www.exophase.com/assets/zeal/images/default_hidden.png",
+                              fit: BoxFit.fill),
+                        SingleChildScrollView(
+                          scrollDirection: Axis.horizontal,
+                          child: Container(
+                            child: Text(
+                              trophiesArray[i][0],
+                              style: textSelection(theme: "textLightBold"),
                             ),
-                          )
-                        ],
-                      ),
+                          ),
+                        )
+                      ],
                     ),
                   ),
                 ),
@@ -845,36 +916,39 @@ class _TrophyListState extends State<TrophyList> {
                 padding: EdgeInsets.symmetric(
                     vertical: Platform.isWindows ? 10 : 3,
                     horizontal: Platform.isWindows ? 10 : 3),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(20),
+                child: Container(
+                  width: MediaQuery.of(context).size.width -
+                      (Platform.isWindows ? 30 : 5),
                   child: Container(
-                    width: MediaQuery.of(context).size.width -
-                        (Platform.isWindows ? 30 : 5),
-                    child: Container(
-                      padding: EdgeInsets.all(5),
-                      color: themeSelector["primary"][settings.get("theme")],
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          if (trophiesArray[i][1] != null)
-                            CachedNetworkImage(
-                                imageUrl: trophySettings['hidden'] != false ||
-                                        trophiesArray[i]['hidden'] != true
-                                    ? trophiesArray[i][1]
-                                    : "https://www.exophase.com/assets/zeal/images/default_hidden.png",
-                                fit: BoxFit.fill),
-                          SingleChildScrollView(
-                            scrollDirection: Axis.horizontal,
-                            child: Container(
-                              child: Text(
-                                trophiesArray[i][0],
-                                style: textSelection(theme: "textLightBold"),
-                              ),
+                    padding: EdgeInsets.all(5),
+                    decoration: BoxDecoration(
+                        color: themeSelector["primary"][settings.get("theme")],
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(
+                            width: Platform.isWindows ? 5 : 3,
+                            color: themeSelector["secondary"]
+                                [settings.get("theme")])),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        if (trophiesArray[i][1] != null)
+                          CachedNetworkImage(
+                              imageUrl: trophySettings['hidden'] != false ||
+                                      trophiesArray[i]['hidden'] != true
+                                  ? trophiesArray[i][1]
+                                  : "https://www.exophase.com/assets/zeal/images/default_hidden.png",
+                              fit: BoxFit.fill),
+                        SingleChildScrollView(
+                          scrollDirection: Axis.horizontal,
+                          child: Container(
+                            child: Text(
+                              trophiesArray[i][0],
+                              style: textSelection(theme: "textLightBold"),
                             ),
-                          )
-                        ],
-                      ),
+                          ),
+                        )
+                      ],
                     ),
                   ),
                 ),
@@ -935,7 +1009,7 @@ class _TrophyListState extends State<TrophyList> {
                   //? Column with trophy type, name, rarity, exp + description + earned timestamp
                   Container(
                     width: MediaQuery.of(context).size.width -
-                        (Platform.isWindows ? 130 : 75),
+                        (Platform.isWindows ? 105 : 80),
                     child: SingleChildScrollView(
                       scrollDirection: Axis.horizontal,
                       child: Padding(
@@ -1492,19 +1566,8 @@ class _TrophyListState extends State<TrophyList> {
                                             Radius.circular(5)),
                                       ),
                                       child: InkWell(
-                                        child: Row(
-                                          children: [
-                                            trophyType("platinum",
-                                                size: "small"),
-                                            Text(
-                                              "➡️",
-                                              style: textSelection(
-                                                  theme: "textDark"),
-                                              textAlign: TextAlign.center,
-                                            ),
-                                            trophyType("bronze", size: "small"),
-                                          ],
-                                        ),
+                                        child:
+                                            trophyType("platinum", size: "big"),
                                         onTap: () {
                                           if (trophySettings['sorting'] !=
                                               "value") {
@@ -1539,7 +1602,7 @@ class _TrophyListState extends State<TrophyList> {
                                               Radius.circular(5)),
                                         ),
                                         child: Text(
-                                          "Abc⬇️",
+                                          "ABC",
                                           style:
                                               textSelection(theme: "textDark"),
                                           textAlign: TextAlign.center,
@@ -1562,6 +1625,7 @@ class _TrophyListState extends State<TrophyList> {
                                     message: regionalText['trophies']['rarity'],
                                     child: InkWell(
                                       child: Container(
+                                        height: Platform.isWindows ? 35 : 17,
                                         decoration: BoxDecoration(
                                           //? To paint the border, we check the value of the settings for this website is true.
                                           //? If it's false or null (never set), we will paint red.
@@ -1576,11 +1640,9 @@ class _TrophyListState extends State<TrophyList> {
                                           borderRadius: BorderRadius.all(
                                               Radius.circular(5)),
                                         ),
-                                        child: Text(
-                                          "%⬆️",
-                                          style:
-                                              textSelection(theme: "textDark"),
-                                          textAlign: TextAlign.center,
+                                        child: Image.asset(
+                                          img['rarity7'],
+                                          fit: BoxFit.fill,
                                         ),
                                       ),
                                       onTap: () {
@@ -1613,9 +1675,10 @@ class _TrophyListState extends State<TrophyList> {
                                       ),
                                       child: InkWell(
                                         child: Text(
-                                          "📆⬇️",
-                                          style:
-                                              textSelection(theme: "textDark"),
+                                          "🆕",
+                                          style: textSelection(
+                                            theme: "textDarkBold",
+                                          ),
                                           textAlign: TextAlign.center,
                                         ),
                                         onTap: () {
@@ -1890,6 +1953,9 @@ class _TrophyListState extends State<TrophyList> {
                                     setState(() {
                                       if (trophySettings['filter'] != true) {
                                         trophySettings['filter'] = true;
+                                        trophySettings['sort'] = false;
+                                        trophySettings['settings'] = false;
+                                        trophySettings['display'] = false;
                                       } else {
                                         trophySettings['filter'] = false;
                                       }
@@ -1924,7 +1990,10 @@ class _TrophyListState extends State<TrophyList> {
                               onTap: () => {
                                     setState(() {
                                       if (trophySettings['sort'] != true) {
+                                        trophySettings['filter'] = false;
                                         trophySettings['sort'] = true;
+                                        trophySettings['settings'] = false;
+                                        trophySettings['display'] = false;
                                       } else {
                                         trophySettings['sort'] = false;
                                       }
@@ -1959,7 +2028,10 @@ class _TrophyListState extends State<TrophyList> {
                               onTap: () => {
                                     setState(() {
                                       if (trophySettings['settings'] != true) {
+                                        trophySettings['filter'] = false;
+                                        trophySettings['sort'] = false;
                                         trophySettings['settings'] = true;
+                                        trophySettings['display'] = false;
                                       } else {
                                         trophySettings['settings'] = false;
                                       }
@@ -2000,6 +2072,9 @@ class _TrophyListState extends State<TrophyList> {
                               onTap: () => {
                                     setState(() {
                                       if (trophySettings['display'] != true) {
+                                        trophySettings['filter'] = false;
+                                        trophySettings['sort'] = false;
+                                        trophySettings['settings'] = false;
                                         trophySettings['display'] = true;
                                       } else {
                                         trophySettings['display'] = false;

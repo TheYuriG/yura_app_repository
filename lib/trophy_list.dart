@@ -3,7 +3,8 @@ import 'dart:ui';
 import 'dart:io' show Platform;
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/foundation.dart';
-import 'package:time_machine/time_machine.dart';
+import 'package:intl/intl.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'main.dart';
 import 'package:flutter/material.dart';
 
@@ -19,29 +20,6 @@ class TrophyList extends StatefulWidget {
 
 //! Icon for the roadmap trophy list: Icons.account_tree
 
-//? Stored list of pending trophies
-Map trophyPending = settings.get('trophyPending') ??
-    {
-      'psnProfiles': {},
-      'psnTrophyLeaders': {},
-      'exophase': {},
-      'trueTrophies': {},
-      'psn100': {}
-    };
-
-//? Stored list of earned trophies
-Map trophyEarned = settings.get('trophyEarned') ??
-    {
-      'psnProfiles': {},
-      'psnTrophyLeaders': {},
-      'exophase': {},
-      'trueTrophies': {},
-      'psn100': {}
-    };
-
-//? These integers will store how many games were filtered and how many are being displayed currently.
-int _displayedTrophies = 0;
-
 //? This private function processes the parsed string from requestWebsite() and returns useful data
 Map<String, dynamic> _trophyData(String parsedHTMLasString,
     {Map<String, dynamic> timestamps}) {
@@ -50,18 +28,17 @@ Map<String, dynamic> _trophyData(String parsedHTMLasString,
     'goldCount': 0,
     'silverCount': 0,
     'bronzeCount': 0,
-    'podium': null
+    'podium': null,
+    'first': null,
+    'last': null,
   };
   ws.loadFromString(parsedHTMLasString);
-  // print("HTML loaded from string");
 
   //? This integer stores the number of trophies fetched
   int trophyIDNumber = 0;
 
   //? Checks if the page is exophase.
   if (ws.getElementAttribute("a.logo", 'title').contains("Exophase.com")) {
-    // print("starting exophase data query");
-
     //? Retrieves banner link
     ws
         .getElementAttribute(
@@ -201,7 +178,7 @@ Map<String, dynamic> _trophyData(String parsedHTMLasString,
             .getElementTitle(
                 "div.row.game-page > div#awards > ul:nth-child(${(countDLC * 8) + 5}) > li:nth-child(${(trophyNumber * 2) + 1}) > div.row > div.award-details.snippet > div.award-description > p")
             .forEach((element) {
-          trophyData[trophyNumber]['description'] = element;
+          trophyData[trophyNumber]['description'] = element.trim();
         });
 
         // //? Stores the trophy rarity and EXP
@@ -237,12 +214,31 @@ Map<String, dynamic> _trophyData(String parsedHTMLasString,
       information['gamePack${countDLC}TrophyData'] = trophyData;
     }
   }
-  // print(information);
-  // print("complete");
   return information;
 }
 
 class _TrophyListState extends State<TrophyList> {
+//? Define the website name based on the game link.
+//? This is stored shortly after checking the website link at _trophyData().
+  String website;
+
+//? Stores first/last timestamp data for this game
+  Map gameTrophyData = settings.get('gameTrophyData') ??
+      {
+        'psnProfiles': {},
+        'psnTrophyLeaders': {},
+        'exophase': {},
+        'trueTrophies': {},
+        'psn100': {}
+      };
+
+//? Stores game information to save and reuse them later in other parts of the application
+//? First trophy earned, last trophy earned (can be the same as first if only 1 trophy earned)
+  Map gameData = {'first': null, 'last': null};
+
+  //? This bool will store the status of the update and disable the FloatingActionButton from rendering
+  bool isUpdating = false;
+
   //? Sets the settings here to be used throughout the trophy page.
   Map trophySettings = settings.get('trophySettings') ??
       {
@@ -260,17 +256,25 @@ class _TrophyListState extends State<TrophyList> {
         "hidden": false,
         "description": true,
         "DLCseparator": true,
-        'localization': true,
-        //? Options menu
-        "filter": false,
-        "sort": false,
-        "display": false,
-        "settings": false,
         //? Display setting
         "trophyDisplay": "grid",
       };
 
+  Map openMenus = {
+    //? Options menu
+    "filter": false,
+    "sort": false,
+    "display": false,
+    "settings": false,
+  };
+
   Map trophyListData;
+
+  //? A debouncer to close the menus after 15 seconds
+  Debouncer menuCloser = Debouncer(milliseconds: 15000);
+
+  //? These integers will store how many games were filtered and how many are being displayed currently.
+  int _displayedTrophies = 0;
 
   //! Load a webpage, parse it as a string and then computes the result and returns a map
   Future<Map<String, dynamic>> requestWebsite(String link) async {
@@ -279,8 +283,10 @@ class _TrophyListState extends State<TrophyList> {
 
     //? Checks if the requested page is from Exophase
     if (link.contains('www.exophase.com')) {
-      // print('exophase link');
-      if (trophySettings['localization'] == true) {
+      //? Define the website as exophase.
+      website = 'exophase';
+
+      if (settings.get('localization') ?? true) {
         String country = settings.get('exophaseDump')['country'];
         //? Does country checking to retrieve properly translated trophy lists
         if (country == "cn") {
@@ -295,12 +301,13 @@ class _TrophyListState extends State<TrophyList> {
           country = "es";
         }
         //? Loads the webpage considering the translated list
-        await ws.loadFullURL(link.split("#")[0] + country + "/");
+        await ws.loadFullURL(
+            (link.contains("#") ? link.split("#")[0] : link) + country + "/");
         //? Returns the webpage as a string
         parsedHTML = ws.getPageContent();
       } else {
         //? Loads the english/default webpage
-        await ws.loadFullURL(link.split("#")[0]);
+        await ws.loadFullURL((link.contains("#") ? link.split("#")[0] : link));
         //? Returns the webpage as a string
         parsedHTML = ws.getPageContent();
       }
@@ -308,13 +315,14 @@ class _TrophyListState extends State<TrophyList> {
       //? Returns the webpage as a string
       parsedHTML = ws.getPageContent();
 
+      //? Gives the parsed HTML to the compute function which will run in the background
       Map finalData = await compute(_trophyData, parsedHTML);
 
-      if (trophyListData['gamePercentage'] > 0) {
+      if ((trophyListData['gamePercentage'] ?? 0) > 0) {
         List earnedTrophyData;
         //? Loads the trophy data URL and returns the parsed information.
         await ws.loadFullURL(
-            'https://api.exophase.com/public/player/${link.split("#")[1]}/game/${trophyListData['gameID']}/earned');
+            'https://api.exophase.com/public/player/${link.split("#")[1]}/game/${trophyListData['gameID']}/earned?last=${DateTime.now().millisecondsSinceEpoch}');
         earnedTrophyData = json.decode(ws.getPageContent())['list'];
         earnedTrophyData
             .sort((a, b) => a['canonical_id'] > b['canonical_id'] ? 1 : -1);
@@ -334,32 +342,28 @@ class _TrophyListState extends State<TrophyList> {
             finalData['gamePack${dlcPack}TrophyData']
                     [trophy['canonical_id'] - 1 - totalSkipped]['timestamp'] =
                 trophy['timestamp'];
-          }
-          try {
-            if (trophySettings['localization'] == true) {
-              finalData['gamePack${dlcPack}TrophyData']
-                      [trophy['canonical_id'] - 1 - totalSkipped]
-                  ['parsedTimestamp'] = Instant.dateTime(
-                DateTime.fromMillisecondsSinceEpoch(trophy['timestamp'] * 1000),
-              ).inLocalZone().toString('MMMM d, yyyy (dddd) - H:mm');
-            } else {
-              finalData['gamePack${dlcPack}TrophyData']
-                      [trophy['canonical_id'] - 1 - totalSkipped]
-                  ['parsedTimestamp'] = Instant.dateTime(
-                DateTime.fromMillisecondsSinceEpoch(trophy['timestamp'] * 1000),
-              ).toString('MMMM d, yyyy (dddd) - H:mm');
+
+            //? Stores first and last trophy data into this Map
+            if (gameData['first'] == null ||
+                gameData['first'] < trophy['timestamp']) {
+              gameData['first'] = trophy['timestamp'];
             }
-          } catch (e) {
-            finalData['gamePack${dlcPack}TrophyData']
-                    [trophy['canonical_id'] - 1 - totalSkipped]
-                ['parsedTimestamp'] = trophy['earned'];
+            if (gameData['last'] == null ||
+                gameData['last'] > trophy['timestamp']) {
+              gameData['last'] = trophy['timestamp'];
+            }
           }
         }
       }
 
       // print(finalData);
 
-      //? Gives the parsed HTML to the compute function which will run in the background
+      //? Save this data in its own database to be used in other parts of the application
+      gameTrophyData[website][trophyListData['gameLink'].contains("#")
+          ? trophyListData['gameLink'].split("#")[0]
+          : trophyListData['gameLink']] = gameData;
+      settings.put('gameTrophyData', gameTrophyData);
+
       return finalData;
     } else {
       throw Error;
@@ -391,35 +395,71 @@ class _TrophyListState extends State<TrophyList> {
       trophiesArray += trophyDataMap['gamePack${i}TrophyData'];
     }
 
-    trophiesArray.forEach((element) {
-      if (element is Map) {
-        //? Attaches game name to trophy for the Trophy Log
-        element['gameData'] = trophyListData;
+    //? If the game doesn't have any earned trophies, don't add its trophies to the Trophy Log.
+    //! Put in place for the backlog update and the game searching update.
+    if (trophyListData['gamePercentage'] > 0) {
+      //? Stored list of pending trophies
+      Map trophyPending = settings.get('trophyPending') ??
+          {
+            'psnProfiles': {},
+            'psnTrophyLeaders': {},
+            'exophase': {},
+            'trueTrophies': {},
+            'psn100': {}
+          };
 
-        //? If this is an exophase page, store information on the exophase part of the database
-        if (trophyListData['gameLink'].contains("exophase.com")) {
-          //? If this trophy was earned (has a timestamp), save it on the earned trophies database
-          if (element['timestamp'] != null) {
-            if (trophyEarned['exophase'][element['gameLink']] == null) {
-              trophyEarned['exophase'][element['gameLink']] = {};
+      //? Stored list of earned trophies
+      Map trophyEarned = settings.get('trophyEarned') ??
+          {
+            'psnProfiles': {},
+            'psnTrophyLeaders': {},
+            'exophase': {},
+            'trueTrophies': {},
+            'psn100': {}
+          };
+
+      //? Clears the pending trophies Map for this game. Resets if there are pending trophies and nuke it otherwise
+      if (trophyListData['gamePercentage'] < 100) {
+        trophyPending['exophase'][trophyListData['gameLink']] = {};
+      } else {
+        trophyPending['exophase'].remove(trophyListData['gameLink']);
+      }
+      //? Clears the earned trophies map for this game
+      trophyEarned['exophase'][trophyListData['gameLink']] = {};
+
+      trophiesArray.forEach((element) {
+        if (element is Map) {
+          //? Attaches game name to trophy for the Trophy Log
+          element['gameData'] = trophyListData;
+
+          //? If this is an exophase page, store information on the exophase part of the database
+          if (trophyListData['gameLink'].contains("exophase.com")) {
+            //? If this trophy was earned (has a timestamp), save it on the earned trophies database
+            if (element['timestamp'] != null) {
+              trophyEarned['exophase'][trophyListData['gameLink']]
+                  [element['link']] = element;
+              if (trophyPending['exophase'][trophyListData['gameLink']] !=
+                      null &&
+                  trophyPending['exophase'][trophyListData['gameLink']]
+                          [element['link']] !=
+                      null) {
+                trophyPending['exophase'][trophyListData['gameLink']]
+                    .remove([element['link']]);
+              }
             }
-            trophyEarned['exophase'][element['gameLink']][element['link']] =
-                element;
-          }
-          //? Stores the other trophies without timestamps in the other database
-          else {
-            if (trophyPending['exophase'][element['gameLink']] == null) {
-              trophyPending['exophase'][element['gameLink']] = {};
+            //? Stores the other trophies without timestamps in the other database
+            else {
+              trophyPending['exophase'][trophyListData['gameLink']]
+                  [element['link']] = element;
             }
-            trophyPending['exophase'][element['gameLink']][element['link']] =
-                element;
           }
         }
-      }
-    });
-    settings.put('trophyEarned', trophyEarned);
-    settings.put('trophyPending', trophyPending);
-
+      });
+      //? Save trophies earned on the trophies earned database
+      settings.put('trophyEarned', trophyEarned);
+      //? Save pending trophies on the pending trophies database
+      settings.put('trophyPending', trophyPending);
+    }
     //? Alphabetical sorting in ascending manner (A trophies before Z trophies).
     if (trophySettings['sorting'] == "alphabetical") {
       trophiesArray.sort((a, b) => (a['name'] ?? "")
@@ -468,11 +508,18 @@ class _TrophyListState extends State<TrophyList> {
       });
     }
     //? Rarity sorting in ascending manner (low % trophies before high % trophies).
-    else if (trophySettings['sorting'] == "earnedTimestamp") {
-      trophiesArray.sort((a, b) =>
-          (a['timestamp'] ?? 999999999999) > (b['timestamp'] ?? 999999999999)
-              ? 1
-              : -1);
+    else if (trophySettings['sorting'] == "earnedTimestamp" &&
+        (trophyListData['gamePercentage'] ?? 0) > 0) {
+      trophiesArray.sort((a, b) {
+        return a['timestamp'] == b['timestamp']
+            ? a['id'] > b['id']
+                ? 1
+                : -1
+            : (a['timestamp'] ?? 999999999999) >
+                    (b['timestamp'] ?? 999999999999)
+                ? 1
+                : -1;
+      });
     }
 
     if (trophySettings['trophyDisplay'] == "grid") {
@@ -504,11 +551,7 @@ class _TrophyListState extends State<TrophyList> {
                       children: [
                         if (trophiesArray[i][1] != null)
                           CachedNetworkImage(
-                              imageUrl: trophySettings['hidden'] != false ||
-                                      trophiesArray[i]['hidden'] != true
-                                  ? trophiesArray[i][1]
-                                  : "https://www.exophase.com/assets/zeal/images/default_hidden.png",
-                              fit: BoxFit.fill),
+                              imageUrl: trophiesArray[i][1], fit: BoxFit.fill),
                         SingleChildScrollView(
                           scrollDirection: Axis.horizontal,
                           child: Container(
@@ -529,11 +572,12 @@ class _TrophyListState extends State<TrophyList> {
         else {
           if ( //? Skip if user is filtering earned and the trophy was earned
               (trophiesArray[i]['timestamp'] != null &&
-                      trophySettings['earned'] == false) ||
+                      trophySettings['earned'] == false &&
+                      trophyListData['gamePercentage'] != 100) ||
                   //? Skip if the user is filtering unearned and the trophy wasn't earned yet
-                  (trophiesArray[i]['timestamp'] == null &&
-                      (trophySettings['unearned'] == false ||
-                          trophySettings['sorting'] == 'earnedTimestamp')) ||
+                  ((trophyListData['gamePercentage'] ?? 0) > 0 &&
+                      trophiesArray[i]['timestamp'] == null &&
+                      trophySettings['unearned'] == false) ||
                   //? Skip if the user is filtering secret trophies and the trophy is marked as hidden
                   (trophiesArray[i]['hidden'] == true &&
                       trophySettings['showHidden'] == false) ||
@@ -548,7 +592,7 @@ class _TrophyListState extends State<TrophyList> {
           _displayedTrophies++;
           trophyWidgets.add(Tooltip(
             message:
-                '${trophySettings['hidden'] != false || trophiesArray[i]['hidden'] != true ? trophiesArray[i]['name'] : "???"} (${trophiesArray[i]['rarity']}%)',
+                '${trophySettings['hidden'] != false || trophiesArray[i]['hidden'] != true ? trophiesArray[i]['name'] : regionalText["trophies"]["hiddenTrophy"]} (${trophiesArray[i]['rarity']}%)',
             child: Container(
               margin: EdgeInsets.all(Platform.isWindows ? 2 : 0.5),
               decoration: BoxDecoration(
@@ -562,12 +606,53 @@ class _TrophyListState extends State<TrophyList> {
                           : Colors.red)),
               height: Platform.isWindows ? 80 : 50,
               width: Platform.isWindows ? 80 : 50,
-              child: CachedNetworkImage(
-                  imageUrl: trophySettings['hidden'] != false ||
-                          trophiesArray[i]['hidden'] != true
-                      ? trophiesArray[i]['image']
-                      : "https://www.exophase.com/assets/zeal/images/default_hidden.png",
-                  fit: BoxFit.fill),
+              child: ClipRRect(
+                borderRadius: BorderRadius.all(Radius.circular(10)),
+                child: Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    Container(
+                      height: Platform.isWindows ? 80 : 50,
+                      width: Platform.isWindows ? 80 : 50,
+                      child: CachedNetworkImage(
+                        fit: BoxFit.fill,
+                        imageUrl: trophySettings['hidden'] != false ||
+                                trophiesArray[i]['hidden'] != true ||
+                                trophiesArray[i]['timestamp'] != null
+                            ? trophiesArray[i]['image']
+                            : "https://www.exophase.com/assets/zeal/images/default_hidden.png",
+                      ),
+                    ),
+                    if (trophiesArray[i]['dlc'] == true)
+                      Positioned(
+                        right: 0,
+                        bottom: 0,
+                        child: Icon(Icons.brightness_1,
+                            color: themeSelector["primary"]
+                                [settings.get("theme")],
+                            size: Platform.isWindows ? 28 : 15),
+                      ),
+                    if (trophiesArray[i]['dlc'] == true)
+                      Positioned(
+                        right: Platform.isWindows ? 2 : 1,
+                        bottom: Platform.isWindows ? 2 : 1,
+                        child: Icon(Icons.brightness_1,
+                            color: themeSelector["secondary"]
+                                [settings.get("theme")],
+                            size: Platform.isWindows ? 24 : 13),
+                      ),
+                    if (trophiesArray[i]['dlc'] == true)
+                      Positioned(
+                        right: Platform.isWindows ? 4 : 2,
+                        bottom: Platform.isWindows ? 4 : 2,
+                        child: Icon(Icons.download_sharp,
+                            color: themeSelector["primary"]
+                                [settings.get("theme")],
+                            size: Platform.isWindows ? 20 : 12),
+                      ),
+                  ],
+                ),
+              ),
             ),
           ));
         }
@@ -577,101 +662,138 @@ class _TrophyListState extends State<TrophyList> {
         //? This first item is meant to be a banner on the top of the screen
         //? Using the game image as blurred background and with one special trophy
         //? Usually the platinum or rarest in the list having the highlight in the middle as podium
-        Container(
-          width: MediaQuery.of(context).size.width,
-          height: Platform.isWindows ? 220 : 115,
-          decoration: BoxDecoration(
-            // color: ,
-            image: DecorationImage(
-              fit: BoxFit.fitWidth,
-              image: CachedNetworkImageProvider(
-                trophyDataMap != null && trophyDataMap['gameHeader'] != null
-                    ? trophyDataMap['gameHeader']
-                    : "https://www.exophase.com/assets/zeal/logos/exologo_bw.png",
-                maxWidth: MediaQuery.of(context).size.width.floor(),
+        InkWell(
+          onTap: () async {
+            String page = trophyListData['gameLink'];
+            if (await canLaunch(page)) {
+              await launch(page);
+            }
+          },
+          child: Container(
+            width: MediaQuery.of(context).size.width,
+            height: Platform.isWindows ? 220 : 115,
+            decoration: BoxDecoration(
+              // color: ,
+              image: DecorationImage(
+                fit: BoxFit.fitWidth,
+                image: CachedNetworkImageProvider(
+                  trophyDataMap != null && trophyDataMap['gameHeader'] != null
+                      ? trophyDataMap['gameHeader']
+                      : "https://www.exophase.com/assets/zeal/logos/exologo_bw.png",
+                  maxWidth: MediaQuery.of(context).size.width.floor(),
+                ),
               ),
             ),
-          ),
-          child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 2, sigmaY: 2),
-            child: Container(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  Expanded(child: SizedBox()),
-                  if (trophyDataMap['podium'] != null)
-                    Tooltip(
-                      message:
-                          "${trophyDataMap['podium']['name']} (${trophyDataMap['podium']['rarity']}%)",
-                      child: CachedNetworkImage(
-                        height: 100,
-                        width: 100,
-                        fit: BoxFit.cover,
-                        imageUrl: trophyDataMap != null
-                            ? trophyDataMap['podium']['image']
-                            : "https://i.exophase.com/psn/awards/m/75d8eg.png",
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 2, sigmaY: 2),
+              child: Container(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Expanded(child: SizedBox()),
+                    if (trophyDataMap['podium'] != null)
+                      Tooltip(
+                        message:
+                            "${trophyDataMap['podium']['name']} (${trophyDataMap['podium']['rarity']}%)",
+                        child: CachedNetworkImage(
+                          height: 100,
+                          width: 100,
+                          fit: BoxFit.cover,
+                          imageUrl: trophyDataMap != null
+                              ? trophyDataMap['podium']['image']
+                              : "https://i.exophase.com/psn/awards/m/75d8eg.png",
+                        ),
                       ),
-                    ),
-                  SizedBox(height: 10)
-                ],
+                    SizedBox(height: 10)
+                  ],
+                ),
               ),
             ),
           ),
         ),
         //? Just below the banner, display the trophy counter for the displayed game
-        Container(
-          color: themeSelector["secondary"][settings.get("theme")],
-          width: MediaQuery.of(context).size.width,
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              if (trophyDataMap['platinumCount'] > 0)
+        if (trophyListData['gameRatio'] != null)
+          Container(
+            color: themeSelector["primary"][settings.get("theme")],
+            width: MediaQuery.of(context).size.width,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                if (trophyDataMap['platinumCount'] > 0)
+                  Padding(
+                      padding: EdgeInsets.all(5.0),
+                      child: trophyType('platinum',
+                          quantity: (trophyListData['gamePercentage'] != 0
+                                  ? "${trophyListData['gamePlatinum'] ?? 0}/"
+                                  : "") +
+                              '${trophyDataMap['platinumCount']}',
+                          style: textSelection(theme: "textLight"),
+                          tooltip: false)),
+                if (trophyDataMap['goldCount'] > 0)
+                  Padding(
+                    padding: EdgeInsets.all(5.0),
+                    child: trophyType('gold',
+                        quantity: (trophyListData['gamePercentage'] != 0
+                                ? "${trophyListData['gameGold'] ?? 0}/"
+                                : "") +
+                            '${trophyDataMap['goldCount']}',
+                        style: textSelection(theme: "textLight"),
+                        tooltip: false),
+                  ),
+                if (trophyDataMap['silverCount'] > 0)
+                  Padding(
+                    padding: const EdgeInsets.all(5.0),
+                    child: trophyType('silver',
+                        quantity: (trophyListData['gamePercentage'] != 0
+                                ? "${trophyListData['gameSilver'] ?? 0}/"
+                                : "") +
+                            '${trophyDataMap['silverCount']}',
+                        style: textSelection(theme: "textLight"),
+                        tooltip: false),
+                  ),
+                if (trophyDataMap['bronzeCount'] > 0)
+                  Padding(
+                    padding: const EdgeInsets.all(5.0),
+                    child: trophyType('bronze',
+                        quantity: (trophyListData['gamePercentage'] != 0
+                                ? "${trophyListData['gameBronze'] ?? 0}/"
+                                : "") +
+                            '${trophyDataMap['bronzeCount']}',
+                        style: textSelection(theme: "textLight"),
+                        tooltip: false),
+                  ),
                 Padding(
                   padding: EdgeInsets.all(5.0),
-                  child: trophyType('platinum',
-                      quantity:
-                          '${trophyListData['gamePlatinum'] ?? 0}/${trophyDataMap['platinumCount']}',
-                      style: textSelection(theme: "textDark")),
+                  child: trophyType('total',
+                      quantity: '${trophyListData['gameRatio']}',
+                      style: textSelection(theme: "textLight")),
                 ),
-              if (trophyDataMap['goldCount'] > 0)
-                Padding(
-                  padding: EdgeInsets.all(5.0),
-                  child: trophyType('gold',
-                      quantity:
-                          '${trophyListData['gameGold'] ?? 0}/${trophyDataMap['goldCount']}',
-                      style: textSelection(theme: "textDark")),
+                SizedBox(width: Platform.isWindows ? 20 : 10),
+                Text(
+                  "${regionalText["trophies"]["trophies"]} ${_displayedTrophies.toString()}",
+                  style: textSelection(theme: "textLight"),
                 ),
-              if (trophyDataMap['silverCount'] > 0)
-                Padding(
-                  padding: const EdgeInsets.all(5.0),
-                  child: trophyType('silver',
-                      quantity:
-                          '${trophyListData['gameSilver'] ?? 0}/${trophyDataMap['silverCount']}',
-                      style: textSelection(theme: "textDark")),
-                ),
-              if (trophyDataMap['bronzeCount'] > 0)
-                Padding(
-                  padding: const EdgeInsets.all(5.0),
-                  child: trophyType('bronze',
-                      quantity:
-                          '${trophyListData['gameBronze'] ?? 0}/${trophyDataMap['bronzeCount']}',
-                      style: textSelection(theme: "textDark")),
-                ),
-              Padding(
-                padding: EdgeInsets.all(5.0),
-                child: trophyType('total',
-                    quantity: '${trophyListData['gameRatio']}',
-                    style: textSelection(theme: "textDark")),
-              ),
-              SizedBox(width: Platform.isWindows ? 20 : 10),
-              Text(
-                "${regionalText["trophies"]["trophies"]} ${_displayedTrophies.toString()}",
-                style: textSelection(theme: "textDark"),
-              ),
-            ],
+              ],
+            ),
           ),
-        ),
+
+        //? Below the trophy counter, the gap between trophies
+        if (trophyListData['gameRatio'] != null &&
+            gameData['first'] != gameData['last'] &&
+            (trophyListData['gamePercentage'] ?? 0) > 0)
+          Container(
+            color: themeSelector["primary"][settings.get("theme")],
+            width: MediaQuery.of(context).size.width,
+            child: Center(
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Padding(
+                    padding: EdgeInsets.all(5.0),
+                    child: timeGap(gameData['last'], gameData['first'], false)),
+              ),
+            ),
+          ),
         ...trophyWidgets
       ];
       listDisplay = SingleChildScrollView(
@@ -709,11 +831,7 @@ class _TrophyListState extends State<TrophyList> {
                       children: [
                         if (trophiesArray[i][1] != null)
                           CachedNetworkImage(
-                              imageUrl: trophySettings['hidden'] != false ||
-                                      trophiesArray[i]['hidden'] != true
-                                  ? trophiesArray[i][1]
-                                  : "https://www.exophase.com/assets/zeal/images/default_hidden.png",
-                              fit: BoxFit.fill),
+                              imageUrl: trophiesArray[i][1], fit: BoxFit.fill),
                         SingleChildScrollView(
                           scrollDirection: Axis.horizontal,
                           child: Container(
@@ -734,11 +852,12 @@ class _TrophyListState extends State<TrophyList> {
         else {
           if ( //? Skip if user is filtering earned and the trophy was earned
               (trophiesArray[i]['timestamp'] != null &&
-                      trophySettings['earned'] == false) ||
+                      trophySettings['earned'] == false &&
+                      trophyListData['gamePercentage'] != 100) ||
                   //? Skip if the user is filtering unearned and the trophy wasn't earned yet
-                  (trophiesArray[i]['timestamp'] == null &&
-                      (trophySettings['unearned'] == false ||
-                          trophySettings['sorting'] == 'earnedTimestamp')) ||
+                  ((trophyListData['gamePercentage'] ?? 0) > 0 &&
+                      trophiesArray[i]['timestamp'] == null &&
+                      trophySettings['unearned'] == false) ||
                   //? Skip if the user is filtering secret trophies and the trophy is marked as hidden
                   (trophiesArray[i]['hidden'] == true &&
                       trophySettings['showHidden'] == false) ||
@@ -776,21 +895,28 @@ class _TrophyListState extends State<TrophyList> {
                       trophyType(trophiesArray[i]['type'], size: "small"),
                       SizedBox(width: 3),
                       //? Trophy name
-                      Text(
-                        trophySettings['hidden'] != false ||
-                                trophiesArray[i]['hidden'] != true
-                            ? trophiesArray[i]['name']
-                            : "???",
-                        style: textSelection(theme: "textLightBold"),
-                        textAlign: TextAlign.left,
-                      ),
-                      //? Trophy rarity, if avaiable
-                      if (trophiesArray[i]['rarity'] != null)
-                        Text(
-                          " (${trophiesArray[i]['rarity']}%)",
+                      Tooltip(
+                        message: trophySettings['hidden'] != false ||
+                                trophiesArray[i]['hidden'] != true ||
+                                trophiesArray[i]['timestamp'] != null
+                            ? trophiesArray[i]['description']
+                            : regionalText["trophies"]["hiddenTrophy"],
+                        child: Text(
+                          trophySettings['hidden'] != false ||
+                                  trophiesArray[i]['hidden'] != true ||
+                                  trophiesArray[i]['timestamp'] != null
+                              ? trophiesArray[i]['name']
+                              : "???",
                           style: textSelection(theme: "textLightBold"),
                           textAlign: TextAlign.left,
                         ),
+                      ),
+                      //? Trophy rarity, if avaiable
+                      if (trophiesArray[i]['rarity'] != null)
+                        rarityType(
+                            rarity: trophiesArray[i]['rarity'],
+                            size: 'small',
+                            style: textSelection(theme: "textLightBold")),
                     ],
                   ),
                 ),
@@ -801,101 +927,138 @@ class _TrophyListState extends State<TrophyList> {
         //? This first item is meant to be a banner on the top of the screen
         //? Using the game image as blurred background and with one special trophy
         //? Usually the platinum or rarest in the list having the highlight in the middle as podium
-        Container(
-          width: MediaQuery.of(context).size.width,
-          height: Platform.isWindows ? 220 : 115,
-          decoration: BoxDecoration(
-            // color: ,
-            image: DecorationImage(
-              fit: BoxFit.fitWidth,
-              image: CachedNetworkImageProvider(
-                trophyDataMap != null && trophyDataMap['gameHeader'] != null
-                    ? trophyDataMap['gameHeader']
-                    : "https://www.exophase.com/assets/zeal/logos/exologo_bw.png",
-                maxWidth: MediaQuery.of(context).size.width.floor(),
+        InkWell(
+          onTap: () async {
+            String page = trophyListData['gameLink'];
+            if (await canLaunch(page)) {
+              await launch(page);
+            }
+          },
+          child: Container(
+            width: MediaQuery.of(context).size.width,
+            height: Platform.isWindows ? 220 : 115,
+            decoration: BoxDecoration(
+              // color: ,
+              image: DecorationImage(
+                fit: BoxFit.fitWidth,
+                image: CachedNetworkImageProvider(
+                  trophyDataMap != null && trophyDataMap['gameHeader'] != null
+                      ? trophyDataMap['gameHeader']
+                      : "https://www.exophase.com/assets/zeal/logos/exologo_bw.png",
+                  maxWidth: MediaQuery.of(context).size.width.floor(),
+                ),
               ),
             ),
-          ),
-          child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 2, sigmaY: 2),
-            child: Container(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  Expanded(child: SizedBox()),
-                  if (trophyDataMap['podium'] != null)
-                    Tooltip(
-                      message:
-                          "${trophyDataMap['podium']['name']} (${trophyDataMap['podium']['rarity']}%)",
-                      child: CachedNetworkImage(
-                        height: 100,
-                        width: 100,
-                        fit: BoxFit.cover,
-                        imageUrl: trophyDataMap != null
-                            ? trophyDataMap['podium']['image']
-                            : "https://i.exophase.com/psn/awards/m/75d8eg.png",
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 2, sigmaY: 2),
+              child: Container(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Expanded(child: SizedBox()),
+                    if (trophyDataMap['podium'] != null)
+                      Tooltip(
+                        message:
+                            "${trophyDataMap['podium']['name']} (${trophyDataMap['podium']['rarity']}%)",
+                        child: CachedNetworkImage(
+                          height: 100,
+                          width: 100,
+                          fit: BoxFit.cover,
+                          imageUrl: trophyDataMap != null
+                              ? trophyDataMap['podium']['image']
+                              : "https://i.exophase.com/psn/awards/m/75d8eg.png",
+                        ),
                       ),
-                    ),
-                  SizedBox(height: 10)
-                ],
+                    SizedBox(height: 10)
+                  ],
+                ),
               ),
             ),
           ),
         ),
         //? Just below the banner, display the trophy counter for the displayed game
-        Container(
-          color: themeSelector["secondary"][settings.get("theme")],
-          width: MediaQuery.of(context).size.width,
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              if (trophyDataMap['platinumCount'] > 0)
+        if (trophyListData['gameRatio'] != null)
+          Container(
+            color: themeSelector["primary"][settings.get("theme")],
+            width: MediaQuery.of(context).size.width,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                if (trophyDataMap['platinumCount'] > 0)
+                  Padding(
+                      padding: EdgeInsets.all(5.0),
+                      child: trophyType('platinum',
+                          quantity: (trophyListData['gamePercentage'] != 0
+                                  ? "${trophyListData['gamePlatinum'] ?? 0}/"
+                                  : "") +
+                              '${trophyDataMap['platinumCount']}',
+                          style: textSelection(theme: "textLight"),
+                          tooltip: false)),
+                if (trophyDataMap['goldCount'] > 0)
+                  Padding(
+                    padding: EdgeInsets.all(5.0),
+                    child: trophyType('gold',
+                        quantity: (trophyListData['gamePercentage'] != 0
+                                ? "${trophyListData['gameGold'] ?? 0}/"
+                                : "") +
+                            '${trophyDataMap['goldCount']}',
+                        style: textSelection(theme: "textLight"),
+                        tooltip: false),
+                  ),
+                if (trophyDataMap['silverCount'] > 0)
+                  Padding(
+                    padding: const EdgeInsets.all(5.0),
+                    child: trophyType('silver',
+                        quantity: (trophyListData['gamePercentage'] != 0
+                                ? "${trophyListData['gameSilver'] ?? 0}/"
+                                : "") +
+                            '${trophyDataMap['silverCount']}',
+                        style: textSelection(theme: "textLight"),
+                        tooltip: false),
+                  ),
+                if (trophyDataMap['bronzeCount'] > 0)
+                  Padding(
+                    padding: const EdgeInsets.all(5.0),
+                    child: trophyType('bronze',
+                        quantity: (trophyListData['gamePercentage'] != 0
+                                ? "${trophyListData['gameBronze'] ?? 0}/"
+                                : "") +
+                            '${trophyDataMap['bronzeCount']}',
+                        style: textSelection(theme: "textLight"),
+                        tooltip: false),
+                  ),
                 Padding(
                   padding: EdgeInsets.all(5.0),
-                  child: trophyType('platinum',
-                      quantity:
-                          '${trophyListData['gamePlatinum'] ?? 0}/${trophyDataMap['platinumCount']}',
-                      style: textSelection(theme: "textDark")),
+                  child: trophyType('total',
+                      quantity: '${trophyListData['gameRatio']}',
+                      style: textSelection(theme: "textLight")),
                 ),
-              if (trophyDataMap['goldCount'] > 0)
-                Padding(
-                  padding: EdgeInsets.all(5.0),
-                  child: trophyType('gold',
-                      quantity:
-                          '${trophyListData['gameGold'] ?? 0}/${trophyDataMap['goldCount']}',
-                      style: textSelection(theme: "textDark")),
+                SizedBox(width: Platform.isWindows ? 20 : 10),
+                Text(
+                  "${regionalText["trophies"]["trophies"]} ${_displayedTrophies.toString()}",
+                  style: textSelection(theme: "textLight"),
                 ),
-              if (trophyDataMap['silverCount'] > 0)
-                Padding(
-                  padding: const EdgeInsets.all(5.0),
-                  child: trophyType('silver',
-                      quantity:
-                          '${trophyListData['gameSilver'] ?? 0}/${trophyDataMap['silverCount']}',
-                      style: textSelection(theme: "textDark")),
-                ),
-              if (trophyDataMap['bronzeCount'] > 0)
-                Padding(
-                  padding: const EdgeInsets.all(5.0),
-                  child: trophyType('bronze',
-                      quantity:
-                          '${trophyListData['gameBronze'] ?? 0}/${trophyDataMap['bronzeCount']}',
-                      style: textSelection(theme: "textDark")),
-                ),
-              Padding(
-                padding: EdgeInsets.all(5.0),
-                child: trophyType('total',
-                    quantity: '${trophyListData['gameRatio']}',
-                    style: textSelection(theme: "textDark")),
-              ),
-              SizedBox(width: Platform.isWindows ? 20 : 10),
-              Text(
-                "${regionalText["trophies"]["trophies"]} ${_displayedTrophies.toString()}",
-                style: textSelection(theme: "textDark"),
-              ),
-            ],
+              ],
+            ),
           ),
-        ),
+
+        //? Below the trophy counter, the gap between trophies
+        if (trophyListData['gameRatio'] != null &&
+            gameData['first'] != gameData['last'] &&
+            (trophyListData['gamePercentage'] ?? 0) > 0)
+          Container(
+            color: themeSelector["primary"][settings.get("theme")],
+            width: MediaQuery.of(context).size.width,
+            child: Center(
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Padding(
+                    padding: EdgeInsets.all(5.0),
+                    child: timeGap(gameData['last'], gameData['first'], false)),
+              ),
+            ),
+          ),
         ...trophyWidgets
       ];
       listDisplay = Container(
@@ -934,11 +1097,7 @@ class _TrophyListState extends State<TrophyList> {
                       children: [
                         if (trophiesArray[i][1] != null)
                           CachedNetworkImage(
-                              imageUrl: trophySettings['hidden'] != false ||
-                                      trophiesArray[i]['hidden'] != true
-                                  ? trophiesArray[i][1]
-                                  : "https://www.exophase.com/assets/zeal/images/default_hidden.png",
-                              fit: BoxFit.fill),
+                              imageUrl: trophiesArray[i][1], fit: BoxFit.fill),
                         SingleChildScrollView(
                           scrollDirection: Axis.horizontal,
                           child: Container(
@@ -959,11 +1118,12 @@ class _TrophyListState extends State<TrophyList> {
         else {
           if ( //? Skip if user is filtering earned and the trophy was earned
               (trophiesArray[i]['timestamp'] != null &&
-                      trophySettings['earned'] == false) ||
+                      trophySettings['earned'] == false &&
+                      trophyListData['gamePercentage'] != 100) ||
                   //? Skip if the user is filtering unearned and the trophy wasn't earned yet
-                  (trophiesArray[i]['timestamp'] == null &&
-                      (trophySettings['unearned'] == false ||
-                          trophySettings['sorting'] == 'earnedTimestamp')) ||
+                  ((trophyListData['gamePercentage'] ?? 0) > 0 &&
+                      trophiesArray[i]['timestamp'] == null &&
+                      trophySettings['unearned'] == false) ||
                   //? Skip if the user is filtering secret trophies and the trophy is marked as hidden
                   (trophiesArray[i]['hidden'] == true &&
                       trophySettings['showHidden'] == false) ||
@@ -989,107 +1149,178 @@ class _TrophyListState extends State<TrophyList> {
                       color: trophiesArray[i]['timestamp'] != null
                           ? Colors.green
                           : Colors.red)),
-              // width: MediaQuery.of(context).size.width,
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 mainAxisAlignment: MainAxisAlignment.start,
                 children: [
                   //? Trophy image
-                  Container(
-                    height: Platform.isWindows ? 80 : 60,
-                    width: Platform.isWindows ? 80 : 60,
-                    child: CachedNetworkImage(
-                      fit: BoxFit.fill,
-                      imageUrl: trophySettings['hidden'] != false ||
-                              trophiesArray[i]['hidden'] != true
-                          ? trophiesArray[i]['image']
-                          : "https://www.exophase.com/assets/zeal/images/default_hidden.png",
-                    ),
+                  Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      Container(
+                        height: Platform.isWindows ? 85 : 50,
+                        width: Platform.isWindows ? 85 : 50,
+                        child: CachedNetworkImage(
+                          fit: BoxFit.fill,
+                          imageUrl: trophySettings['hidden'] != false ||
+                                  trophiesArray[i]['hidden'] != true ||
+                                  trophiesArray[i]['timestamp'] != null
+                              ? trophiesArray[i]['image']
+                              : "https://www.exophase.com/assets/zeal/images/default_hidden.png",
+                        ),
+                      ),
+                      if (trophiesArray[i]['dlc'] == true)
+                        Positioned(
+                          right: 0,
+                          bottom: 0,
+                          child: Icon(Icons.brightness_1,
+                              color: themeSelector["primary"]
+                                  [settings.get("theme")],
+                              size: Platform.isWindows ? 28 : 15),
+                        ),
+                      if (trophiesArray[i]['dlc'] == true)
+                        Positioned(
+                          right: Platform.isWindows ? 2 : 1,
+                          bottom: Platform.isWindows ? 2 : 1,
+                          child: Icon(Icons.brightness_1,
+                              color: themeSelector["secondary"]
+                                  [settings.get("theme")],
+                              size: Platform.isWindows ? 24 : 13),
+                        ),
+                      if (trophiesArray[i]['dlc'] == true)
+                        Positioned(
+                          right: Platform.isWindows ? 4 : 2,
+                          bottom: Platform.isWindows ? 4 : 2,
+                          child: Icon(Icons.download_sharp,
+                              color: themeSelector["primary"]
+                                  [settings.get("theme")],
+                              size: Platform.isWindows ? 20 : 12),
+                        ),
+                    ],
                   ),
-                  //? Column with trophy type, name, rarity, exp + description + earned timestamp
-                  Container(
-                    width: MediaQuery.of(context).size.width -
-                        (Platform.isWindows ? 105 : 80),
-                    child: SingleChildScrollView(
-                      scrollDirection: Axis.horizontal,
-                      child: Padding(
-                        padding: EdgeInsets.all(Platform.isWindows ? 10.0 : 5),
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            //? Trophy type, name, rarity, exp
-                            Row(
-                              mainAxisSize: MainAxisSize.min,
-                              mainAxisAlignment: MainAxisAlignment.start,
-                              children: [
-                                //? Trophy type
-                                trophyType(trophiesArray[i]['type'],
-                                    size: "small"),
-                                SizedBox(width: 3),
-                                //? Trophy name
-                                Text(
-                                  trophySettings['hidden'] != false ||
-                                          trophiesArray[i]['hidden'] != true
-                                      ? trophiesArray[i]['name']
-                                      : "???",
-                                  style: textSelection(theme: "textLightBold"),
-                                  textAlign: TextAlign.left,
-                                ),
-                                //? Trophy rarity, if avaiable
-                                if (trophiesArray[i]['rarity'] != null)
+                  //? Column with trophy type, name, rarity, exp + description + earned timestamp + time gap if sorting = earnedTimestamp
+                  Expanded(
+                    child: Container(
+                      child: SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        child: Padding(
+                          padding:
+                              EdgeInsets.all(Platform.isWindows ? 10.0 : 5),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              //? Trophy type, name, rarity, exp
+                              Row(
+                                mainAxisSize: MainAxisSize.min,
+                                mainAxisAlignment: MainAxisAlignment.start,
+                                children: [
+                                  //? Trophy type
+                                  trophyType(trophiesArray[i]['type'],
+                                      size: "small"),
+                                  SizedBox(width: 3),
+                                  //? Trophy name
                                   Text(
-                                    " (${trophiesArray[i]['rarity']}%)",
+                                    trophySettings['hidden'] != false ||
+                                            trophiesArray[i]['hidden'] !=
+                                                true ||
+                                            trophiesArray[i]['timestamp'] !=
+                                                null
+                                        ? trophiesArray[i]['name']
+                                        : "???",
                                     style:
                                         textSelection(theme: "textLightBold"),
                                     textAlign: TextAlign.left,
                                   ),
-                                //? Trophy EXP for exophase
-                                if (trophiesArray[i]['exp'] != null)
-                                  Row(
-                                    children: [
-                                      SizedBox(width: 3),
-                                      CachedNetworkImage(
-                                          imageUrl:
-                                              "https://www.exophase.com/assets/zeal/_icons/favicon.ico",
-                                          height: Platform.isWindows ? 15 : 10),
-                                      Text(
-                                        " ${trophiesArray[i]['exp']}",
+                                  //? Trophy rarity, if available
+                                  if (trophiesArray[i]['rarity'] != null)
+                                    rarityType(
+                                        rarity: trophiesArray[i]['rarity'],
+                                        size: 'small',
                                         style: textSelection(
-                                            theme: "textLightBold"),
-                                        textAlign: TextAlign.left,
-                                      ),
-                                    ],
-                                  ),
-                              ],
-                            ),
-                            //? Trophy description
-                            Container(
-                              child: Text(
-                                trophySettings['hidden'] != false ||
-                                        trophiesArray[i]['hidden'] != true
-                                    ? trophiesArray[i]['description']
-                                    : "?????",
-                                style: textSelection(),
-                                textAlign: TextAlign.left,
+                                            theme: "textLightBold")),
+                                  //? Trophy EXP for exophase
+                                  if (trophiesArray[i]['exp'] != null)
+                                    Row(
+                                      children: [
+                                        SizedBox(width: 3),
+                                        CachedNetworkImage(
+                                            imageUrl:
+                                                "https://www.exophase.com/assets/zeal/_icons/favicon.ico",
+                                            height:
+                                                Platform.isWindows ? 15 : 10),
+                                        Text(
+                                          " ${trophiesArray[i]['exp']}",
+                                          style: textSelection(
+                                              theme: "textLightBold"),
+                                          textAlign: TextAlign.left,
+                                        ),
+                                      ],
+                                    ),
+                                ],
                               ),
-                            ),
-                            //? Trophy timestamp
-                            if (trophiesArray[i]['timestamp'] != null)
+                              //? Trophy description
                               Container(
                                 child: Text(
-                                  trophiesArray[i]['parsedTimestamp']
-                                      .toString(),
+                                  trophySettings['hidden'] != false ||
+                                          trophiesArray[i]['hidden'] != true ||
+                                          trophiesArray[i]['timestamp'] != null
+                                      ? trophiesArray[i]['description']
+                                      : regionalText["trophies"]
+                                          ["hiddenTrophy"],
                                   style: textSelection(),
                                   textAlign: TextAlign.left,
                                 ),
-                              )
-                          ],
+                              ),
+                              //? Trophy timestamp
+                              if (trophiesArray[i]['timestamp'] != null)
+                                Container(
+                                  child: Row(
+                                    children: [
+                                      Text(
+                                        settings.get('localization') ?? true
+                                            ? DateFormat.yMMMMEEEEd(
+                                                    Platform.localeName)
+                                                .add_Hms()
+                                                .format(DateTime
+                                                    .fromMillisecondsSinceEpoch(
+                                                        trophiesArray[i]
+                                                                ['timestamp'] *
+                                                            1000))
+                                            : DateFormat.yMMMMEEEEd().add_Hms().format(
+                                                DateTime.fromMillisecondsSinceEpoch(
+                                                    trophiesArray[i]['timestamp'] *
+                                                        1000)),
+                                        style: textSelection(),
+                                        textAlign: TextAlign.left,
+                                      ),
+                                      if (trophySettings['sorting'] ==
+                                              "earnedTimestamp" &&
+                                          i > 0 &&
+                                          trophiesArray[i - 1]['timestamp'] !=
+                                              null &&
+                                          trophiesArray[i - 1]['timestamp'] !=
+                                              trophiesArray[i]['timestamp'])
+                                        Row(
+                                          children: [
+                                            SizedBox(width: 5),
+                                            timeGap(
+                                                trophiesArray[i - 1]
+                                                    ['timestamp'],
+                                                trophiesArray[i]['timestamp'])
+                                          ],
+                                        ),
+                                    ],
+                                  ),
+                                )
+                            ],
+                          ),
                         ),
                       ),
                     ),
-                  )
+                  ),
+                  SizedBox(width: 5)
                 ],
               )));
         }
@@ -1098,101 +1329,137 @@ class _TrophyListState extends State<TrophyList> {
         //? This first item is meant to be a banner on the top of the screen
         //? Using the game image as blurred background and with one special trophy
         //? Usually the platinum or rarest in the list having the highlight in the middle as podium
-        Container(
-          width: MediaQuery.of(context).size.width,
-          height: Platform.isWindows ? 220 : 115,
-          decoration: BoxDecoration(
-            // color: ,
-            image: DecorationImage(
-              fit: BoxFit.fitWidth,
-              image: CachedNetworkImageProvider(
-                trophyDataMap != null && trophyDataMap['gameHeader'] != null
-                    ? trophyDataMap['gameHeader']
-                    : "https://www.exophase.com/assets/zeal/logos/exologo_bw.png",
-                maxWidth: MediaQuery.of(context).size.width.floor(),
+        InkWell(
+          onTap: () async {
+            String page = trophyListData['gameLink'];
+            if (await canLaunch(page)) {
+              await launch(page);
+            }
+          },
+          child: Container(
+            width: MediaQuery.of(context).size.width,
+            height: Platform.isWindows ? 220 : 115,
+            decoration: BoxDecoration(
+              // color: ,
+              image: DecorationImage(
+                fit: BoxFit.fitWidth,
+                image: CachedNetworkImageProvider(
+                  trophyDataMap != null && trophyDataMap['gameHeader'] != null
+                      ? trophyDataMap['gameHeader']
+                      : "https://www.exophase.com/assets/zeal/logos/exologo_bw.png",
+                  maxWidth: MediaQuery.of(context).size.width.floor(),
+                ),
               ),
             ),
-          ),
-          child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 2, sigmaY: 2),
-            child: Container(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  Expanded(child: SizedBox()),
-                  if (trophyDataMap['podium'] != null)
-                    Tooltip(
-                      message:
-                          "${trophyDataMap['podium']['name']} (${trophyDataMap['podium']['rarity']}%)",
-                      child: CachedNetworkImage(
-                        height: 100,
-                        width: 100,
-                        fit: BoxFit.cover,
-                        imageUrl: trophyDataMap != null
-                            ? trophyDataMap['podium']['image']
-                            : "https://i.exophase.com/psn/awards/m/75d8eg.png",
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 2, sigmaY: 2),
+              child: Container(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Expanded(child: SizedBox()),
+                    if (trophyDataMap['podium'] != null)
+                      Tooltip(
+                        message:
+                            "${trophyDataMap['podium']['name']} (${trophyDataMap['podium']['rarity']}%)",
+                        child: CachedNetworkImage(
+                          height: 100,
+                          width: 100,
+                          fit: BoxFit.cover,
+                          imageUrl: trophyDataMap != null
+                              ? trophyDataMap['podium']['image']
+                              : "https://i.exophase.com/psn/awards/m/75d8eg.png",
+                        ),
                       ),
-                    ),
-                  SizedBox(height: 10)
-                ],
+                    SizedBox(height: 10)
+                  ],
+                ),
               ),
             ),
           ),
         ),
         //? Just below the banner, display the trophy counter for the displayed game
-        Container(
-          color: themeSelector["secondary"][settings.get("theme")],
-          width: MediaQuery.of(context).size.width,
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              if (trophyDataMap['platinumCount'] > 0)
+        if (trophyListData['gameRatio'] != null)
+          Container(
+            color: themeSelector["primary"][settings.get("theme")],
+            width: MediaQuery.of(context).size.width,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                if (trophyDataMap['platinumCount'] > 0)
+                  Padding(
+                      padding: EdgeInsets.all(5.0),
+                      child: trophyType('platinum',
+                          quantity: (trophyListData['gamePercentage'] != 0
+                                  ? "${trophyListData['gamePlatinum'] ?? 0}/"
+                                  : "") +
+                              '${trophyDataMap['platinumCount']}',
+                          style: textSelection(theme: "textLight"),
+                          tooltip: false)),
+                if (trophyDataMap['goldCount'] > 0)
+                  Padding(
+                    padding: EdgeInsets.all(5.0),
+                    child: trophyType('gold',
+                        quantity: (trophyListData['gamePercentage'] != 0
+                                ? "${trophyListData['gameGold'] ?? 0}/"
+                                : "") +
+                            '${trophyDataMap['goldCount']}',
+                        style: textSelection(theme: "textLight"),
+                        tooltip: false),
+                  ),
+                if (trophyDataMap['silverCount'] > 0)
+                  Padding(
+                    padding: const EdgeInsets.all(5.0),
+                    child: trophyType('silver',
+                        quantity: (trophyListData['gamePercentage'] != 0
+                                ? "${trophyListData['gameSilver'] ?? 0}/"
+                                : "") +
+                            '${trophyDataMap['silverCount']}',
+                        style: textSelection(theme: "textLight"),
+                        tooltip: false),
+                  ),
+                if (trophyDataMap['bronzeCount'] > 0)
+                  Padding(
+                    padding: const EdgeInsets.all(5.0),
+                    child: trophyType('bronze',
+                        quantity: (trophyListData['gamePercentage'] != 0
+                                ? "${trophyListData['gameBronze'] ?? 0}/"
+                                : "") +
+                            '${trophyDataMap['bronzeCount']}',
+                        style: textSelection(theme: "textLight"),
+                        tooltip: false),
+                  ),
                 Padding(
                   padding: EdgeInsets.all(5.0),
-                  child: trophyType('platinum',
-                      quantity:
-                          '${trophyListData['gamePlatinum'] ?? 0}/${trophyDataMap['platinumCount']}',
-                      style: textSelection(theme: "textDark")),
+                  child: trophyType('total',
+                      quantity: '${trophyListData['gameRatio']}',
+                      style: textSelection(theme: "textLight")),
                 ),
-              if (trophyDataMap['goldCount'] > 0)
-                Padding(
-                  padding: EdgeInsets.all(5.0),
-                  child: trophyType('gold',
-                      quantity:
-                          '${trophyListData['gameGold'] ?? 0}/${trophyDataMap['goldCount']}',
-                      style: textSelection(theme: "textDark")),
+                SizedBox(width: Platform.isWindows ? 20 : 10),
+                Text(
+                  "${regionalText["trophies"]["trophies"]} ${_displayedTrophies.toString()}",
+                  style: textSelection(theme: "textLight"),
                 ),
-              if (trophyDataMap['silverCount'] > 0)
-                Padding(
-                  padding: const EdgeInsets.all(5.0),
-                  child: trophyType('silver',
-                      quantity:
-                          '${trophyListData['gameSilver'] ?? 0}/${trophyDataMap['silverCount']}',
-                      style: textSelection(theme: "textDark")),
-                ),
-              if (trophyDataMap['bronzeCount'] > 0)
-                Padding(
-                  padding: const EdgeInsets.all(5.0),
-                  child: trophyType('bronze',
-                      quantity:
-                          '${trophyListData['gameBronze'] ?? 0}/${trophyDataMap['bronzeCount']}',
-                      style: textSelection(theme: "textDark")),
-                ),
-              Padding(
-                padding: EdgeInsets.all(5.0),
-                child: trophyType('total',
-                    quantity: '${trophyListData['gameRatio']}',
-                    style: textSelection(theme: "textDark")),
-              ),
-              SizedBox(width: Platform.isWindows ? 20 : 10),
-              Text(
-                "${regionalText["trophies"]["trophies"]} ${_displayedTrophies.toString()}",
-                style: textSelection(theme: "textDark"),
-              ),
-            ],
+              ],
+            ),
           ),
-        ),
+        //? Below the trophy counter, the gap between trophies
+        if (trophyListData['gameRatio'] != null &&
+            gameData['first'] != gameData['last'] &&
+            (trophyListData['gamePercentage'] ?? 0) > 0)
+          Container(
+            color: themeSelector["primary"][settings.get("theme")],
+            width: MediaQuery.of(context).size.width,
+            child: Center(
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Padding(
+                    padding: EdgeInsets.all(5.0),
+                    child: timeGap(gameData['last'], gameData['first'], false)),
+              ),
+            ),
+          ),
         ...trophyWidgets
       ];
       listDisplay = Container(
@@ -1224,13 +1491,22 @@ class _TrophyListState extends State<TrophyList> {
               toolbarHeight: 40,
               centerTitle: true,
               backgroundColor: themeSelector["primary"][settings.get("theme")],
+              leading: InkWell(
+                enableFeedback: false,
+                child: Icon(
+                  Icons.arrow_back,
+                  color: themeSelector["secondary"][settings.get("theme")],
+                ),
+                onTap: () => Navigator.pop(context),
+              ),
               title: Text(
-                "${settings.get('psnID')}'s ${trophyListData['gameName']} (${trophyListData['gamePercentage']}%)",
+                trophyListData['gamePercentage'] == 0
+                    ? trophyListData['gameName']
+                    : "${settings.get('psnID')}'s ${trophyListData['gameName']} (${trophyListData['gamePercentage']}%)",
                 style: textSelection(theme: "textLightBold"),
               ),
             ),
       body: Container(
-        // height: MediaQuery.of(context).size.height + 220,
         decoration: backgroundDecoration(),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.center,
@@ -1257,7 +1533,7 @@ class _TrophyListState extends State<TrophyList> {
                       } else {
                         return Center(
                             child: loadingSelector(
-                                settings.get('loading'), "dark"));
+                                settings.get('loading'), "dark", 50));
                       }
                     }),
               ),
@@ -1266,103 +1542,108 @@ class _TrophyListState extends State<TrophyList> {
             if (trophyDataMap != null)
               Container(
                 width: MediaQuery.of(context).size.width,
-                padding:
-                    EdgeInsets.symmetric(vertical: Platform.isWindows ? 5 : 3),
-                color: themeSelector["secondary"][settings.get("theme")],
+                color: themeSelector["primary"][settings.get("theme")],
                 child: Column(
                   children: [
                     //? This Wrap contains the 3 rows of options: Filter, Sort and Display
-                    if (trophySettings['filter'] == true)
+                    if (openMenus['filter'] == true)
                       Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Center(
-                            child: Text(
-                              regionalText['trophies']['filter'],
-                              style: textSelection(theme: "textDark"),
-                              textAlign: TextAlign.center,
-                            ),
+                          Text(
+                            regionalText['trophies']['filter'],
+                            style: textSelection(theme: "textLight"),
+                            textAlign: TextAlign.center,
                           ),
                           Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
+                              SizedBox(height: Platform.isWindows ? 40 : 25),
                               //? Filter out unearned trophies and add in earned trophies if they were filtered
-                              Tooltip(
-                                message: regionalText['trophies']['unearned'],
-                                child: InkWell(
-                                    child: Container(
-                                        decoration: BoxDecoration(
-                                          //? To paint the border, we check the value of the settings for this website is true.
-                                          //? If it's false or null (never set), we will paint red.
-                                          border: Border.all(
-                                              color:
-                                                  trophySettings['unearned'] !=
-                                                          true
-                                                      ? Colors.red
-                                                      : Colors.green,
-                                              width:
-                                                  Platform.isWindows ? 5 : 2),
-                                          borderRadius: BorderRadius.all(
-                                              Radius.circular(5)),
-                                        ),
-                                        child: Icon(
-                                            Icons.check_box_outline_blank,
-                                            color: themeSelector["primary"]
-                                                [settings.get("theme")],
-                                            size:
-                                                Platform.isWindows ? 35 : 17)),
-                                    onTap: () {
-                                      setState(() {
-                                        if (trophySettings['unearned'] !=
-                                            true) {
-                                          trophySettings['unearned'] = true;
-                                        } else {
-                                          //? since complete and incomplete filters are mutually exclusive,
-                                          //? activating one on must turn off the other
-                                          trophySettings['unearned'] = false;
-                                          trophySettings['earned'] = true;
-                                        }
-                                      });
-                                    }),
-                              ),
+                              if (trophyListData['gamePercentage'] != 100 &&
+                                  (trophyListData['gamePercentage'] ?? 0) != 0)
+                                Tooltip(
+                                  message: regionalText['trophies']['unearned'],
+                                  child: InkWell(
+                                      child: Container(
+                                          decoration: BoxDecoration(
+                                            //? To paint the border, we check the value of the settings for this website is true.
+                                            //? If it's false or null (never set), we will paint red.
+                                            border: Border.all(
+                                                color: trophySettings[
+                                                            'unearned'] !=
+                                                        true
+                                                    ? Colors.red
+                                                    : Colors.green,
+                                                width:
+                                                    Platform.isWindows ? 5 : 2),
+                                            borderRadius: BorderRadius.all(
+                                                Radius.circular(5)),
+                                          ),
+                                          child: Icon(
+                                              Icons.check_box_outline_blank,
+                                              color: themeSelector["secondary"]
+                                                  [settings.get("theme")],
+                                              size: Platform.isWindows
+                                                  ? 35
+                                                  : 17)),
+                                      onTap: () {
+                                        setState(() {
+                                          if (trophySettings['unearned'] !=
+                                              true) {
+                                            trophySettings['unearned'] = true;
+                                          } else {
+                                            //? since complete and incomplete filters are mutually exclusive,
+                                            //? activating one on must turn off the other
+                                            trophySettings['unearned'] = false;
+                                            trophySettings['earned'] = true;
+                                          }
+                                        });
+                                      }),
+                                ),
                               //? Filter out earned trophies and add in unearned trophies if they were filtered
-                              Tooltip(
-                                message: regionalText['trophies']['earned'],
-                                child: InkWell(
-                                    child: Container(
-                                        decoration: BoxDecoration(
-                                          //? To paint the border, we check the value of the settings for this website is true.
-                                          //? If it's false or null (never set), we will paint red.
-                                          border: Border.all(
-                                              color: trophySettings['earned'] !=
-                                                      true
-                                                  ? Colors.red
-                                                  : Colors.green,
-                                              width:
-                                                  Platform.isWindows ? 5 : 2),
-                                          borderRadius: BorderRadius.all(
-                                              Radius.circular(5)),
-                                        ),
-                                        child: Icon(Icons.check_box,
-                                            color: themeSelector["primary"]
-                                                [settings.get("theme")],
-                                            size:
-                                                Platform.isWindows ? 35 : 17)),
-                                    onTap: () {
-                                      setState(() {
-                                        if (trophySettings['earned'] != true) {
-                                          trophySettings['earned'] = true;
-                                        } else {
-                                          //? since complete and incomplete filters are mutually exclusive,
-                                          //? activating one on must turn off the other
-                                          trophySettings['earned'] = false;
-                                          trophySettings['unearned'] = true;
-                                        }
-                                        settings.put(
-                                            'trophySettings', trophySettings);
-                                      });
-                                    }),
-                              ),
+                              if (trophyListData['gamePercentage'] != 100 &&
+                                  (trophyListData['gamePercentage'] ?? 0) != 0)
+                                Tooltip(
+                                  message: regionalText['trophies']['earned'],
+                                  child: InkWell(
+                                      child: Container(
+                                          decoration: BoxDecoration(
+                                            //? To paint the border, we check the value of the settings for this website is true.
+                                            //? If it's false or null (never set), we will paint red.
+                                            border: Border.all(
+                                                color:
+                                                    trophySettings['earned'] !=
+                                                            true
+                                                        ? Colors.red
+                                                        : Colors.green,
+                                                width:
+                                                    Platform.isWindows ? 5 : 2),
+                                            borderRadius: BorderRadius.all(
+                                                Radius.circular(5)),
+                                          ),
+                                          child: Icon(Icons.check_box,
+                                              color: themeSelector["secondary"]
+                                                  [settings.get("theme")],
+                                              size: Platform.isWindows
+                                                  ? 35
+                                                  : 17)),
+                                      onTap: () {
+                                        setState(() {
+                                          if (trophySettings['earned'] !=
+                                              true) {
+                                            trophySettings['earned'] = true;
+                                          } else {
+                                            //? since complete and incomplete filters are mutually exclusive,
+                                            //? activating one on must turn off the other
+                                            trophySettings['earned'] = false;
+                                            trophySettings['unearned'] = true;
+                                          }
+                                          settings.put(
+                                              'trophySettings', trophySettings);
+                                        });
+                                      }),
+                                ),
                               //? Filter hidden trophies
                               Tooltip(
                                 message: regionalText['trophies']['hidden'],
@@ -1386,7 +1667,7 @@ class _TrophyListState extends State<TrophyList> {
                                             trophySettings['showHidden'] != true
                                                 ? Icons.visibility_off
                                                 : Icons.visibility,
-                                            color: themeSelector["primary"]
+                                            color: themeSelector["secondary"]
                                                 [settings.get("theme")],
                                             size:
                                                 Platform.isWindows ? 35 : 17)),
@@ -1494,19 +1775,18 @@ class _TrophyListState extends State<TrophyList> {
                         ],
                       ),
                     //? This Row lets you sort trophies in a specific order.
-                    if (trophySettings['sort'] == true)
+                    if (openMenus['sort'] == true)
                       Container(
                         child: SingleChildScrollView(
                           scrollDirection: Axis.horizontal,
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              Center(
-                                child: Text(
-                                  regionalText['trophies']['sort'],
-                                  style: textSelection(theme: "textDark"),
-                                  textAlign: TextAlign.center,
-                                ),
+                              SizedBox(height: Platform.isWindows ? 40 : 25),
+                              Text(
+                                regionalText['trophies']['sort'],
+                                style: textSelection(theme: "textLight"),
+                                textAlign: TextAlign.center,
                               ),
                               Row(
                                 mainAxisSize: MainAxisSize.min,
@@ -1533,7 +1813,7 @@ class _TrophyListState extends State<TrophyList> {
                                         child: Text(
                                           "PSN",
                                           style:
-                                              textSelection(theme: "textDark"),
+                                              textSelection(theme: "textLight"),
                                           textAlign: TextAlign.center,
                                         ),
                                         onTap: () {
@@ -1566,8 +1846,8 @@ class _TrophyListState extends State<TrophyList> {
                                             Radius.circular(5)),
                                       ),
                                       child: InkWell(
-                                        child:
-                                            trophyType("platinum", size: "big"),
+                                        child: trophyType("platinum",
+                                            size: "big", tooltip: false),
                                         onTap: () {
                                           if (trophySettings['sorting'] !=
                                               "value") {
@@ -1604,7 +1884,7 @@ class _TrophyListState extends State<TrophyList> {
                                         child: Text(
                                           "ABC",
                                           style:
-                                              textSelection(theme: "textDark"),
+                                              textSelection(theme: "textLight"),
                                           textAlign: TextAlign.center,
                                         ),
                                       ),
@@ -1620,7 +1900,7 @@ class _TrophyListState extends State<TrophyList> {
                                     ),
                                   ),
                                   SizedBox(width: 3),
-                                  //? Sort games by descending Alphabetical (Z to A)
+                                  //? Sort trophies by rarity
                                   Tooltip(
                                     message: regionalText['trophies']['rarity'],
                                     child: InkWell(
@@ -1657,42 +1937,46 @@ class _TrophyListState extends State<TrophyList> {
                                     ),
                                   ),
                                   //? Sort trophies by earned timestamp
-                                  Tooltip(
-                                    message: regionalText['trophies']
-                                        ['earnedTimestamp'],
-                                    child: Container(
-                                      decoration: BoxDecoration(
-                                        //? To paint the border, we check the value of the settings for this website is true.
-                                        //? If it's false or null (never set), we will paint red.
-                                        border: Border.all(
-                                            color: trophySettings['sorting'] ==
-                                                    'earnedTimestamp'
-                                                ? Colors.green
-                                                : Colors.transparent,
-                                            width: Platform.isWindows ? 5 : 2),
-                                        borderRadius: BorderRadius.all(
-                                            Radius.circular(5)),
-                                      ),
-                                      child: InkWell(
-                                        child: Text(
-                                          "🆕",
-                                          style: textSelection(
-                                            theme: "textDarkBold",
-                                          ),
-                                          textAlign: TextAlign.center,
+                                  if (trophySettings['earned'] == true &&
+                                      trophyListData['gamePercentage'] != 100 &&
+                                      (trophyListData['gamePercentage'] ?? 0) !=
+                                          0)
+                                    Tooltip(
+                                      message: regionalText['trophies']
+                                          ['earnedTimestamp'],
+                                      child: Container(
+                                        decoration: BoxDecoration(
+                                          //? To paint the border, we check the value of the settings for this website is true.
+                                          //? If it's false or null (never set), we will paint red.
+                                          border: Border.all(
+                                              color:
+                                                  trophySettings['sorting'] ==
+                                                          'earnedTimestamp'
+                                                      ? Colors.green
+                                                      : Colors.transparent,
+                                              width:
+                                                  Platform.isWindows ? 5 : 2),
+                                          borderRadius: BorderRadius.all(
+                                              Radius.circular(5)),
                                         ),
-                                        onTap: () {
-                                          if (trophySettings['sorting'] !=
-                                              "earnedTimestamp") {
-                                            setState(() {
-                                              trophySettings['sorting'] =
-                                                  "earnedTimestamp";
-                                            });
-                                          }
-                                        },
+                                        child: InkWell(
+                                          child: Icon(Icons.fiber_new,
+                                              color: themeSelector["secondary"]
+                                                  [settings.get("theme")],
+                                              size:
+                                                  Platform.isWindows ? 30 : 22),
+                                          onTap: () {
+                                            if (trophySettings['sorting'] !=
+                                                "earnedTimestamp") {
+                                              setState(() {
+                                                trophySettings['sorting'] =
+                                                    "earnedTimestamp";
+                                              });
+                                            }
+                                          },
+                                        ),
                                       ),
                                     ),
-                                  ),
                                 ],
                               ),
                             ],
@@ -1700,20 +1984,21 @@ class _TrophyListState extends State<TrophyList> {
                         ),
                       ),
                     //? This Row lets you filter in and out specific types of trophies.
-                    if (trophySettings['settings'] == true)
+                    if (openMenus['settings'] == true)
                       Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Center(
                             child: Text(
                               regionalText['trophies']['settings'],
-                              style: textSelection(theme: "textDark"),
+                              style: textSelection(theme: "textLight"),
                               textAlign: TextAlign.center,
                             ),
                           ),
                           Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
+                              SizedBox(height: Platform.isWindows ? 40 : 25),
                               //? Hide hidden trophies
                               Tooltip(
                                 message: regionalText['trophies']['hidden'],
@@ -1736,7 +2021,7 @@ class _TrophyListState extends State<TrophyList> {
                                             trophySettings['hidden'] != true
                                                 ? Icons.visibility_off
                                                 : Icons.visibility,
-                                            color: themeSelector["primary"]
+                                            color: themeSelector["secondary"]
                                                 [settings.get("theme")],
                                             size:
                                                 Platform.isWindows ? 35 : 17)),
@@ -1779,7 +2064,7 @@ class _TrophyListState extends State<TrophyList> {
                                                     true
                                                 ? Icons.view_comfy
                                                 : Icons.list,
-                                            color: themeSelector["primary"]
+                                            color: themeSelector["secondary"]
                                                 [settings.get("theme")],
                                             size: Platform.isWindows ? 35 : 17),
                                       ),
@@ -1809,32 +2094,30 @@ class _TrophyListState extends State<TrophyList> {
                                         //? To paint the border, we check the value of the settings for this website is true.
                                         //? If it's false or null (never set), we will paint red.
                                         border: Border.all(
-                                            color: trophySettings[
-                                                        'localization'] ==
-                                                    true
-                                                ? Colors.green
-                                                : Colors.red,
+                                            color:
+                                                settings.get('localization') ??
+                                                        true
+                                                    ? Colors.green
+                                                    : Colors.red,
                                             width: Platform.isWindows ? 5 : 2),
                                         borderRadius: BorderRadius.all(
                                             Radius.circular(5)),
                                       ),
                                       child: Icon(Icons.public,
-                                          color: themeSelector["primary"]
+                                          color: themeSelector["secondary"]
                                               [settings.get("theme")],
                                           size: Platform.isWindows ? 35 : 17),
                                     ),
                                     onTap: () {
                                       setState(() {
-                                        if (trophySettings['localization'] !=
+                                        if ((settings.get('localization') ??
+                                                true) !=
                                             true) {
-                                          trophySettings['localization'] = true;
+                                          settings.put('localization', true);
                                         } else {
-                                          trophySettings['localization'] =
-                                              false;
+                                          settings.put('localization', false);
                                         }
-                                        settings.put(
-                                            'trophySettings', trophySettings);
-                                        Navigator.pop(context);
+                                        // Navigator.pop(context);
                                       });
                                     }),
                               ),
@@ -1843,14 +2126,15 @@ class _TrophyListState extends State<TrophyList> {
                         ],
                       ),
                     //? This Row lets you change the view style for the trophy lists
-                    if (trophySettings['display'] == true)
+                    if (openMenus['display'] == true)
                       Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
+                          SizedBox(height: Platform.isWindows ? 40 : 25),
                           SizedBox(width: 10),
                           Text(
                             regionalText['trophies']['display'],
-                            style: textSelection(theme: "textDark"),
+                            style: textSelection(theme: "textLight"),
                             textAlign: TextAlign.center,
                           ),
                           //? Option to use view trophy lists as a list
@@ -1859,19 +2143,18 @@ class _TrophyListState extends State<TrophyList> {
                               message: regionalText['trophies']['list'],
                               child: InkWell(
                                   child: Icon(Icons.list,
-                                      color: themeSelector["primary"]
+                                      color: themeSelector["secondary"]
                                           [settings.get("theme")],
                                       size: Platform.isWindows ? 35 : 17),
                                   hoverColor: Colors.transparent,
                                   splashColor: Colors.transparent,
-                                  onTap: () => {
-                                        setState(() {
-                                          trophySettings['trophyDisplay'] =
-                                              "list";
-                                        }),
-                                        settings.put(
-                                            'trophySettings', trophySettings)
-                                      }),
+                                  onTap: () {
+                                    setState(() {
+                                      trophySettings['trophyDisplay'] = "list";
+                                    });
+                                    settings.put(
+                                        'trophySettings', trophySettings);
+                                  }),
                             ),
                           //? Option to use view trophy lists as a minimalist
                           if (trophySettings['trophyDisplay'] != "minimal")
@@ -1880,20 +2163,20 @@ class _TrophyListState extends State<TrophyList> {
                               child: InkWell(
                                   child: Icon(
                                     Icons.more_vert,
-                                    color: themeSelector["primary"]
+                                    color: themeSelector["secondary"]
                                         [settings.get("theme")],
                                     size: Platform.isWindows ? 35 : 17,
                                   ),
                                   hoverColor: Colors.transparent,
                                   splashColor: Colors.transparent,
-                                  onTap: () => {
-                                        setState(() {
-                                          trophySettings['trophyDisplay'] =
-                                              "minimal";
-                                        }),
-                                        settings.put(
-                                            'trophySettings', trophySettings)
-                                      }),
+                                  onTap: () {
+                                    setState(() {
+                                      trophySettings['trophyDisplay'] =
+                                          "minimal";
+                                    });
+                                    settings.put(
+                                        'trophySettings', trophySettings);
+                                  }),
                             ),
                           //? Option to use view trophy lists as a grid
                           if (trophySettings['trophyDisplay'] != "grid")
@@ -1901,19 +2184,18 @@ class _TrophyListState extends State<TrophyList> {
                               message: regionalText['trophies']['grid'],
                               child: InkWell(
                                   child: Icon(Icons.view_comfy,
-                                      color: themeSelector["primary"]
+                                      color: themeSelector["secondary"]
                                           [settings.get("theme")],
                                       size: Platform.isWindows ? 35 : 17),
                                   hoverColor: Colors.transparent,
                                   splashColor: Colors.transparent,
-                                  onTap: () => {
-                                        setState(() {
-                                          trophySettings['trophyDisplay'] =
-                                              "grid";
-                                        }),
-                                        settings.put(
-                                            'trophySettings', trophySettings)
-                                      }),
+                                  onTap: () {
+                                    setState(() {
+                                      trophySettings['trophyDisplay'] = "grid";
+                                    });
+                                    settings.put(
+                                        'trophySettings', trophySettings);
+                                  }),
                             ),
                         ],
                       ),
@@ -1923,7 +2205,7 @@ class _TrophyListState extends State<TrophyList> {
                       children: [
                         Text(
                           regionalText['trophies']['options'],
-                          style: textSelection(theme: "textDark"),
+                          style: textSelection(theme: "textLight"),
                           textAlign: TextAlign.center,
                         ),
                         //? Filter
@@ -1935,7 +2217,7 @@ class _TrophyListState extends State<TrophyList> {
                                   //? To paint the border, we check the value of the settings for this website is true.
                                   //? If it's false or null (never set), we will paint red.
                                   border: Border.all(
-                                      color: trophySettings['filter'] != true
+                                      color: openMenus['filter'] != true
                                           ? Colors.transparent
                                           : Colors.green,
                                       width: Platform.isWindows ? 5 : 2),
@@ -1943,26 +2225,29 @@ class _TrophyListState extends State<TrophyList> {
                                       BorderRadius.all(Radius.circular(5)),
                                 ),
                                 child: Icon(Icons.filter_alt,
-                                    color: themeSelector["primary"]
+                                    color: themeSelector["secondary"]
                                         [settings.get("theme")],
                                     size: Platform.isWindows ? 30 : 17),
                               ),
                               hoverColor: Colors.transparent,
                               splashColor: Colors.transparent,
-                              onTap: () => {
+                              onTap: () {
+                                setState(() {
+                                  if (openMenus['filter'] != true) {
+                                    openMenus['filter'] = true;
+                                    openMenus['sort'] = false;
+                                    openMenus['settings'] = false;
+                                    openMenus['display'] = false;
+                                  } else {
+                                    openMenus['filter'] = false;
+                                  }
+                                  menuCloser.run(() {
                                     setState(() {
-                                      if (trophySettings['filter'] != true) {
-                                        trophySettings['filter'] = true;
-                                        trophySettings['sort'] = false;
-                                        trophySettings['settings'] = false;
-                                        trophySettings['display'] = false;
-                                      } else {
-                                        trophySettings['filter'] = false;
-                                      }
-                                    }),
-                                    settings.put(
-                                        'trophySettings', trophySettings)
-                                  }),
+                                      openMenus['filter'] = false;
+                                    });
+                                  });
+                                });
+                              }),
                         ),
                         //? Sorting
                         Tooltip(
@@ -1973,7 +2258,7 @@ class _TrophyListState extends State<TrophyList> {
                                   //? To paint the border, we check the value of the settings for this website is true.
                                   //? If it's false or null (never set), we will paint red.
                                   border: Border.all(
-                                      color: trophySettings['sort'] != true
+                                      color: openMenus['sort'] != true
                                           ? Colors.transparent
                                           : Colors.green,
                                       width: Platform.isWindows ? 5 : 2),
@@ -1981,26 +2266,31 @@ class _TrophyListState extends State<TrophyList> {
                                       BorderRadius.all(Radius.circular(5)),
                                 ),
                                 child: Icon(Icons.sort_by_alpha,
-                                    color: themeSelector["primary"]
+                                    color: themeSelector["secondary"]
                                         [settings.get("theme")],
                                     size: Platform.isWindows ? 30 : 17),
                               ),
                               hoverColor: Colors.transparent,
                               splashColor: Colors.transparent,
-                              onTap: () => {
-                                    setState(() {
-                                      if (trophySettings['sort'] != true) {
-                                        trophySettings['filter'] = false;
-                                        trophySettings['sort'] = true;
-                                        trophySettings['settings'] = false;
-                                        trophySettings['display'] = false;
-                                      } else {
-                                        trophySettings['sort'] = false;
-                                      }
-                                    }),
-                                    settings.put(
-                                        'trophySettings', trophySettings)
-                                  }),
+                              onTap: () {
+                                setState(() {
+                                  if (openMenus['sort'] != true) {
+                                    openMenus['filter'] = false;
+                                    openMenus['sort'] = true;
+                                    openMenus['settings'] = false;
+                                    openMenus['display'] = false;
+                                  } else {
+                                    openMenus['sort'] = false;
+                                  }
+                                  menuCloser.run(() {
+                                    if (mounted) {
+                                      setState(() {
+                                        openMenus['sort'] = false;
+                                      });
+                                    }
+                                  });
+                                });
+                              }),
                         ),
                         //? Settings
                         Tooltip(
@@ -2011,7 +2301,7 @@ class _TrophyListState extends State<TrophyList> {
                                   //? To paint the border, we check the value of the settings for this website is true.
                                   //? If it's false or null (never set), we will paint red.
                                   border: Border.all(
-                                      color: trophySettings['settings'] != true
+                                      color: openMenus['settings'] != true
                                           ? Colors.transparent
                                           : Colors.green,
                                       width: Platform.isWindows ? 5 : 2),
@@ -2019,26 +2309,32 @@ class _TrophyListState extends State<TrophyList> {
                                       BorderRadius.all(Radius.circular(5)),
                                 ),
                                 child: Icon(Icons.settings,
-                                    color: themeSelector["primary"]
+                                    color: themeSelector["secondary"]
                                         [settings.get("theme")],
                                     size: Platform.isWindows ? 30 : 17),
                               ),
                               hoverColor: Colors.transparent,
                               splashColor: Colors.transparent,
-                              onTap: () => {
-                                    setState(() {
-                                      if (trophySettings['settings'] != true) {
-                                        trophySettings['filter'] = false;
-                                        trophySettings['sort'] = false;
-                                        trophySettings['settings'] = true;
-                                        trophySettings['display'] = false;
-                                      } else {
-                                        trophySettings['settings'] = false;
-                                      }
-                                    }),
-                                    settings.put(
-                                        'trophySettings', trophySettings)
-                                  }),
+                              onTap: () {
+                                setState(() {
+                                  if (openMenus['settings'] != true) {
+                                    openMenus['filter'] = false;
+                                    openMenus['sort'] = false;
+                                    openMenus['settings'] = true;
+                                    openMenus['display'] = false;
+                                  } else {
+                                    openMenus['settings'] = false;
+                                  }
+
+                                  menuCloser.run(() {
+                                    if (mounted) {
+                                      setState(() {
+                                        openMenus['settings'] = false;
+                                      });
+                                    }
+                                  });
+                                });
+                              }),
                         ),
                         //? Display
                         Tooltip(
@@ -2049,7 +2345,7 @@ class _TrophyListState extends State<TrophyList> {
                                   //? To paint the border, we check the value of the settings for this website is true.
                                   //? If it's false or null (never set), we will paint red.
                                   border: Border.all(
-                                      color: trophySettings['display'] != true
+                                      color: openMenus['display'] != true
                                           ? Colors.transparent
                                           : Colors.green,
                                       width: Platform.isWindows ? 5 : 2),
@@ -2057,32 +2353,37 @@ class _TrophyListState extends State<TrophyList> {
                                       BorderRadius.all(Radius.circular(5)),
                                 ),
                                 child: Icon(
-                                    trophySettings['trophyDisplay'] == "list"
+                                    openMenus['trophyDisplay'] == "list"
                                         ? Icons.list
-                                        : trophySettings['trophyDisplay'] ==
+                                        : openMenus['trophyDisplay'] ==
                                                 "minimal"
                                             ? Icons.more_vert
                                             : Icons.view_comfy,
-                                    color: themeSelector["primary"]
+                                    color: themeSelector["secondary"]
                                         [settings.get("theme")],
                                     size: Platform.isWindows ? 30 : 17),
                               ),
                               hoverColor: Colors.transparent,
                               splashColor: Colors.transparent,
-                              onTap: () => {
-                                    setState(() {
-                                      if (trophySettings['display'] != true) {
-                                        trophySettings['filter'] = false;
-                                        trophySettings['sort'] = false;
-                                        trophySettings['settings'] = false;
-                                        trophySettings['display'] = true;
-                                      } else {
-                                        trophySettings['display'] = false;
-                                      }
-                                    }),
-                                    settings.put(
-                                        'trophySettings', trophySettings)
-                                  }),
+                              onTap: () {
+                                setState(() {
+                                  if (openMenus['display'] != true) {
+                                    openMenus['filter'] = false;
+                                    openMenus['sort'] = false;
+                                    openMenus['settings'] = false;
+                                    openMenus['display'] = true;
+                                  } else {
+                                    openMenus['display'] = false;
+                                  }
+                                  menuCloser.run(() {
+                                    if (mounted) {
+                                      setState(() {
+                                        openMenus['display'] = false;
+                                      });
+                                    }
+                                  });
+                                });
+                              }),
                         ),
                         SizedBox(width: 5),
                         //? Reset settings button
@@ -2101,20 +2402,21 @@ class _TrophyListState extends State<TrophyList> {
                                   "hidden": trophySettings['hidden'],
                                   "description": true,
                                   "DLCseparator": true,
-                                  'localization': true,
                                   "trophyDisplay":
                                       trophySettings['trophyDisplay'],
+                                };
+                                openMenus = {
                                   "filter": false,
                                   "sort": false,
-                                  "settings": false,
                                   "display": false,
+                                  "settings": false,
                                 };
                               });
                               settings.put('trophySettings', trophySettings);
                             },
                             child: Container(
                               child: Icon(Icons.undo,
-                                  color: themeSelector["primary"]
+                                  color: themeSelector["secondary"]
                                       [settings.get("theme")],
                                   size: Platform.isWindows ? 30 : 17),
                             ),

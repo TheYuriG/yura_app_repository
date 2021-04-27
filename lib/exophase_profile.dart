@@ -578,20 +578,20 @@ class _ExophaseProfileState extends State<ExophaseProfile> {
                                   exophaseGamesList[i]['gameLastPlayed'],
                                   style: textSelection()),
                             ),
-                            //? Game last played date
-                            if (gameTrophyData['exophase'][exophaseGamesList[i]
-                                                ['gameLink']
-                                            .contains("#")
-                                        ? exophaseGamesList[i]['gameLink']
-                                            .split('#')[0]
-                                        : exophaseGamesList[i]['gameLink']]
-                                    ['first'] !=
-                                gameTrophyData['exophase'][exophaseGamesList[i]
-                                            ['gameLink']
-                                        .contains("#")
-                                    ? exophaseGamesList[i]['gameLink']
-                                        .split('#')[0]
-                                    : exophaseGamesList[i]['gameLink']]['last'])
+                            //? Game trophy gap
+                            if (gameTrophyData['exophase'][exophaseGamesList[i]['gameLink'].contains("#") ? exophaseGamesList[i]['gameLink'].split('#')[0] : exophaseGamesList[i]['gameLink']] != null &&
+                                gameTrophyData['exophase'][
+                                        exophaseGamesList[i]['gameLink'].contains("#")
+                                            ? exophaseGamesList[i]['gameLink']
+                                                .split('#')[0]
+                                            : exophaseGamesList[i]
+                                                ['gameLink']]['first'] !=
+                                    gameTrophyData['exophase'][
+                                        exophaseGamesList[i]['gameLink'].contains("#")
+                                            ? exophaseGamesList[i]['gameLink']
+                                                .split('#')[0]
+                                            : exophaseGamesList[i]
+                                                ['gameLink']]['last'])
                               SingleChildScrollView(
                                 scrollDirection: Axis.horizontal,
                                 child: timeGap(

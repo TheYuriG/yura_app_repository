@@ -752,8 +752,7 @@ List<Map<String, dynamic>> fetchExophaseGames(Map<String, dynamic> data) {
       ws.getElement(
           '#app > div > div.row.user-container > div.col-12.col-xl-9 > ul > li:nth-child(${(i * 2) - 1}) > div.row.gx-0.align-items-center > div.col.col-game.game-info.pe-3 > div > h3 > a',
           ['href']).forEach((element) {
-        String link = element['attributes']['href'].trim();
-        first50['gameLink'] = link.contains('#') ? link.split('#')[0] : link;
+        first50['gameLink'] = element['attributes']['href'].trim();
         first50['gameName'] = element['title'].trim();
       });
       if (first50['gameName'] == null) {
@@ -885,8 +884,7 @@ List<Map<String, dynamic>> fetchExophaseGames(Map<String, dynamic> data) {
       ws.getElement(
           'li:nth-child(${(i * 2) + 1}) > div.row.gx-0.align-items-center > div.col.col-game.game-info.pe-3 > div > h3 > a',
           ['href']).forEach((element) {
-        String link = element['attributes']['href'].trim();
-        next50['gameLink'] = link.contains('#') ? link.split('#')[0] : link;
+        next50['gameLink'] = element['attributes']['href'].trim();
         next50['gameName'] = element['title'].trim();
       });
       if (next50['gameName'] == null) {
@@ -2688,7 +2686,7 @@ class _MyHomePageState extends State<MyHomePage> {
             //? Once successful, save the retrived games in the database to avoid spamming network requests.
             settings.put('exophaseGames', exophaseGames);
 
-            print(exophaseGames);
+            // print(exophaseGames);
           }
         }
       } catch (e) {
@@ -6176,7 +6174,6 @@ class _MyHomePageState extends State<MyHomePage> {
                                         update['updateNotes'] = 'error';
                                       }
                                     }
-                                    // print(update);
                                     return update;
                                   }
 

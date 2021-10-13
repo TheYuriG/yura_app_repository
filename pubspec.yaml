@@ -1,7 +1,7 @@
 name: yura_trophy
 description: An app to track your progress as a PSN trophy hunter.
 
-publish_to: 'none'
+publish_to: "none"
 
 version: 0.4.1
 
@@ -30,7 +30,6 @@ dev_dependencies:
     sdk: flutter
   integration_test:
     sdk: flutter
-  flutter_launcher_icons: "^0.8.0"
 
 flutter_icons:
   android: "launcher_icon"
